@@ -58,6 +58,16 @@ export default function Home() {
           <span className="mark-name">Loom</span>
         </div>
 
+        <div className="landing-lede">
+          <h1 className="lede-title">A book written in two hands, read as one voice.</h1>
+          <p className="lede-body">
+            You write a passage; the AI author answers in your own voice — matching your
+            style, tone, and length — then hands the page back. Turn by turn, the story
+            grows from both of you, yet reads as if a single author set it down. Your
+            effort, doubled; your voice, kept whole.
+          </p>
+        </div>
+
         {ephemeral && (
           <div className="banner warn-banner">
             Heads up: no persistent storage is configured, so books are kept only

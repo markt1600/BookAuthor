@@ -1275,3 +1275,24 @@ body {
 }
 .studio.is-mobile .notes.notes-open { transform: none; }
 .notes-scrim { position: fixed; inset: 0; background: rgba(8, 9, 12, 0.55); z-index: 45; backdrop-filter: blur(1px); }
+
+/* landing: descriptive lede under the mark */
+.landing-lede { max-width: 660px; margin: -16px auto 36px; text-align: center; }
+.lede-title {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: clamp(22px, 3.4vw, 30px);
+  line-height: 1.22;
+  margin: 0 0 14px;
+  letter-spacing: 0.01em;
+}
+.lede-body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--on-desk-dim);
+  margin: 0;
+}
+@media (max-width: 560px) {
+  .landing-lede { margin-bottom: 28px; }
+  .lede-body { font-size: 14px; }
+}
