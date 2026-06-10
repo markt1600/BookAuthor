@@ -69,6 +69,8 @@ export default function BookStudio() {
   const [newChapter, setNewChapter] = useState(false);
   const [nav, setNav] = useState(null); // 'next' | 'prev' | null — page-turn direction
   const [copied, setCopied] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const [pages, setPages] = useState([]); // [[run,...], ...]
   const [turnStart, setTurnStart] = useState({}); // turnId -> page index
@@ -112,6 +114,20 @@ export default function BookStudio() {
     }
     return () => {
       alive = false;
+    };
+  }, []);
+
+  // ---- detect a phone / narrow viewport and adapt the layout ----
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 900px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    if (mq.addEventListener) mq.addEventListener("change", update);
+    else mq.addListener(update);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", update);
+      else mq.removeListener(update);
     };
   }, []);
 
@@ -457,7 +473,7 @@ export default function BookStudio() {
   };
 
   return (
-    <div className="studio">
+    <div className={`studio${isMobile ? " is-mobile" : ""}`}>
       <header className="topbar">
         <div className="topbar-title">
           <h1>{book.title}</h1>
@@ -496,6 +512,11 @@ export default function BookStudio() {
           )}
         </div>
         <div className="topbar-actions">
+          {isMobile && (
+            <button className="btn btn-ghost" onClick={() => setNotesOpen((v) => !v)}>
+              Notes
+            </button>
+          )}
           <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
             Chapters
           </button>
@@ -686,8 +707,31 @@ export default function BookStudio() {
           </div>
         </div>
 
-        <aside className="notes">
-          <h2>Reader’s notes</h2>
+        <aside className={`notes${isMobile ? (notesOpen ? " notes-open" : " notes-closed") : ""}`}>
+          <div className="notes-head">
+            <h2>Reader’s notes</h2>
+            {isMobile && (
+              <button className="btn btn-ghost x" onClick={() => setNotesOpen(false)} aria-label="Close notes">
+                Close
+              </button>
+            )}
+          </div>
+
+          <div className="share-top">
+            <div className="share-label">Your private link — return any time</div>
+            <div className="share-row">
+              <input
+                readOnly
+                value={shareUrl}
+                aria-label="Shareable book link"
+                onFocusCapture={(e) => e.target.select()}
+              />
+              <button className="btn btn-primary" onClick={copyShare}>
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+          </div>
+
           <div className="note-card">
             <div className="k">Genre</div>
             {a.genre ? (
@@ -706,12 +750,6 @@ export default function BookStudio() {
             <div className="k">Synopsis so far</div>
             <div className={`v${a.synopsis ? "" : " muted"}`}>{a.synopsis || "Nothing written yet."}</div>
           </div>
-          {a.continuity && (
-            <div className="note-card">
-              <div className="k">Story memory</div>
-              <div className="v continuity-note">{a.continuity}</div>
-            </div>
-          )}
           <div className="note-card">
             <div className="k">Craft</div>
             {a.qualityScore != null ? (
@@ -733,21 +771,14 @@ export default function BookStudio() {
               </div>
             )}
           </div>
-          <div className="notes-foot">
-            <div>Your private link — return any time</div>
-            <div className="share-row">
-              <input
-                readOnly
-                value={shareUrl}
-                aria-label="Shareable book link"
-                onFocusCapture={(e) => e.target.select()}
-              />
-              <button className="btn" onClick={copyShare}>
-                {copied ? "Copied" : "Copy"}
-              </button>
+          {a.continuity && (
+            <div className="note-card">
+              <div className="k">Story memory</div>
+              <div className="v continuity-note">{a.continuity}</div>
             </div>
-          </div>
+          )}
         </aside>
+        {isMobile && notesOpen && <div className="notes-scrim" onClick={() => setNotesOpen(false)} />}
       </div>
 
       {/* offscreen measurer — typography matches a real page; width set per call */}

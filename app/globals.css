@@ -1219,3 +1219,59 @@ body {
 .drawer-toggle input:focus-visible + .toggle-track { outline: 2px solid var(--brass); outline-offset: 2px; }
 .toggle-text strong { display: block; font-size: 14px; font-weight: 600; }
 .toggle-text em { display: block; font-style: normal; font-size: 12px; color: var(--on-desk-dim); line-height: 1.5; margin-top: 3px; }
+
+/* ===================================================================
+   v4 — notes reorder (share on top) + mobile layout
+   =================================================================== */
+.notes-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.notes-head h2 { margin: 0; }
+
+/* prominent share block, now at the top of the notes */
+.share-top {
+  background: var(--brass-soft);
+  border: 1px solid rgba(192, 145, 63, 0.4);
+  border-radius: 10px;
+  padding: 13px 14px;
+  margin-bottom: 20px;
+}
+.share-label {
+  font-family: var(--data); font-size: 10.5px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: #d8b878; margin-bottom: 9px;
+}
+.share-top .share-row { display: flex; gap: 6px; }
+.share-top .share-row input {
+  flex: 1; min-width: 0; font-family: var(--data); font-size: 11px;
+  background: rgba(0,0,0,0.25); border: 1px solid rgba(192,145,63,0.3);
+  border-radius: var(--radius); color: var(--on-desk); padding: 8px 10px;
+}
+.share-top .share-row .btn { white-space: nowrap; }
+
+/* ---------------- mobile ---------------- */
+.studio.is-mobile .work { grid-template-columns: 1fr; }
+.studio.is-mobile .ledger { display: none; }
+.studio.is-mobile .topbar { flex-wrap: wrap; row-gap: 8px; gap: 10px; padding: 12px 14px; }
+.studio.is-mobile .topbar-spacer { display: none; }
+.studio.is-mobile .topbar-title { flex: 1 1 auto; }
+.studio.is-mobile .topbar-actions { width: 100%; justify-content: space-between; gap: 6px; }
+.studio.is-mobile .topbar-actions .btn { padding: 8px 12px; font-size: 13px; flex: 1; }
+.studio.is-mobile .stage { padding: 22px 10px 140px; }
+.studio.is-mobile .dock {
+  flex-wrap: wrap; row-gap: 10px; max-width: none; width: 100%;
+  border-radius: 16px; padding: 12px;
+}
+.studio.is-mobile .dock .pageno { min-width: 0; flex: 1; }
+.studio.is-mobile .dock .btn-primary { flex: 1 1 100%; order: 5; }
+.studio.is-mobile .counters { gap: 16px; }
+
+/* notes become a slide-in panel on mobile */
+.studio.is-mobile .notes {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(360px, 88vw);
+  border-left: 1px solid var(--desk-line); border-top: none;
+  transform: translateX(103%);
+  transition: transform 0.24s ease;
+  z-index: 46;
+  box-shadow: -24px 0 60px -24px rgba(0, 0, 0, 0.7);
+}
+.studio.is-mobile .notes.notes-open { transform: none; }
+.notes-scrim { position: fixed; inset: 0; background: rgba(8, 9, 12, 0.55); z-index: 45; backdrop-filter: blur(1px); }
