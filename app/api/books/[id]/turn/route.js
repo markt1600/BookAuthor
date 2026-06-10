@@ -4,7 +4,9 @@ import {
   makeTurn,
   countWords,
   isUsersMove,
-  recentContext,
+  continuationParts,
+  fullManuscript,
+  FULL_CONTEXT_WORD_CAP,
   manuscriptText,
 } from "@/lib/book";
 import { continueStory, analyzeStory } from "@/lib/claude";
@@ -40,16 +42,28 @@ export async function POST(request, { params }) {
   const userTurn = makeTurn("user", text);
   book.turns.push(userTurn);
 
-  // 2) Ask Claude to continue in the established voice, ~matching length.
+  // 2) Ask the AI author to continue in the established voice, ~matching length.
+  //    It gets a cumulative continuity record (from the prior analysis) plus the
+  //    opening and the recent passages, so early characters aren't forgotten.
   let claudeTurn = null;
+  const priorAnalysis = book.analysis && book.analysis.updatedAt ? book.analysis : null;
   try {
-    const continuation = await continueStory({
+    const callArgs = {
       title: book.title,
       author: book.author,
       settings: book.settings,
-      context: recentContext(book),
+      memory: priorAnalysis,
       targetWords: countWords(text),
-    });
+    };
+    const whole = fullManuscript(book);
+    if (book.settings.fullContext && countWords(whole) <= FULL_CONTEXT_WORD_CAP) {
+      callArgs.whole = whole; // send the entire manuscript
+    } else {
+      const parts = continuationParts(book); // layered: opening + recent + memory
+      callArgs.opening = parts.opening;
+      callArgs.recent = parts.recent;
+    }
+    const continuation = await continueStory(callArgs);
     claudeTurn = makeTurn("claude", continuation);
     book.turns.push(claudeTurn);
   } catch (err) {
@@ -68,6 +82,7 @@ export async function POST(request, { params }) {
     const analysis = await analyzeStory({
       title: book.title,
       fullText: manuscriptText(book),
+      prior: priorAnalysis,
     });
     if (analysis) book.analysis = analysis;
   } catch {

@@ -24,6 +24,7 @@ export const LABELS = {
     sans: "Sans",
     mono: "Mono",
     storybook: "Storybook",
+    cursive: "Cursive",
   },
 };
 

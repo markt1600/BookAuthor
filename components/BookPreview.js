@@ -15,6 +15,7 @@ const FONT = {
   sans: '"Inter", system-ui, sans-serif',
   mono: '"Spline Sans Mono", monospace',
   storybook: '"Sorts Mill Goudy", Georgia, serif',
+  cursive: '"Dancing Script", "Segoe Script", cursive',
 };
 
 // portrait 6×9, square 8×8, landscape 9×6 — width / height
@@ -29,6 +30,7 @@ export default function BookPreview({ title, author, settings }) {
   const m = MATERIAL[settings.material] || MATERIAL.paper;
   const fam = FONT[settings.font] || FONT.serif;
   const ratio = RATIO[settings.format] || RATIO.portrait;
+  const ink = settings.inkColor || m.ink;
 
   // Scale the live reading size down for the mini page so relative changes show.
   const bodySize = Math.max(9, Math.round(settings.fontSize * 0.62));
@@ -48,7 +50,7 @@ export default function BookPreview({ title, author, settings }) {
           data-material={settings.material}
           style={{
             background: m.bg,
-            color: m.ink,
+            color: ink,
             aspectRatio: String(ratio),
             fontFamily: fam,
           }}

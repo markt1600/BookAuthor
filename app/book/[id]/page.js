@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useParams } from "next/navigation";
 import { countWords, isUsersMove, totalWords } from "@/lib/book";
 import SettingsDrawer from "@/components/SettingsDrawer";
+import ChaptersDrawer from "@/components/ChaptersDrawer";
 
 /* physical page geometry (px @96dpi) — real trim sizes */
 const PAGE_GEOM = {
@@ -17,21 +18,29 @@ const FONT = {
   sans: '"Inter", system-ui, sans-serif',
   mono: '"Spline Sans Mono", monospace',
   storybook: '"Sorts Mill Goudy", Georgia, serif',
+  cursive: '"Dancing Script", "Segoe Script", cursive',
 };
 
 const LINE_H = 1.62;
+
+/* must match the .ink-run--ai box in globals.css (border-box):
+   padding 14×18, 1px border all sides */
+const AI_PAD_X = 18;
+const AI_PAD_Y = 14;
+const AI_BORDER = 1;
+const AI_HRED = AI_PAD_X * 2 + AI_BORDER * 2; // width the AI text loses
+const AI_VCHROME = AI_PAD_Y * 2 + AI_BORDER * 2; // height the AI box adds
 
 function authorName(author, bookAuthor) {
   if (author === "user") return bookAuthor?.trim() || "You";
   return "AI Author";
 }
 
-/* ---- word-reveal for the "freshly written" animation ---- */
-function RevealParagraph({ text, active, delayStart, perWord, onWordCount }) {
-  if (!active) return <p>{text}</p>;
-  const words = text.split(/(\s+)/); // keep whitespace tokens
+/* word-reveal for the freshly-written animation */
+function RevealParagraph({ text, delayStart, perWord, onWordCount }) {
+  const tokens = text.split(/(\s+)/);
   let wi = delayStart;
-  const nodes = words.map((tok, i) => {
+  const nodes = tokens.map((tok, i) => {
     if (/^\s+$/.test(tok)) return tok;
     const delay = wi * perWord;
     wi += 1;
@@ -56,9 +65,12 @@ export default function BookStudio() {
   const [generating, setGenerating] = useState(false);
   const [banner, setBanner] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [chaptersOpen, setChaptersOpen] = useState(false);
+  const [newChapter, setNewChapter] = useState(false);
+  const [nav, setNav] = useState(null); // 'next' | 'prev' | null — page-turn direction
   const [copied, setCopied] = useState(false);
 
-  const [pages, setPages] = useState([]); // [[fragment,...], ...]
+  const [pages, setPages] = useState([]); // [[run,...], ...]
   const [turnStart, setTurnStart] = useState({}); // turnId -> page index
   const [scale, setScale] = useState(1);
   const [fontsReady, setFontsReady] = useState(false);
@@ -106,87 +118,129 @@ export default function BookStudio() {
   const s = book?.settings;
   const geom = (s && PAGE_GEOM[s.format]) || PAGE_GEOM.portrait;
   const contentW = geom.w - geom.padX * 2;
-  const contentH = geom.h - geom.padY * 2 - 26; // folio space
+  const contentH = geom.h - geom.padY * 2 - 26; // leave room for the folio
   const fontFamily = (s && FONT[s.font]) || FONT.serif;
   const paraGap = s ? Math.round(s.fontSize * 0.95) : 16;
 
-  // ---- paginate: flow the whole manuscript into fixed-height pages ----
+  // ---- paginate: flow the manuscript into fixed-height pages, box-aware ----
   useEffect(() => {
     if (!book || !measureRef.current) return;
     const m = measureRef.current;
-    const measure = (t) => {
+    const measure = (t, w) => {
+      m.style.width = `${w}px`;
       m.textContent = t;
       return m.offsetHeight;
     };
-    const lineH = s.fontSize * LINE_H;
-    const out = [];
-    const starts = {};
-    let page = [];
-    let used = 0;
-    const flush = () => {
-      out.push(page);
-      page = [];
-      used = 0;
+    const widthFor = (author) => (author === "claude" ? contentW - AI_HRED : contentW);
+    const oneLine = s.fontSize * LINE_H;
+
+    // chapter breaks, keyed by the turn index they begin at
+    const chapterByStart = {};
+    (book.chapters || []).forEach((c, i) => {
+      chapterByStart[c.startTurn] = { num: i + 1, title: c.title || "" };
+    });
+    const headFont = Math.round(s.fontSize * 1.7);
+    const measureHead = (title) => {
+      m.style.width = `${contentW}px`;
+      const pf = m.style.fontSize;
+      m.style.fontSize = `${headFont}px`;
+      m.textContent = title && title.trim() ? title : "Untitled";
+      const th = m.offsetHeight;
+      m.style.fontSize = pf;
+      // title (measured larger than it renders) + eyebrow + rule + generous margins
+      return th + Math.round(s.fontSize * 1.1) + 2 + paraGap * 3;
     };
 
-    for (const turn of book.turns) {
+    const out = [];
+    const starts = {};
+    const tabShown = new Set();
+    let runs = []; // current page: [{author,turnId,turnStart,paras:[]} | {type:'chapter',...}]
+    let base = 0; // exact rendered height of committed content on this page
+    const flush = () => {
+      if (runs.length) out.push(runs);
+      runs = [];
+      base = 0;
+    };
+    const place = (turn, text, isNewRun) => {
+      if (isNewRun) {
+        const ts = !tabShown.has(turn.id);
+        if (ts) tabShown.add(turn.id);
+        runs.push({ author: turn.author, turnId: turn.id, turnStart: ts, paras: [text] });
+      } else {
+        runs[runs.length - 1].paras.push(text);
+      }
+    };
+
+    let guard = 0;
+    for (let ti = 0; ti < book.turns.length; ti++) {
+      const turn = book.turns[ti];
+      if (chapterByStart[ti]) {
+        flush(); // chapters open on a fresh page, like a printed book
+        const ch = chapterByStart[ti];
+        runs.push({ type: "chapter", num: ch.num, title: ch.title });
+        base += measureHead(ch.title);
+      }
       const paras = String(turn.text).split(/\n{2,}/).filter((p) => p.length);
       if (!paras.length) paras.push("");
-      let firstFragOfTurn = true;
-      starts[turn.id] = out.length; // page where this turn begins
+      let firstOfTurn = true;
+      starts[turn.id] = out.length;
       for (let pi = 0; pi < paras.length; pi++) {
         let text = paras[pi];
         while (true) {
-          const isFirst = page.length === 0;
-          const gap = isFirst ? 0 : paraGap;
-          const avail = contentH - used - gap;
-          if (avail < lineH && !isFirst) {
+          if (++guard > 2e6) throw new Error("pagination loop");
+          const last = runs[runs.length - 1];
+          const extend = last && last.author === turn.author && last.turnId === turn.id;
+          const gapPart = extend ? paraGap : runs.length > 0 ? paraGap : 0;
+          const chrome = !extend && turn.author === "claude" ? AI_VCHROME : 0;
+          const fixed = gapPart + chrome;
+          const w = widthFor(turn.author);
+          const availText = contentH - base - fixed;
+
+          if (availText < oneLine && runs.length > 0) {
             flush();
-            if (firstFragOfTurn) starts[turn.id] = out.length;
+            if (firstOfTurn) starts[turn.id] = out.length;
             continue;
           }
-          const fullH = measure(text);
-          if (fullH <= avail) {
-            page.push({ turnId: turn.id, author: turn.author, text, turnStart: firstFragOfTurn });
-            used += gap + fullH;
-            firstFragOfTurn = false;
+          const fullH = measure(text, w);
+          if (fullH <= availText) {
+            place(turn, text, !extend);
+            base += fixed + fullH;
+            firstOfTurn = false;
             break;
           }
-          // split this paragraph by words to fill the page
+          // split the paragraph by words to fill the remaining space
           const words = text.split(/\s+/);
           let lo = 1,
             hi = words.length,
             best = 0;
           while (lo <= hi) {
             const mid = (lo + hi) >> 1;
-            const h = measure(words.slice(0, mid).join(" "));
-            if (h <= avail) {
+            if (measure(words.slice(0, mid).join(" "), w) <= availText) {
               best = mid;
               lo = mid + 1;
             } else hi = mid - 1;
           }
           if (best === 0) {
-            if (!isFirst) {
+            if (runs.length > 0) {
               flush();
-              if (firstFragOfTurn) starts[turn.id] = out.length;
+              if (firstOfTurn) starts[turn.id] = out.length;
               continue;
             }
-            best = 1;
+            best = 1; // degenerate: force a word so we always progress
           }
           const head = words.slice(0, best).join(" ");
-          page.push({ turnId: turn.id, author: turn.author, text: head, turnStart: firstFragOfTurn });
-          firstFragOfTurn = false;
+          place(turn, head, !extend);
+          base += fixed + measure(head, w);
+          firstOfTurn = false;
           flush();
-          if (out.length && starts[turn.id] === undefined) starts[turn.id] = out.length;
           text = words.slice(best).join(" ");
         }
       }
     }
-    if (page.length) flush();
+    flush();
 
     setPages(out);
     setTurnStart(starts);
-
     if (pendingJump.current != null) {
       const target = starts[pendingJump.current];
       if (target != null) setCurrentPage(target);
@@ -201,8 +255,7 @@ export default function BookStudio() {
     if (!el) return;
     const apply = () => {
       const avail = el.clientWidth - 10;
-      const sc = Math.max(0.3, Math.min(1, avail / geom.w));
-      setScale(sc);
+      setScale(Math.max(0.3, Math.min(1, avail / geom.w)));
     };
     apply();
     const ro = new ResizeObserver(apply);
@@ -229,17 +282,15 @@ export default function BookStudio() {
   }, [draft, draftKey]);
 
   const usersMove = book ? isUsersMove(book) : true;
-  const writingIndex = pages.length; // writing page sits after the last leaf
+  const writingIndex = pages.length;
   const pageCount = pages.length + (usersMove ? 1 : 0);
   const onWritingPage = usersMove && currentPage >= writingIndex;
 
-  // when a fresh turn lands we jump to where the AI began — keep page in range
   useEffect(() => {
     if (currentPage > pageCount - 1) setCurrentPage(Math.max(0, pageCount - 1));
     if (currentPage < 0) setCurrentPage(0);
   }, [pageCount, currentPage]);
 
-  // clear the writing animation shortly after it plays
   useEffect(() => {
     if (animTurn == null) return;
     const t = setTimeout(() => setAnimTurn(null), 1600);
@@ -249,13 +300,18 @@ export default function BookStudio() {
   const draftWords = useMemo(() => countWords(draft), [draft]);
   const committedWords = book ? totalWords(book) : 0;
 
-  const currentFrags = !onWritingPage && pages[currentPage] ? pages[currentPage] : [];
+  const currentRuns = !onWritingPage && pages[currentPage] ? pages[currentPage] : [];
   const pageWords = useMemo(
-    () => currentFrags.reduce((n, f) => n + countWords(f.text), 0),
-    [currentFrags]
+    () =>
+      currentRuns.reduce(
+        (n, r) => n + (r.paras ? r.paras.reduce((m, p) => m + countWords(p), 0) : 0),
+        0
+      ),
+    [currentRuns]
   );
-  const currentTurn = currentFrags[0]
-    ? book.turns.find((t) => t.id === currentFrags[0].turnId)
+  const firstAuthorRun = currentRuns.find((r) => r.turnId);
+  const currentTurn = firstAuthorRun
+    ? book.turns.find((t) => t.id === firstAuthorRun.turnId)
     : null;
 
   const counters = onWritingPage
@@ -294,23 +350,28 @@ export default function BookStudio() {
         return;
       }
       const aiTurn = data.book.turns[data.book.turns.length - 1];
-      pendingJump.current = aiTurn ? aiTurn.id : null; // jump to where it began
+      pendingJump.current = aiTurn ? aiTurn.id : null;
       setAnimTurn(aiTurn ? aiTurn.id : null);
       setDraft("");
-      setBook(data.book); // triggers repagination + the queued jump
+      setBook(data.book);
+      if (newChapter) {
+        const startTurn = Math.max(0, data.book.turns.length - 2); // the user turn just written
+        save({ chapters: [...(data.book.chapters || []), { startTurn, title: "" }] });
+        setNewChapter(false);
+      }
     } catch {
       setBanner("Network error — your text is still here. Try again.");
     } finally {
       setGenerating(false);
     }
-  }, [draft, generating, id]);
+  }, [draft, generating, id, newChapter, save]);
 
   const editFromHere = useCallback(
     async (turnId) => {
       if (!book) return;
       const idx = book.turns.findIndex((t) => t.id === turnId);
       if (idx < 0) return;
-      const keepFrom = idx % 2 === 0 ? idx : idx - 1; // snap to a your-turn boundary
+      const keepFrom = idx % 2 === 0 ? idx : idx - 1;
       const ok = window.confirm(
         "Editing from here discards this passage and everything after it — the book forks at this point. Continue?"
       );
@@ -342,7 +403,11 @@ export default function BookStudio() {
       submitTurn();
     }
   }
-  const goWrite = () => setCurrentPage(writingIndex);
+  const goWrite = () => turnTo(writingIndex);
+  function turnTo(t) {
+    setNav(t > currentPage ? "next" : t < currentPage ? "prev" : null);
+    setCurrentPage(t);
+  }
 
   if (status === "loading")
     return (
@@ -379,24 +444,15 @@ export default function BookStudio() {
     );
 
   const a = book.analysis || {};
-  const perWord = 26; // ms between revealed words (animation)
-
-  // group a page's fragments into consecutive same-author runs (for ink boxes)
-  function runsOf(frags) {
-    const runs = [];
-    for (const f of frags) {
-      const last = runs[runs.length - 1];
-      if (last && last.author === f.author && last.turnId === f.turnId) last.frags.push(f);
-      else runs.push({ author: f.author, turnId: f.turnId, frags: [f] });
-    }
-    return runs;
-  }
+  const perWord = 26;
+  const flipClass = nav === "next" ? "flip-next" : nav === "prev" ? "flip-prev" : "";
 
   const proseStyle = {
     fontFamily,
     fontSize: s.fontSize,
     lineHeight: LINE_H,
     height: contentH,
+    color: s.inkColor || undefined,
     "--para-gap": `${paraGap}px`,
   };
 
@@ -419,7 +475,7 @@ export default function BookStudio() {
                   className="ledger-band"
                   data-author={t.author}
                   data-current={!onWritingPage && turnStart[t.id] === currentPage}
-                  onClick={() => setCurrentPage(turnStart[t.id] ?? 0)}
+                  onClick={() => turnTo(turnStart[t.id] ?? 0)}
                   style={{ flexGrow: Math.max(1, t.words) }}
                   title={`${authorName(t.author, book.author)} · ${t.words} words`}
                 />
@@ -440,6 +496,9 @@ export default function BookStudio() {
           )}
         </div>
         <div className="topbar-actions">
+          <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
+            Chapters
+          </button>
           <button className="btn btn-ghost" onClick={exportPdf}>
             Export PDF
           </button>
@@ -455,27 +514,32 @@ export default function BookStudio() {
             {banner && <div className="banner">{banner}</div>}
 
             <div className="page-viewport" ref={vpRef}>
-              <div
-                className="page-scaler"
-                style={{ width: geom.w * scale, height: geom.h * scale }}
-              >
-                <div
-                  className="page-shell"
-                  style={{ width: geom.w, height: geom.h, transform: `scale(${scale})` }}
-                >
+              <div className="page-scaler" style={{ width: geom.w * scale, height: geom.h * scale }}>
+                <div className="page-shell" style={{ width: geom.w, height: geom.h, transform: `scale(${scale})` }}>
                   <div className="page-stack" aria-hidden="true">
                     <i /><i /><i />
                   </div>
 
                   {onWritingPage ? (
                     <div
-                      className={`book-page paper is-writing${generating ? " is-busy" : ""}`}
+                      key="writing"
+                      className={`book-page paper is-writing ${flipClass}${generating ? " is-busy" : ""}`}
                       data-material={s.material}
                       style={{ padding: `${geom.padY}px ${geom.padX}px` }}
                     >
                       <div className="run-tab" data-author="user">
                         {book.turns.length === 0 ? "Open the book — your turn" : "Your turn"}
                       </div>
+                      {book.turns.length > 0 && (
+                        <label className="chapter-toggle" title="Start a new chapter with this passage">
+                          <input
+                            type="checkbox"
+                            checked={newChapter}
+                            onChange={(e) => setNewChapter(e.target.checked)}
+                          />
+                          <span>Begin a new chapter here</span>
+                        </label>
+                      )}
                       <textarea
                         ref={textareaRef}
                         className="write-area"
@@ -491,44 +555,55 @@ export default function BookStudio() {
                         }
                         autoFocus
                       />
-                      <div className="folio">{pageCount ? writingIndex + 1 : 1}</div>
+                      <div className="folio">{writingIndex + 1}</div>
                     </div>
                   ) : (
                     <div
-                      className="book-page paper"
+                      key={`p${currentPage}`}
+                      className={`book-page paper ${flipClass}`}
                       data-material={s.material}
                       style={{ padding: `${geom.padY}px ${geom.padX}px` }}
                     >
                       <div className="page-prose" style={proseStyle}>
-                        {runsOf(currentFrags).map((run, ri) => {
+                        {currentRuns.map((run, ri) => {
+                          if (run.type === "chapter") {
+                            return (
+                              <div className="chapter-head" key={ri}>
+                                <div className="chapter-eyebrow">Chapter {run.num}</div>
+                                {run.title?.trim() ? (
+                                  <div className="chapter-title">{run.title}</div>
+                                ) : (
+                                  <div className="chapter-title chapter-untitled">Untitled</div>
+                                )}
+                                <div className="chapter-rule" />
+                              </div>
+                            );
+                          }
                           const isAI = run.author === "claude";
                           const animating = isAI && run.turnId === animTurn;
                           let wcount = 0;
                           return (
                             <div
                               key={ri}
-                              className={`ink-run${isAI ? " ink-run--ai" : ""}${
-                                animating ? " is-fresh" : ""
-                              }`}
+                              className={`ink-run${isAI ? " ink-run--ai" : ""}${animating ? " is-fresh" : ""}`}
                               data-author={run.author}
                             >
-                              {run.frags[0]?.turnStart && (
+                              {run.turnStart && (
                                 <div className="run-tab" data-author={run.author}>
                                   {authorName(run.author, book.author)}
                                 </div>
                               )}
-                              {run.frags.map((f, fi) =>
+                              {run.paras.map((p, pi) =>
                                 animating ? (
                                   <RevealParagraph
-                                    key={fi}
-                                    text={f.text}
-                                    active
+                                    key={pi}
+                                    text={p}
                                     delayStart={wcount}
                                     perWord={perWord}
                                     onWordCount={(n) => (wcount = n)}
                                   />
                                 ) : (
-                                  <p key={fi}>{f.text}</p>
+                                  <p key={pi}>{p}</p>
                                 )
                               )}
                               {animating && <span className="nib" aria-hidden="true" />}
@@ -563,7 +638,7 @@ export default function BookStudio() {
               <div className="nav">
                 <button
                   className="icon-btn"
-                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  onClick={() => turnTo(Math.max(0, currentPage - 1))}
                   disabled={currentPage <= 0}
                   aria-label="Previous page"
                 >
@@ -571,7 +646,7 @@ export default function BookStudio() {
                 </button>
                 <button
                   className="icon-btn"
-                  onClick={() => setCurrentPage((p) => Math.min(pageCount - 1, p + 1))}
+                  onClick={() => turnTo(Math.min(pageCount - 1, currentPage + 1))}
                   disabled={currentPage >= pageCount - 1}
                   aria-label="Next page"
                 >
@@ -599,11 +674,7 @@ export default function BookStudio() {
                 </div>
               </div>
               {onWritingPage ? (
-                <button
-                  className="btn btn-primary"
-                  onClick={submitTurn}
-                  disabled={generating || !draft.trim()}
-                >
+                <button className="btn btn-primary" onClick={submitTurn} disabled={generating || !draft.trim()}>
                   {generating ? "Weaving…" : "Hand to the AI author →"}
                 </button>
               ) : usersMove ? (
@@ -635,6 +706,12 @@ export default function BookStudio() {
             <div className="k">Synopsis so far</div>
             <div className={`v${a.synopsis ? "" : " muted"}`}>{a.synopsis || "Nothing written yet."}</div>
           </div>
+          {a.continuity && (
+            <div className="note-card">
+              <div className="k">Story memory</div>
+              <div className="v continuity-note">{a.continuity}</div>
+            </div>
+          )}
           <div className="note-card">
             <div className="k">Craft</div>
             {a.qualityScore != null ? (
@@ -673,7 +750,7 @@ export default function BookStudio() {
         </aside>
       </div>
 
-      {/* offscreen measurer — same width + typography as a real page */}
+      {/* offscreen measurer — typography matches a real page; width set per call */}
       <div
         ref={measureRef}
         aria-hidden="true"
@@ -691,8 +768,19 @@ export default function BookStudio() {
         }}
       />
 
-      {settingsOpen && (
-        <SettingsDrawer book={book} onClose={() => setSettingsOpen(false)} onSave={save} />
+      {settingsOpen && <SettingsDrawer book={book} onClose={() => setSettingsOpen(false)} onSave={save} />}
+      {chaptersOpen && (
+        <ChaptersDrawer
+          book={book}
+          currentTurnId={currentTurn ? currentTurn.id : null}
+          turnStart={turnStart}
+          onJump={(pageIdx) => {
+            turnTo(pageIdx);
+            setChaptersOpen(false);
+          }}
+          onClose={() => setChaptersOpen(false)}
+          onSave={save}
+        />
       )}
     </div>
   );

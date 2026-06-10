@@ -4,11 +4,12 @@ You write a passage. An AI author answers in your voice, at about the same lengt
 
 ## What's inside
 
-- **Title page setup** — name the book and author, pick a cover, page format, material, typeface, and reading size. A **live preview** updates as you choose, so you see the page before you start. Sensible defaults are pre-selected, so you can just press **Continue**. Everything is editable later from **Settings**, on any page.
+- **Title page setup** — name the book and author, pick a cover, page format, material, typeface (serif, sans, mono, storybook, or **cursive**), **ink color**, and reading size. A **live preview** updates as you choose, both here and in **Settings**, so you see the page before you commit. Sensible defaults are pre-selected, so you can just press **Continue**. Everything is editable later, on any page.
 - **Turn-based writing** — write your turn, hand it to the AI author, and it continues the story for roughly the same number of words, in the same style. When the reply lands, the view jumps to where the AI began and the new text is "written in" with a brief reveal animation. Live counters show words on the page, in the turn, and in the whole book.
-- **Real-book pages & two-ink attribution** — the manuscript flows into fixed-size pages like a printed book, so a single page can hold both hands. Your prose reads as the plain manuscript; the AI author's passages sit in a translucent inset box, and a passage can run across several pages. The "spine ledger" across the top shows the whole collaboration at a glance.
+- **Real-book pages & two-ink attribution** — the manuscript flows into fixed-size pages like a printed book (text reflows and splits across pages exactly to fit), so a single page can hold both hands. Your prose reads as the plain manuscript; the AI author's passages sit in a translucent inset box, and a passage can run across several pages. Turning pages plays a 3D page-flip animation. The "spine ledger" across the top shows the whole collaboration at a glance.
 - **Reader's notes** — the AI author keeps a live read on your writing style, the genre, a running synopsis, and a craft score, updated after every exchange.
 - **Navigate & fork** — page back and forth through the book. "Edit from here" pulls a passage back into the editor and discards everything after it — the book forks at that point.
+- **Chapters** — mark a new chapter while you write (a toggle on the writing page), or manage them later from the **Chapters** panel: add, rename, remove, and jump to any chapter. Chapters open on a fresh page, with a heading, both on screen and in the PDF.
 - **Saved server-side + shareable URL** — every book lives at `/book/<id>`. Copy the link to return later or share it.
 - **PDF export** — exports through a print view that honors your cover, format, material, typeface, and size.
 - **Admin / library** — a small `admin · all books` link on the landing page opens `/admin`, listing every book with its word count and last-edited time. From there you can **Open** any book (you enter as its author) or **Delete** it. This page is unauthenticated, so don't share its URL publicly — see the security note below.
@@ -43,7 +44,7 @@ The admin page and its listing/delete endpoints are **not** behind any authentic
 ## How a turn works
 
 1. The browser sends your text to `POST /api/books/:id/turn`.
-2. The server commits your turn, then asks the AI author (server-side, key never exposed) to continue — with the recent passage as context and your word count as the target length.
+2. The server commits your turn, then asks the AI author (server-side, key never exposed) to continue. For continuity it sends a cumulative **story-memory record** (cast, places, key facts, open threads), the book's **opening**, and the most **recent passages** — plus your word count as the target length. This keeps early characters and details alive on a long book without resending the entire manuscript every turn.
 3. The server runs a second, low-temperature pass to refresh the style / genre / synopsis / craft notes.
 4. The updated book is saved to the store and returned. If the model fails, your text is rolled back so you can retry cleanly.
 
@@ -64,11 +65,13 @@ lib/
   store.js                    # Upstash Redis with in-memory dev fallback
   claude.js                   # server-only Anthropic calls
 components/
-  DesignControls.js · SettingsDrawer.js · CoverArt.js · BookPreview.js  # live preview reused on the landing page and in Settings
+  DesignControls.js · SettingsDrawer.js · ChaptersDrawer.js · CoverArt.js · BookPreview.js
 ```
 
 ## Notes & tradeoffs
 
 - **PDF export** uses the browser's print-to-PDF so page size, fonts, and material backgrounds render exactly. Enable **"Background graphics"** in the print dialog to keep the material color and cover. (This avoids shipping a heavyweight PDF renderer and keeps fonts faithful.)
 - **Forking** keeps it simple: editing snaps to the nearest *your-turn* boundary, so the AI author always regenerates its response to whatever you submit. The discarded tail is gone, as intended.
+- **Long-range memory**: the continuation does not receive the whole book each turn (that would grow cost without bound and eventually exceed the context window). Instead it gets a running continuity record that the analysis pass updates every turn — carried forward even when older material scrolls out of the recent window — together with the opening and the recent text. The record is shown in the reader's notes as "Story memory."
+  A per-book **"Send the whole book each turn"** toggle in Settings switches to full-manuscript context for maximum fidelity (best for shorter books; it automatically falls back to the layered context if a book grows past ~90k words so it can't overflow the model).
 - **Cost/latency**: each turn is two model calls (continuation + analysis). Set `CLAUDE_MODEL=claude-haiku-4-5-20251001` for faster/cheaper turns, or `claude-opus-4-8` for the most capable prose. (The model name is never shown in the UI — it refers to itself only as "the AI author".)

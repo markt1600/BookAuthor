@@ -3,6 +3,17 @@
 import { CHOICES } from "@/lib/book";
 import CoverArt, { LABELS } from "@/components/CoverArt";
 
+const INK_PRESETS = [
+  { name: "Ink black", hex: "#1c1b18" },
+  { name: "Sepia", hex: "#5b4636" },
+  { name: "Walnut", hex: "#3a2a1a" },
+  { name: "Oxblood", hex: "#6d2a2a" },
+  { name: "Navy", hex: "#24314f" },
+  { name: "Forest", hex: "#26402f" },
+  { name: "Plum", hex: "#4a2747" },
+  { name: "Slate", hex: "#3a4250" },
+];
+
 function ChipRow({ field, value, onChange }) {
   return (
     <div className="chips">
@@ -70,6 +81,39 @@ export default function DesignControls({ settings, onChange }) {
             onChange={(e) => onChange("fontSize", Number(e.target.value))}
           />
           <span className="range-val">{settings.fontSize}px</span>
+        </div>
+      </div>
+
+      <div className="setup-row">
+        <div className="setup-label">Ink color</div>
+        <div className="ink-row">
+          <button
+            type="button"
+            className="ink-swatch ink-default"
+            aria-pressed={!settings.inkColor}
+            title="Match the page material"
+            onClick={() => onChange("inkColor", "")}
+          >
+            <span>Auto</span>
+          </button>
+          {INK_PRESETS.map((c) => (
+            <button
+              key={c.hex}
+              type="button"
+              className="ink-swatch"
+              aria-pressed={settings.inkColor?.toLowerCase() === c.hex}
+              title={c.name}
+              onClick={() => onChange("inkColor", c.hex)}
+              style={{ background: c.hex }}
+            />
+          ))}
+          <label className="ink-swatch ink-custom" title="Custom color">
+            <input
+              type="color"
+              value={settings.inkColor || "#1c1b18"}
+              onChange={(e) => onChange("inkColor", e.target.value)}
+            />
+          </label>
         </div>
       </div>
     </>

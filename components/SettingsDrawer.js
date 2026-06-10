@@ -65,6 +65,28 @@ export default function SettingsDrawer({ book, onClose, onSave }) {
 
         <DesignControls settings={settings} onChange={change} />
 
+        <div className="setup-row">
+          <div className="setup-label">Continuity</div>
+          <label className="drawer-toggle">
+            <input
+              type="checkbox"
+              checked={!!settings.fullContext}
+              onChange={(e) => change("fullContext", e.target.checked)}
+            />
+            <span className="toggle-track" aria-hidden="true">
+              <span className="toggle-knob" />
+            </span>
+            <span className="toggle-text">
+              <strong>Send the whole book each turn</strong>
+              <em>
+                Highest fidelity to earlier chapters, but costs more per turn and is
+                best for shorter books. Off by default — Loom otherwise sends a running
+                story-memory plus the opening and recent pages.
+              </em>
+            </span>
+          </label>
+        </div>
+
         <div className="continue-row" style={{ marginTop: 28, justifyContent: "stretch" }}>
           <button className="btn btn-primary" style={{ width: "100%" }} onClick={save} disabled={saving}>
             {saving ? "Saving…" : "Save changes"}

@@ -15,6 +15,7 @@ const FONT_STACK = {
   sans: '"Inter", system-ui, sans-serif',
   mono: '"Spline Sans Mono", monospace',
   storybook: '"Sorts Mill Goudy", Georgia, serif',
+  cursive: '"Dancing Script", "Segoe Script", cursive',
 };
 
 const MATERIAL_BG = {
@@ -76,12 +77,17 @@ export default function PrintView() {
   const font = FONT_STACK[s.font] || FONT_STACK.serif;
 
   const coverInk = ["minimal", "parchment"].includes(s.cover) ? "#1c1b18" : "#f4efe6";
+  const ink = s.inkColor || mat.ink;
+  const chapterByStart = {};
+  (book.chapters || []).forEach((c, i) => {
+    chapterByStart[c.startTurn] = { num: i + 1, title: c.title || "" };
+  });
 
   const css = `
     @page { size: ${dims.size}; margin: ${dims.margin}; }
     html, body { margin: 0; padding: 0; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .pv-root { background: ${mat.bg}; color: ${mat.ink}; font-family: ${font}; }
+    .pv-root { background: ${mat.bg}; color: ${ink}; font-family: ${font}; }
     .pv-toolbar {
       position: fixed; top: 0; left: 0; right: 0;
       display: flex; gap: 12px; align-items: center; justify-content: center;
@@ -122,6 +128,11 @@ export default function PrintView() {
     .pv-marker[data-author="user"] .rule { background: #3b5bdb; }
     .pv-marker[data-author="claude"] .rule { background: #2f8069; }
     .pv-colophon { margin-top: 30px; padding-top: 14px; border-top: 1px solid rgba(127,127,127,0.3); font-family: "Spline Sans Mono", monospace; font-size: 8pt; opacity: 0.6; text-align: center; }
+    .pv-chapter { break-before: page; page-break-before: always; text-align: center; padding: 1.4in 0 0.5in; }
+    .pv-chapter:first-child { break-before: auto; page-break-before: auto; }
+    .pv-chapter .pv-ch-eyebrow { font-family: "Spline Sans Mono", monospace; font-size: 9pt; letter-spacing: 0.24em; text-transform: uppercase; opacity: 0.55; margin-bottom: 14px; }
+    .pv-chapter .pv-ch-title { font-family: ${font}; font-size: 24pt; line-height: 1.15; margin: 0 0 18px; }
+    .pv-chapter .pv-ch-rule { width: 48px; height: 2px; background: currentColor; opacity: 0.4; margin: 0 auto; }
 
     @media print {
       .pv-toolbar { display: none !important; }
@@ -149,8 +160,15 @@ export default function PrintView() {
         </section>
 
         <div className="pv-body">
-          {book.turns.map((t) => (
+          {book.turns.map((t, ti) => (
             <div className="pv-turn" key={t.id}>
+              {chapterByStart[ti] && (
+                <div className="pv-chapter">
+                  <div className="pv-ch-eyebrow">Chapter {chapterByStart[ti].num}</div>
+                  <div className="pv-ch-title">{chapterByStart[ti].title?.trim() || "Untitled"}</div>
+                  <div className="pv-ch-rule" />
+                </div>
+              )}
               <div className="pv-marker" data-author={t.author}>
                 <span className="rule" />
                 <span className="lab">{t.author === "user" ? book.author : "AI Author"}</span>
