@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { newBook, totalWords } from "@/lib/book";
 import { saveBook, listBooks, storageMode } from "@/lib/store";
+import { isAuthed } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
 // Admin listing: a lightweight summary of every book in the store.
-export async function GET() {
+export async function GET(request) {
+  if (!isAuthed(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const books = await listBooks();
   const items = books.map((b) => ({
     id: b.id,

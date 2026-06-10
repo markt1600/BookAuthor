@@ -1296,3 +1296,20 @@ body {
   .landing-lede { margin-bottom: 28px; }
   .lede-body { font-size: 14px; }
 }
+
+/* admin: password gate */
+.admin-head-actions { display: flex; gap: 8px; align-items: center; }
+.lock-card {
+  max-width: 380px; margin: 48px auto 0; display: flex; flex-direction: column; gap: 12px;
+  background: var(--desk-2); border: 1px solid var(--desk-line); border-radius: 12px; padding: 26px;
+  box-shadow: 0 24px 50px -30px rgba(0,0,0,0.8);
+}
+.lock-title { font-family: var(--display); font-size: 20px; font-weight: 600; }
+.lock-sub { font-size: 13px; color: var(--on-desk-dim); margin: -4px 0 4px; line-height: 1.5; }
+.lock-card .text-input {
+  width: 100%; background: var(--desk); border: 1px solid var(--desk-line); color: var(--on-desk);
+  border-radius: var(--radius); padding: 10px 12px; font-size: 14px;
+}
+.lock-card .text-input:focus { outline: none; border-color: var(--brass); }
+.lock-err { font-size: 12.5px; color: #e08a78; }
+.lock-card .btn-primary { width: 100%; }

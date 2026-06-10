@@ -39,7 +39,7 @@ This almost always means **no persistent storage is configured**. Without Redis,
 
 ### Security note on `/admin`
 
-The admin page and its listing/delete endpoints are **not** behind any authentication — anyone who knows the URL can view, open, or delete every book. That's fine for a personal instance, but don't share the deployment's `/admin` link publicly. If you need it locked down, put it behind Vercel password protection, an auth provider, or a simple shared-secret check in the API routes.
+Set an **`ADMIN_PASSWORD`** environment variable to protect `/admin` (and its listing/delete endpoints) with a simple password gate: visitors get a lock screen, and on the correct password an http-only cookie is set for 12 hours (use **Lock** to sign out). Normal book reading, writing, and shareable `/book/<id>` links are unaffected. If `ADMIN_PASSWORD` is left unset, `/admin` stays open — fine for a private instance, but don't share that link publicly. This is lightweight protection suitable for a personal deployment, not a full auth system; for stricter needs, add Vercel password protection or an auth provider.
 
 ## How a turn works
 

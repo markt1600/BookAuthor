@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { applyPatch, truncateAt } from "@/lib/book";
 import { getBook, saveBook, deleteBook } from "@/lib/store";
+import { isAuthed } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export async function GET(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  if (!isAuthed(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   await deleteBook(id);
   return NextResponse.json({ ok: true });
