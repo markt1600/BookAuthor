@@ -44,7 +44,8 @@ export default function BookPreview({ title, author, settings }) {
         </div>
 
         <div
-          className="preview-sheet"
+          className="preview-sheet paper"
+          data-material={settings.material}
           style={{
             background: m.bg,
             color: m.ink,

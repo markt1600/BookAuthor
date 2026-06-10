@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DesignControls from "@/components/DesignControls";
+import BookPreview from "@/components/BookPreview";
 
 export default function SettingsDrawer({ book, onClose, onSave }) {
   const [title, setTitle] = useState(book.title);
@@ -36,6 +37,10 @@ export default function SettingsDrawer({ book, onClose, onSave }) {
           <button className="btn btn-ghost x" onClick={onClose} aria-label="Close settings">
             Close
           </button>
+        </div>
+
+        <div className="drawer-preview">
+          <BookPreview title={title} author={author} settings={settings} />
         </div>
 
         <div className="setup-row">

@@ -3,7 +3,7 @@ import "./globals.css";
 export const metadata = {
   title: "Loom — write a book, turn by turn",
   description:
-    "A turn-based co-writing studio. You write a passage, Claude answers in your voice. The book is woven from two hands.",
+    "A turn-based co-writing studio. You write a passage, an AI author answers in your voice. The book is woven from two hands.",
 };
 
 export default function RootLayout({ children }) {

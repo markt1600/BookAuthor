@@ -153,7 +153,7 @@ export default function PrintView() {
             <div className="pv-turn" key={t.id}>
               <div className="pv-marker" data-author={t.author}>
                 <span className="rule" />
-                <span className="lab">{t.author === "user" ? book.author : "Claude"}</span>
+                <span className="lab">{t.author === "user" ? book.author : "AI Author"}</span>
                 <span className="rule" />
               </div>
               {paragraphs(t.text).map((p, i) => (
@@ -163,7 +163,7 @@ export default function PrintView() {
           ))}
 
           <div className="pv-colophon">
-            Woven on Loom · {book.author} &amp; Claude · {book.turns.length} turns
+            Woven on Loom · {book.author} &amp; an AI author · {book.turns.length} turns
           </div>
         </div>
       </div>

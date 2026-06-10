@@ -59,7 +59,7 @@ export async function POST(request, { params }) {
     const message =
       err.code === "NO_API_KEY"
         ? "The server is missing ANTHROPIC_API_KEY."
-        : "Claude could not continue the story. Your text was not saved — try again.";
+        : "The AI author could not continue the story. Your text was not saved — try again.";
     return NextResponse.json({ error: message }, { status });
   }
 

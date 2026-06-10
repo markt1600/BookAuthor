@@ -838,3 +838,235 @@ a { color: inherit; }
   .book-row-meta { grid-column: 1 / -1; text-align: left; }
   .book-row-actions { grid-column: 1 / -1; }
 }
+
+/* ===================================================================
+   v2 — realistic book pages, ink boxes, writing animation
+   =================================================================== */
+
+/* paper surface: base color + fibrous grain + faint vignette */
+.paper { position: relative; isolation: isolate; }
+.paper::before {
+  content: "";
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 170px 170px;
+  opacity: 0.04; mix-blend-mode: multiply;
+}
+.paper::after {
+  content: "";
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(255,255,255,0.5) 0%, transparent 38%),
+    radial-gradient(140% 120% at 50% 100%, rgba(0,0,0,0.06) 0%, transparent 45%);
+}
+.paper > * { position: relative; z-index: 1; }
+
+.book-page[data-material="paper"]      { background: #fcfbf8; color: #1c1b18; }
+.book-page[data-material="parchment"]  { background: #f2e8cf; color: #3a2f1c; }
+.book-page[data-material="linen"]      { background: #f6f5f0; color: #232323; }
+.book-page[data-material="newsprint"]  { background: #e9e6dd; color: #2a2823; }
+.book-page[data-material="midnight"]   { background: #15181f; color: #dadbe1; }
+
+.book-page[data-material="parchment"]::before { opacity: 0.07; }
+.book-page[data-material="linen"]::before {
+  opacity: 0.06;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.04) 0 1px, transparent 1px 3px);
+  background-size: auto; mix-blend-mode: multiply;
+}
+.book-page[data-material="newsprint"]::before { opacity: 0.08; }
+.book-page[data-material="midnight"]::before { opacity: 0.07; mix-blend-mode: screen; }
+.book-page[data-material="midnight"]::after {
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(255,255,255,0.06) 0%, transparent 40%),
+    radial-gradient(140% 120% at 50% 100%, rgba(0,0,0,0.4) 0%, transparent 50%);
+}
+
+/* the stage + page geometry */
+.stage { padding: 40px 24px 130px; display: flex; justify-content: center; overflow-y: auto; }
+.stage-col { width: 100%; max-width: 840px; display: flex; flex-direction: column; align-items: center; }
+
+.page-viewport { width: 100%; display: flex; justify-content: center; }
+.page-scaler { position: relative; }
+.page-shell { position: relative; transform-origin: top left; }
+
+/* the page itself — a real sheet, bound on the left */
+.book-page {
+  position: absolute; inset: 0;
+  border-radius: 2px 6px 6px 2px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.04),
+    0 2px 3px rgba(0,0,0,0.10),
+    0 26px 40px -22px rgba(0,0,0,0.55),
+    0 60px 90px -50px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+/* binding gutter shadow on the spine side */
+.book-page::after { z-index: 2; }
+.book-page > .page-prose,
+.book-page > .write-area { position: relative; z-index: 1; }
+.book-page .gutter,
+.book-page::before { }
+.book-page[data-material] { background-clip: padding-box; }
+
+/* a soft curl of pages stacked beneath */
+.page-stack { position: absolute; inset: 0; z-index: -1; }
+.page-stack i {
+  position: absolute; inset: 0;
+  background: #efe9dd;
+  border-radius: 2px 6px 6px 2px;
+  box-shadow: 0 24px 40px -26px rgba(0,0,0,0.6);
+}
+.page-stack i:nth-child(1) { transform: translate(5px, 5px) rotate(0.35deg); background: #e7e1d3; }
+.page-stack i:nth-child(2) { transform: translate(9px, 9px) rotate(0.7deg); background: #ddd6c6; }
+.page-stack i:nth-child(3) { transform: translate(13px, 13px) rotate(1deg); background: #d3ccba; }
+
+/* spine darkening */
+.book-page { background-image: linear-gradient(90deg, rgba(0,0,0,0.05), transparent 6%, transparent 96%, rgba(0,0,0,0.03)); }
+.book-page[data-material="midnight"] { background-image: linear-gradient(90deg, rgba(0,0,0,0.35), transparent 6%, transparent 96%, rgba(0,0,0,0.25)); }
+
+/* flowed prose on a page */
+.page-prose { overflow: hidden; }
+.page-prose p { margin: 0 0 var(--para-gap); white-space: pre-wrap; }
+.page-prose > .ink-run:last-child p:last-child { margin-bottom: 0; }
+
+/* author runs — the AI's hand sits in a translucent inset box */
+.ink-run { position: relative; }
+.ink-run + .ink-run { margin-top: var(--para-gap); }
+.ink-run--ai {
+  background: rgba(47, 128, 105, 0.07);
+  border: 1px solid rgba(47, 128, 105, 0.18);
+  border-left: 3px solid var(--claude);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: calc(var(--para-gap) * 0.6) 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.book-page[data-material="midnight"] .ink-run--ai {
+  background: rgba(92, 186, 157, 0.10);
+  border-color: rgba(92, 186, 157, 0.28);
+  border-left-color: var(--claude-desk);
+  box-shadow: none;
+}
+
+/* tiny authorship tab shown where a turn begins */
+.run-tab {
+  display: inline-block;
+  font-family: var(--data);
+  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  opacity: 0.62; margin-bottom: 9px;
+}
+.run-tab[data-author="user"] { color: var(--user); }
+.run-tab[data-author="claude"] { color: var(--claude); }
+.book-page[data-material="midnight"] .run-tab[data-author="user"] { color: var(--user-desk); }
+.book-page[data-material="midnight"] .run-tab[data-author="claude"] { color: var(--claude-desk); }
+
+/* page number */
+.folio {
+  position: absolute; left: 0; right: 0; bottom: 22px;
+  text-align: center; font-family: var(--data); font-size: 11px;
+  opacity: 0.4; z-index: 1;
+}
+
+/* edit-from-here, tucked in a corner */
+.edit-here-fab {
+  position: absolute; bottom: 16px; right: 18px; z-index: 3;
+  font-family: var(--data); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  background: rgba(255,255,255,0.7); backdrop-filter: blur(3px);
+  border: 1px solid rgba(0,0,0,0.16); color: rgba(0,0,0,0.55);
+  border-radius: 999px; padding: 6px 12px; opacity: 0; transition: opacity 0.16s ease;
+}
+.book-page:hover .edit-here-fab { opacity: 1; }
+.edit-here-fab:hover { border-color: var(--danger); color: var(--danger); }
+.book-page[data-material="midnight"] .edit-here-fab {
+  background: rgba(20,23,30,0.7); border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.6);
+}
+
+/* writing surface sits on the same kind of page */
+.book-page.is-writing {
+  box-shadow:
+    0 0 0 2px var(--brass-soft),
+    0 2px 3px rgba(0,0,0,0.10),
+    0 26px 40px -22px rgba(0,0,0,0.55),
+    0 60px 90px -50px rgba(0,0,0,0.6);
+}
+.book-page.is-busy { opacity: 0.7; }
+.write-area {
+  width: 100%; border: none; background: transparent; resize: none;
+  display: block; overflow-y: auto; color: inherit;
+}
+.write-area:focus { outline: none; }
+.write-area::placeholder { opacity: 0.4; font-style: italic; }
+
+/* the "freshly written" reveal */
+.rw {
+  display: inline-block;
+  opacity: 0; transform: translateY(0.16em); filter: blur(3px);
+  animation: inkIn 0.5s ease forwards;
+}
+@keyframes inkIn { to { opacity: 1; transform: none; filter: blur(0); } }
+.nib {
+  display: inline-block; width: 2px; height: 1.05em; vertical-align: -0.18em;
+  margin-left: 1px; background: var(--brass);
+  animation: nibBlink 0.7s steps(2, start) infinite;
+}
+@keyframes nibBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.ink-run.is-fresh { box-shadow: inset 0 0 0 1px var(--brass-soft); }
+
+/* dock width matches the widest page nicely */
+.dock { max-width: 720px; }
+
+/* ---------- richer cover art (overrides the basic versions above) ---------- */
+.cover-art { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15), inset -6px 0 14px -8px rgba(0,0,0,0.5); }
+.cover-art::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 9%;
+  background: linear-gradient(90deg, rgba(0,0,0,0.28), rgba(255,255,255,0.06) 60%, transparent);
+  z-index: 3;
+}
+.cover-classic {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255,255,255,0.12), transparent 60%),
+    linear-gradient(160deg, #7c3030, #5e2222);
+}
+.cover-classic::after {
+  inset: 9px; border: 1px solid rgba(212,175,110,0.6);
+  box-shadow: inset 0 0 0 3px rgba(212,175,110,0.18);
+}
+.cover-minimal {
+  background: linear-gradient(160deg, #f3efe6, #e7e1d3);
+}
+.cover-minimal::after { left: 50%; top: 16%; bottom: 16%; width: 1px; background: #2a2a28; opacity: 0.7; }
+.cover-noir {
+  background:
+    radial-gradient(80% 60% at 50% 30%, #23252d, #101116 70%);
+}
+.cover-noir::after { left: 14%; right: 14%; top: 47%; height: 2px; background: linear-gradient(90deg, transparent, #c0913f, transparent); }
+.cover-parchment {
+  background:
+    radial-gradient(100% 80% at 50% 20%, rgba(231,207,160,0.6), transparent),
+    linear-gradient(160deg, #ddc79c, #cdb182);
+}
+.cover-parchment::after { inset: 11px; border: 1px dashed rgba(60,45,20,0.55); }
+.cover-botanical {
+  background:
+    radial-gradient(circle at 28% 72%, rgba(170,205,160,0.5) 0 7%, transparent 8%),
+    radial-gradient(circle at 66% 34%, rgba(170,205,160,0.4) 0 6%, transparent 7%),
+    radial-gradient(circle at 50% 55%, rgba(190,220,180,0.25) 0 10%, transparent 11%),
+    linear-gradient(160deg, #2b4a37, #1f3a2b);
+}
+.cover-botanical::after { inset: 0; }
+.cover-blueprint {
+  background:
+    linear-gradient(160deg, #1a3858, #122a45);
+}
+.cover-blueprint::after {
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.14) 1px, transparent 1px);
+  background-size: 13px 13px;
+}
+
+/* settings drawer: live preview block */
+.drawer-preview { margin: 4px 0 26px; }
