@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { DEFAULT_SETTINGS } from "@/lib/book";
 import DesignControls from "@/components/DesignControls";
+import BookPreview from "@/components/BookPreview";
 
 export default function Home() {
   const router = useRouter();
@@ -12,6 +14,17 @@ export default function Home() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [ephemeral, setEphemeral] = useState(false);
+
+  // Warn if the server has no persistent store configured — books created in
+  // memory mode won't survive on Vercel (each request can hit a fresh worker),
+  // which shows up as "Book not found" right after creating one.
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((d) => setEphemeral(d.storageMode === "memory"))
+      .catch(() => {});
+  }, []);
 
   function change(field, value) {
     setSettings((s) => ({ ...s, [field]: value }));
@@ -37,7 +50,7 @@ export default function Home() {
 
   return (
     <main className="landing">
-      <div className="landing-inner">
+      <div className="landing-inner landing-wide">
         <div className="mark">
           <span className="mark-weave" aria-hidden="true">
             <i /><i /><i /><i /><i />
@@ -45,47 +58,64 @@ export default function Home() {
           <span className="mark-name">Loom</span>
         </div>
 
-        <div className="title-plate">
-          <div className="plate-eyebrow">A book written turn by turn</div>
-          <label className="field">
-            <input
-              className="input-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Your title"
-              aria-label="Book title"
-            />
-          </label>
-          <div className="byline">
-            <span>by</span>
-            <input
-              className="input-author"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="your name"
-              aria-label="Author"
-            />
-          </div>
-
-          <div className="setup">
-            <DesignControls settings={settings} onChange={change} />
-          </div>
-        </div>
-
-        {error && (
-          <div className="banner" style={{ margin: "20px auto 0", maxWidth: 520 }}>
-            {error}
+        {ephemeral && (
+          <div className="banner warn-banner">
+            Heads up: no persistent storage is configured, so books are kept only
+            in memory and may vanish (you'll see “Book not found”). Connect an
+            Upstash Redis store to save them — see the README.
           </div>
         )}
 
-        <div className="continue-row">
-          <button className="btn btn-primary" onClick={start} disabled={creating}>
-            {creating ? "Setting the press…" : "Continue"}
-          </button>
+        <div className="landing-grid">
+          <div className="title-plate">
+            <div className="plate-eyebrow">A book written turn by turn</div>
+            <label className="field">
+              <input
+                className="input-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Your title"
+                aria-label="Book title"
+              />
+            </label>
+            <div className="byline">
+              <span>by</span>
+              <input
+                className="input-author"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="your name"
+                aria-label="Author"
+              />
+            </div>
+
+            <div className="setup">
+              <DesignControls settings={settings} onChange={change} />
+            </div>
+
+            {error && (
+              <div className="banner" style={{ marginTop: 20 }}>
+                {error}
+              </div>
+            )}
+
+            <div className="continue-row">
+              <button className="btn btn-primary" onClick={start} disabled={creating}>
+                {creating ? "Setting the press…" : "Continue"}
+              </button>
+            </div>
+            <p className="landing-foot">
+              Defaults are ready — you can change the title and every design choice
+              later, on any page.
+            </p>
+          </div>
+
+          <BookPreview title={title} author={author} settings={settings} />
         </div>
-        <p className="landing-foot">
-          Defaults are ready — you can change the title and every design choice later, on any page.
-        </p>
+
+        <div className="landing-admin">
+          <Link href="/admin">admin · all books</Link>
+        </div>
       </div>
     </main>
   );
