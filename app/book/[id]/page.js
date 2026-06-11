@@ -75,6 +75,7 @@ export default function BookStudio() {
   const [pages, setPages] = useState([]); // [[run,...], ...]
   const [turnStart, setTurnStart] = useState({}); // turnId -> page index
   const [scale, setScale] = useState(1);
+  const [box, setBox] = useState({ w: 0, h: 0 }); // available area on mobile (responsive geometry)
   const [fontsReady, setFontsReady] = useState(false);
   const [animTurn, setAnimTurn] = useState(null);
 
@@ -97,6 +98,7 @@ export default function BookStudio() {
   const textareaRef = useRef(null);
   const measureRef = useRef(null);
   const vpRef = useRef(null);
+  const stageRef = useRef(null);
   const pendingJump = useRef(null);
   const prefilledRef = useRef(null); // guide mode: which turns-count we've pre-filled a suggestion for
 
@@ -149,7 +151,13 @@ export default function BookStudio() {
   }, []);
 
   const s = book?.settings;
-  const geom = (s && PAGE_GEOM[s.format]) || PAGE_GEOM.portrait;
+  // Desktop uses fixed book-trim geometry and scales it to fit. Mobile instead
+  // paginates to the actual screen area (full text size, no shrinking).
+  const baseGeom = (s && PAGE_GEOM[s.format]) || PAGE_GEOM.portrait;
+  const geom =
+    isMobile && box.w > 0 && box.h > 0
+      ? { w: box.w, h: box.h, padX: Math.round(Math.min(28, Math.max(16, box.w * 0.06))), padY: 24 }
+      : baseGeom;
   const contentW = geom.w - geom.padX * 2;
   const contentH = geom.h - geom.padY * 2 - 26; // leave room for the folio
   const fontFamily = (s && FONT[s.font]) || FONT.serif;
@@ -281,21 +289,56 @@ export default function BookStudio() {
       pendingJump.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book, fontsReady, s?.font, s?.fontSize, s?.format]);
+  }, [book, fontsReady, s?.font, s?.fontSize, s?.format, contentW, contentH]);
 
-  // ---- scale the page to fit the viewport (does not repaginate) ----
+  // ---- fit the page to the viewport ----
+  // Desktop: scale the fixed book-trim page down to fit the width.
+  // Mobile: measure the available area and paginate to it (full text size).
   useLayoutEffect(() => {
-    const el = vpRef.current;
-    if (!el) return;
-    const apply = () => {
-      const avail = el.clientWidth - 10;
-      setScale(Math.max(0.3, Math.min(1, avail / geom.w)));
+    const measure = () => {
+      const el = vpRef.current;
+      if (!el) return;
+      if (isMobile) {
+        const w = Math.max(260, Math.round(el.clientWidth));
+        const h = Math.max(340, Math.round(el.clientHeight));
+        setScale(1);
+        setBox((prev) => (Math.abs(prev.w - w) > 4 || Math.abs(prev.h - h) > 6 ? { w, h } : prev));
+      } else {
+        const avail = el.clientWidth - 10;
+        setScale(Math.max(0.3, Math.min(1, avail / baseGeom.w)));
+      }
     };
-    apply();
-    const ro = new ResizeObserver(apply);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [geom.w, status]);
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (vpRef.current) ro.observe(vpRef.current);
+    let vv = null;
+    if (isMobile && typeof window !== "undefined" && window.visualViewport) {
+      vv = window.visualViewport;
+      vv.addEventListener("resize", measure);
+    }
+    return () => {
+      ro.disconnect();
+      if (vv) vv.removeEventListener("resize", measure);
+    };
+  }, [isMobile, baseGeom.w, status]);
+
+  // ---- keep the mobile layout sized to the visible viewport (handles the
+  //      on-screen keyboard, which shrinks the visual viewport) ----
+  useEffect(() => {
+    if (!isMobile || typeof window === "undefined") return;
+    const setH = () => {
+      const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      document.documentElement.style.setProperty("--app-h", `${Math.round(vh)}px`);
+    };
+    setH();
+    window.addEventListener("resize", setH);
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", setH);
+    return () => {
+      window.removeEventListener("resize", setH);
+      if (window.visualViewport) window.visualViewport.removeEventListener("resize", setH);
+      document.documentElement.style.removeProperty("--app-h");
+    };
+  }, [isMobile]);
 
   // ---- draft persistence ----
   const draftKey = book ? `loom-draft-${id}-${book.turns.length}` : null;
