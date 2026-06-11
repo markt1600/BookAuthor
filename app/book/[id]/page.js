@@ -726,18 +726,27 @@ export default function BookStudio() {
               </span>
               <div className="dock-spacer" />
               <div className="counters">
-                <div className={`counter${onWritingPage ? " live" : ""}`}>
-                  <div className="num">{counters.page}</div>
-                  <div className="lab">Page</div>
-                </div>
-                <div className={`counter${onWritingPage ? " live" : ""}`}>
-                  <div className="num">{counters.turn}</div>
-                  <div className="lab">{turnLabel}</div>
-                </div>
-                <div className="counter">
-                  <div className="num">{counters.total}</div>
-                  <div className="lab">Total</div>
-                </div>
+                {guideMode ? (
+                  <div className="counter">
+                    <div className="num">{committedWords}</div>
+                    <div className="lab">Words</div>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`counter${onWritingPage ? " live" : ""}`}>
+                      <div className="num">{counters.page}</div>
+                      <div className="lab">Page</div>
+                    </div>
+                    <div className={`counter${onWritingPage ? " live" : ""}`}>
+                      <div className="num">{counters.turn}</div>
+                      <div className="lab">{turnLabel}</div>
+                    </div>
+                    <div className="counter">
+                      <div className="num">{counters.total}</div>
+                      <div className="lab">Total</div>
+                    </div>
+                  </>
+                )}
               </div>
               {onWritingPage ? (
                 <button className="btn btn-primary" onClick={submitTurn} disabled={generating || !draft.trim()}>
@@ -799,7 +808,7 @@ export default function BookStudio() {
             <div className={`v${a.synopsis ? "" : " muted"}`}>{a.synopsis || "Nothing written yet."}</div>
           </div>
           <div className="note-card">
-            <div className="k">Craft</div>
+            <div className="k">{guideMode ? "Story & direction" : "Craft"}</div>
             {a.qualityScore != null ? (
               <div className="quality">
                 <div className="score">

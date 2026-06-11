@@ -69,6 +69,7 @@ export async function POST(request, { params }) {
         title: book.title,
         fullText: manuscriptText(book),
         prior: priorAnalysis,
+        guide: book.mode === "guide",
       });
       if (analysis) book.analysis = analysis;
     } catch {
