@@ -80,9 +80,18 @@ export default function BookStudio() {
 
   const [reading, setReading] = useState(false); // read-aloud active
   const [ttsBusy, setTtsBusy] = useState(false); // fetching audio
+  const [speed, setSpeed] = useState(1); // playback rate
+  const [voiceMode, setVoiceMode] = useState("natural"); // 'natural' (ElevenLabs) | 'device' (Web Speech)
+  const [fullEditOpen, setFullEditOpen] = useState(false);
+  const [fullEditText, setFullEditText] = useState("");
+  const [fullEditSaving, setFullEditSaving] = useState(false);
   const audioElRef = useRef(null);
   const readingRef = useRef(false);
   const readIdxRef = useRef(0);
+  const speedRef = useRef(1);
+  const voiceModeRef = useRef("natural");
+  const deviceVoiceRef = useRef(null);
+  const deviceUttRef = useRef(null);
   const audioCacheRef = useRef(new Map()); // pageIndex -> object URL
 
   const textareaRef = useRef(null);
@@ -155,8 +164,8 @@ export default function BookStudio() {
       m.textContent = t;
       return m.offsetHeight;
     };
-    const boxed = (author) => author === "claude" && !guideMode;
-    const widthFor = (author) => (boxed(author) ? contentW - AI_HRED : contentW);
+    const boxed = (turn) => turn.author === "claude" && !guideMode && !turn.merged;
+    const widthFor = (turn) => (boxed(turn) ? contentW - AI_HRED : contentW);
     const oneLine = s.fontSize * LINE_H;
 
     // chapter breaks, keyed by the turn index they begin at
@@ -190,7 +199,7 @@ export default function BookStudio() {
       if (isNewRun) {
         const ts = !tabShown.has(turn.id);
         if (ts) tabShown.add(turn.id);
-        runs.push({ author: turn.author, turnId: turn.id, turnStart: ts, paras: [text] });
+        runs.push({ author: turn.author, turnId: turn.id, turnStart: ts, merged: turn.merged, paras: [text] });
       } else {
         runs[runs.length - 1].paras.push(text);
       }
@@ -216,9 +225,9 @@ export default function BookStudio() {
           const last = runs[runs.length - 1];
           const extend = last && last.author === turn.author && last.turnId === turn.id;
           const gapPart = extend ? paraGap : runs.length > 0 ? paraGap : 0;
-          const chrome = !extend && boxed(turn.author) ? AI_VCHROME : 0;
+          const chrome = !extend && boxed(turn) ? AI_VCHROME : 0;
           const fixed = gapPart + chrome;
-          const w = widthFor(turn.author);
+          const w = widthFor(turn);
           const availText = contentH - base - fixed;
 
           if (availText < oneLine && runs.length > 0) {
@@ -468,6 +477,9 @@ export default function BookStudio() {
         a.load();
       } catch {}
     }
+    try {
+      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+    } catch {}
   }, []);
 
   function pageTextAt(index) {
@@ -521,12 +533,71 @@ export default function BookStudio() {
     }
     readIdxRef.current = index;
     turnTo(index, true); // flip to the page being read (without cancelling read-aloud)
+    const text = pageTextAt(index);
+    if (!text) {
+      // empty page — skip ahead
+      const next = index + 1;
+      if (next >= pages.length) stopReading();
+      else playIndex(next);
+      return;
+    }
+    if (voiceModeRef.current === "device") {
+      speakDevice(index, text);
+    } else {
+      await playNatural(index, text);
+    }
+  }
+
+  // On-device narration via the browser's Web Speech API (no key, no network).
+  function speakDevice(index, text) {
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+    if (!synth) {
+      setBanner("This browser doesn't support on-device speech — switch to the Natural voice.");
+      stopReading();
+      return;
+    }
+    setTtsBusy(false);
+    try {
+      synth.cancel();
+    } catch {}
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = Math.min(2, Math.max(0.5, speedRef.current));
+    if (deviceVoiceRef.current) u.voice = deviceVoiceRef.current;
+    u.onend = () => {
+      if (!readingRef.current || readIdxRef.current !== index) return;
+      const next = index + 1;
+      if (next >= pages.length) stopReading();
+      else playIndex(next);
+    };
+    u.onerror = () => {
+      if (!readingRef.current) return; // we cancelled it ourselves
+      stopReading();
+    };
+    deviceUttRef.current = u;
+    // Some browsers pause synthesis when backgrounded; resume defensively.
+    try {
+      synth.resume();
+    } catch {}
+    synth.speak(u);
+  }
+
+  // Premium narration via ElevenLabs (server-proxied). Falls back to device.
+  async function playNatural(index, text) {
     setTtsBusy(true);
     let url;
     try {
       url = await fetchPageAudio(index);
     } catch (e) {
-      setBanner(e.message || "Read-aloud failed.");
+      setTtsBusy(false);
+      const msg = e.message || "";
+      if (/configured|ELEVENLABS|reach|service/i.test(msg)) {
+        // ElevenLabs unavailable — fall back to on-device voice automatically.
+        voiceModeRef.current = "device";
+        setVoiceMode("device");
+        if (readingRef.current && readIdxRef.current === index) speakDevice(index, text);
+        return;
+      }
+      setBanner(msg || "Read-aloud failed.");
       stopReading();
       return;
     }
@@ -535,6 +606,12 @@ export default function BookStudio() {
     const a = audioElRef.current;
     if (!a) return;
     a.src = url;
+    try {
+      a.preservesPitch = true;
+      a.mozPreservesPitch = true;
+      a.webkitPreservesPitch = true;
+      a.playbackRate = speedRef.current;
+    } catch {}
     try {
       await a.play();
     } catch {
@@ -555,6 +632,36 @@ export default function BookStudio() {
     playIndex(next);
   }
 
+  function openFullEdit() {
+    if (readingRef.current) stopReading();
+    setFullEditText((book.turns || []).map((t) => t.text).join("\n\n"));
+    setFullEditOpen(true);
+  }
+  async function saveFullText() {
+    setFullEditSaving(true);
+    try {
+      const res = await fetch(`/api/books/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullText: fullEditText }),
+      });
+      const data = await res.json();
+      if (res.ok && data.book) {
+        setBook(data.book);
+        setDraft("");
+        setCurrentPage(0);
+        setFullEditOpen(false);
+        setBanner("");
+      } else {
+        setBanner((data && data.error) || "Could not save the edit.");
+      }
+    } catch {
+      setBanner("Could not save the edit.");
+    } finally {
+      setFullEditSaving(false);
+    }
+  }
+
   function toggleReading() {
     if (readingRef.current) {
       stopReading();
@@ -568,6 +675,87 @@ export default function BookStudio() {
     setReading(true);
     playIndex(start);
   }
+
+  const READ_SPEEDS = [1, 1.3, 1.5];
+  function cycleSpeed() {
+    setSpeed((s) => {
+      const i = READ_SPEEDS.indexOf(s);
+      return READ_SPEEDS[(i + 1) % READ_SPEEDS.length] || 1;
+    });
+  }
+
+  function toggleVoiceMode() {
+    const next = voiceModeRef.current === "natural" ? "device" : "natural";
+    voiceModeRef.current = next;
+    setVoiceMode(next);
+    // If we're mid-read, restart the current page in the newly chosen voice.
+    if (readingRef.current) {
+      try {
+        if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch {}
+      const a = audioElRef.current;
+      if (a) {
+        try {
+          a.pause();
+        } catch {}
+      }
+      const idx = readIdxRef.current;
+      setTimeout(() => {
+        if (readingRef.current) playIndex(idx);
+      }, 40);
+    }
+  }
+  // Keep the live audio in sync with the chosen speed (pitch preserved).
+  useEffect(() => {
+    speedRef.current = speed;
+    const a = audioElRef.current;
+    if (a) {
+      try {
+        a.preservesPitch = true;
+        a.mozPreservesPitch = true;
+        a.webkitPreservesPitch = true;
+        a.playbackRate = speed;
+      } catch {}
+    }
+  }, [speed]);
+
+  useEffect(() => {
+    voiceModeRef.current = voiceMode;
+  }, [voiceMode]);
+
+  // Default to on-device voice when ElevenLabs isn't configured on the server.
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d && d.tts === false) {
+          voiceModeRef.current = "device";
+          setVoiceMode("device");
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load on-device voices (they populate asynchronously in most browsers).
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const pick = () => {
+      const vs = window.speechSynthesis.getVoices();
+      if (!vs || !vs.length) return;
+      const en =
+        vs.find((v) => /^en[-_]/i.test(v.lang) && v.default) ||
+        vs.find((v) => /^en[-_]/i.test(v.lang)) ||
+        vs[0];
+      deviceVoiceRef.current = en || null;
+    };
+    pick();
+    window.speechSynthesis.onvoiceschanged = pick;
+    return () => {
+      try {
+        window.speechSynthesis.onvoiceschanged = null;
+      } catch {}
+    };
+  }, []);
 
   // Re-pagination (new section, font/format change) invalidates cached audio
   // and stops playback, since page indices may have shifted.
@@ -584,6 +772,9 @@ export default function BookStudio() {
         a.pause();
       } catch {}
     }
+    try {
+      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages]);
 
@@ -593,6 +784,9 @@ export default function BookStudio() {
       for (const url of cache.values()) URL.revokeObjectURL(url);
       cache.clear();
       readingRef.current = false;
+      try {
+        if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch {}
     },
     []
   );
@@ -723,16 +917,43 @@ export default function BookStudio() {
               Notes
             </button>
           )}
-          <button
-            className={`btn btn-ghost read-btn${reading ? " is-reading" : ""}`}
-            onClick={toggleReading}
-            disabled={pages.length === 0}
-            title={reading ? "Stop read aloud" : "Read the book aloud from the current page"}
-          >
-            {reading ? (ttsBusy ? "Loading…" : "◼ Stop") : "▶ Read aloud"}
-          </button>
+          <div className="read-cluster">
+            <label
+              className="read-toggle"
+              title={reading ? "Stop read aloud" : "Read the book aloud from the current page"}
+            >
+              <input
+                type="checkbox"
+                checked={reading}
+                onChange={toggleReading}
+                disabled={pages.length === 0}
+              />
+              <span className="toggle-track" aria-hidden="true">
+                <span className="toggle-knob" />
+              </span>
+              <span className="read-toggle-text">{reading ? (ttsBusy ? "Loading…" : "Reading") : "Read aloud"}</span>
+            </label>
+            <button
+              className="speed-btn"
+              onClick={toggleVoiceMode}
+              title="Voice source — Natural (ElevenLabs) or Device (on-device, free)"
+            >
+              {voiceMode === "natural" ? "Natural" : "Device"}
+            </button>
+            <button
+              className="speed-btn"
+              onClick={cycleSpeed}
+              title="Reading speed — tap to change"
+              aria-label={`Reading speed ${speed} times`}
+            >
+              {speed}×
+            </button>
+          </div>
           <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
             Chapters
+          </button>
+          <button className="btn btn-ghost" onClick={openFullEdit}>
+            Edit text
           </button>
           <button className="btn btn-ghost" onClick={exportPdf}>
             Export PDF
@@ -840,7 +1061,7 @@ export default function BookStudio() {
                               </div>
                             );
                           }
-                          const isAI = run.author === "claude" && !guideMode;
+                          const isAI = run.author === "claude" && !guideMode && !run.merged;
                           const animating = run.turnId === animTurn;
                           let wcount = 0;
                           return (
@@ -849,7 +1070,7 @@ export default function BookStudio() {
                               className={`ink-run${isAI ? " ink-run--ai" : ""}${animating ? " is-fresh" : ""}`}
                               data-author={run.author}
                             >
-                              {run.turnStart && !guideMode && (
+                              {run.turnStart && !guideMode && !run.merged && (
                                 <div className="run-tab" data-author={run.author}>
                                   {authorName(run.author, book.author)}
                                 </div>
@@ -1052,6 +1273,40 @@ export default function BookStudio() {
           pointerEvents: "none",
         }}
       />
+
+      {fullEditOpen && (
+        <div className="fulledit-scrim" onClick={() => !fullEditSaving && setFullEditOpen(false)}>
+          <div className="fulledit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="fulledit-head">
+              <div>
+                <div className="fulledit-title">Edit the full text</div>
+                <div className="fulledit-sub">
+                  Revise the whole manuscript freely — add, delete, rewrite. Separate paragraphs with a
+                  blank line. Saving replaces the book with your edited text as one continuous passage and
+                  repaginates.
+                </div>
+              </div>
+              <button className="btn btn-ghost" onClick={() => setFullEditOpen(false)} disabled={fullEditSaving}>
+                Cancel
+              </button>
+            </div>
+            <textarea
+              className="fulledit-area"
+              value={fullEditText}
+              onChange={(e) => setFullEditText(e.target.value)}
+              placeholder="The whole book's text…"
+              autoFocus
+              spellCheck
+            />
+            <div className="fulledit-foot">
+              <span className="fulledit-count">{countWords(fullEditText).toLocaleString()} words</span>
+              <button className="btn btn-primary" onClick={saveFullText} disabled={fullEditSaving}>
+                {fullEditSaving ? "Saving…" : "Save & repaginate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {settingsOpen && <SettingsDrawer book={book} onClose={() => setSettingsOpen(false)} onSave={save} />}
       {chaptersOpen && (

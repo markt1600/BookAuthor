@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { applyPatch, truncateAt } from "@/lib/book";
+import { applyPatch, truncateAt, mergeFullText } from "@/lib/book";
 import { getBook, saveBook, deleteBook } from "@/lib/store";
 import { isAuthed } from "@/lib/admin";
 
@@ -31,6 +31,13 @@ export async function PUT(request, { params }) {
     body = await request.json();
   } catch {
     body = {};
+  }
+
+  // Full-manuscript edit: replace the book's text with the edited version.
+  if (typeof body.fullText === "string") {
+    const merged = mergeFullText(book, body.fullText);
+    await saveBook(merged);
+    return NextResponse.json({ book: merged });
   }
 
   let next = applyPatch(book, body);

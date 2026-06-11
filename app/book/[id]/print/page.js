@@ -167,7 +167,7 @@ export default function PrintView() {
                   <div className="pv-ch-rule" />
                 </div>
               )}
-              <div className="pv-marker" data-author={t.author} data-hide={book.mode === "guide" ? "1" : undefined}>
+              <div className="pv-marker" data-author={t.author} data-hide={book.mode === "guide" || t.merged ? "1" : undefined}>
                 <span className="rule" />
                 <span className="lab">{t.author === "user" ? book.author : "AI Author"}</span>
                 <span className="rule" />
