@@ -115,10 +115,8 @@ export default function PrintView() {
     .pv-body { font-size: ${s.fontSize}px; line-height: 1.6; }
     .pv-body p { margin: 0 0 0.9em; orphans: 2; widows: 2; white-space: pre-wrap; }
     .pv-turn { margin-bottom: 6px; }
-    .pv-marker {
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      margin: 26px 0 18px; break-after: avoid;
-    }
+    .pv-marker { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 26px 0 18px; break-after: avoid; }
+    .pv-marker[data-hide="1"] { display: none; }
     .pv-marker:first-child { margin-top: 0; }
     .pv-marker .rule { width: 34px; height: 2px; }
     .pv-marker .lab {
@@ -169,7 +167,7 @@ export default function PrintView() {
                   <div className="pv-ch-rule" />
                 </div>
               )}
-              <div className="pv-marker" data-author={t.author}>
+              <div className="pv-marker" data-author={t.author} data-hide={book.mode === "guide" ? "1" : undefined}>
                 <span className="rule" />
                 <span className="lab">{t.author === "user" ? book.author : "AI Author"}</span>
                 <span className="rule" />

@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import DesignControls from "@/components/DesignControls";
+import GuideControls from "@/components/GuideControls";
 import BookPreview from "@/components/BookPreview";
+import { DEFAULT_GUIDE } from "@/lib/book";
 
 export default function SettingsDrawer({ book, onClose, onSave }) {
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
   const [settings, setSettings] = useState(book.settings);
+  const [guide, setGuide] = useState({ ...DEFAULT_GUIDE, ...(book.guide || {}) });
   const [saving, setSaving] = useState(false);
+  const guideMode = book.mode === "guide";
 
   useEffect(() => {
     function onKey(e) {
@@ -21,10 +25,13 @@ export default function SettingsDrawer({ book, onClose, onSave }) {
   function change(field, value) {
     setSettings((s) => ({ ...s, [field]: value }));
   }
+  function changeGuide(field, value) {
+    setGuide((g) => ({ ...g, [field]: value }));
+  }
 
   async function save() {
     setSaving(true);
-    await onSave({ title, author, settings });
+    await onSave(guideMode ? { title, author, settings, guide } : { title, author, settings });
     setSaving(false);
     onClose();
   }
@@ -62,6 +69,13 @@ export default function SettingsDrawer({ book, onClose, onSave }) {
             placeholder="Anonymous"
           />
         </div>
+
+        {guideMode && (
+          <>
+            <GuideControls guide={guide} onChange={changeGuide} />
+            <div className="setup-subhead">Book design — how the pages look</div>
+          </>
+        )}
 
         <DesignControls settings={settings} onChange={change} />
 

@@ -82,6 +82,7 @@ export default function BookStudio() {
   const measureRef = useRef(null);
   const vpRef = useRef(null);
   const pendingJump = useRef(null);
+  const prefilledRef = useRef(null); // guide mode: which turns-count we've pre-filled a suggestion for
 
   // ---- load ----
   useEffect(() => {
@@ -147,7 +148,8 @@ export default function BookStudio() {
       m.textContent = t;
       return m.offsetHeight;
     };
-    const widthFor = (author) => (author === "claude" ? contentW - AI_HRED : contentW);
+    const boxed = (author) => author === "claude" && !guideMode;
+    const widthFor = (author) => (boxed(author) ? contentW - AI_HRED : contentW);
     const oneLine = s.fontSize * LINE_H;
 
     // chapter breaks, keyed by the turn index they begin at
@@ -207,7 +209,7 @@ export default function BookStudio() {
           const last = runs[runs.length - 1];
           const extend = last && last.author === turn.author && last.turnId === turn.id;
           const gapPart = extend ? paraGap : runs.length > 0 ? paraGap : 0;
-          const chrome = !extend && turn.author === "claude" ? AI_VCHROME : 0;
+          const chrome = !extend && boxed(turn.author) ? AI_VCHROME : 0;
           const fixed = gapPart + chrome;
           const w = widthFor(turn.author);
           const availText = contentH - base - fixed;
@@ -298,6 +300,7 @@ export default function BookStudio() {
   }, [draft, draftKey]);
 
   const usersMove = book ? isUsersMove(book) : true;
+  const guideMode = book ? book.mode === "guide" : false;
   const writingIndex = pages.length;
   const pageCount = pages.length + (usersMove ? 1 : 0);
   const onWritingPage = usersMove && currentPage >= writingIndex;
@@ -331,7 +334,7 @@ export default function BookStudio() {
     : null;
 
   const counters = onWritingPage
-    ? { page: draftWords, turn: draftWords, total: committedWords + draftWords }
+    ? { page: draftWords, turn: draftWords, total: committedWords + (guideMode ? 0 : draftWords) }
     : { page: pageWords, turn: currentTurn ? currentTurn.words : pageWords, total: committedWords };
 
   const save = useCallback(
@@ -371,7 +374,9 @@ export default function BookStudio() {
       setDraft("");
       setBook(data.book);
       if (newChapter) {
-        const startTurn = Math.max(0, data.book.turns.length - 2); // the user turn just written
+        const startTurn = guideMode
+          ? Math.max(0, data.book.turns.length - 1) // the section just written
+          : Math.max(0, data.book.turns.length - 2); // the user turn just written
         save({ chapters: [...(data.book.chapters || []), { startTurn, title: "" }] });
         setNewChapter(false);
       }
@@ -380,26 +385,30 @@ export default function BookStudio() {
     } finally {
       setGenerating(false);
     }
-  }, [draft, generating, id, newChapter, save]);
+  }, [draft, generating, id, newChapter, save, guideMode]);
 
   const editFromHere = useCallback(
     async (turnId) => {
       if (!book) return;
       const idx = book.turns.findIndex((t) => t.id === turnId);
       if (idx < 0) return;
-      const keepFrom = idx % 2 === 0 ? idx : idx - 1;
+      const keepFrom = guideMode ? idx : idx % 2 === 0 ? idx : idx - 1;
       const ok = window.confirm(
         "Editing from here discards this passage and everything after it — the book forks at this point. Continue?"
       );
       if (!ok) return;
-      const recovered = book.turns[keepFrom] ? book.turns[keepFrom].text : "";
+      const recovered = guideMode
+        ? (book.turns[keepFrom] && book.turns[keepFrom].prompt) || ""
+        : book.turns[keepFrom]
+        ? book.turns[keepFrom].text
+        : "";
       await save({ truncateFrom: keepFrom });
       setDraft(recovered);
       setCurrentPage(Math.max(0, keepFrom));
       setBanner("");
       setTimeout(() => textareaRef.current && textareaRef.current.focus(), 60);
     },
-    [book, save]
+    [book, save, guideMode]
   );
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -419,7 +428,14 @@ export default function BookStudio() {
       submitTurn();
     }
   }
-  const goWrite = () => turnTo(writingIndex);
+  const goWrite = () => {
+    if (guideMode && book.turns.length > 0 && prefilledRef.current !== book.turns.length) {
+      const sug = book.analysis && book.analysis.nextDirection;
+      if (sug && draft.trim() === "") setDraft(sug);
+      prefilledRef.current = book.turns.length;
+    }
+    turnTo(writingIndex);
+  };
   function turnTo(t) {
     setNav(t > currentPage ? "next" : t < currentPage ? "prev" : null);
     setCurrentPage(t);
@@ -462,6 +478,9 @@ export default function BookStudio() {
   const a = book.analysis || {};
   const perWord = 26;
   const flipClass = nav === "next" ? "flip-next" : nav === "prev" ? "flip-prev" : "";
+  const turnLabel = guideMode ? "Section" : "Turn";
+  const suggestion = guideMode && book.analysis ? book.analysis.nextDirection || "" : "";
+  const draftIsSuggestion = !!suggestion && draft.trim() === suggestion.trim();
 
   const proseStyle = {
     fontFamily,
@@ -534,6 +553,13 @@ export default function BookStudio() {
           <div className="stage-col">
             {banner && <div className="banner">{banner}</div>}
 
+            {guideMode && !onWritingPage && currentTurn && currentTurn.prompt && (
+              <div className="section-direction" title="Your direction for this section">
+                <span className="sd-mark">▸ your direction</span>
+                {currentTurn.prompt}
+              </div>
+            )}
+
             <div className="page-viewport" ref={vpRef}>
               <div className="page-scaler" style={{ width: geom.w * scale, height: geom.h * scale }}>
                 <div className="page-shell" style={{ width: geom.w, height: geom.h, transform: `scale(${scale})` }}>
@@ -544,12 +570,20 @@ export default function BookStudio() {
                   {onWritingPage ? (
                     <div
                       key="writing"
-                      className={`book-page paper is-writing ${flipClass}${generating ? " is-busy" : ""}`}
+                      className={`book-page paper is-writing ${flipClass}${generating ? " is-busy" : ""}${
+                        guideMode ? " is-direction" : ""
+                      }`}
                       data-material={s.material}
                       style={{ padding: `${geom.padY}px ${geom.padX}px` }}
                     >
                       <div className="run-tab" data-author="user">
-                        {book.turns.length === 0 ? "Open the book — your turn" : "Your turn"}
+                        {guideMode
+                          ? book.turns.length === 0
+                            ? "Open the book — your first direction"
+                            : "Your direction"
+                          : book.turns.length === 0
+                          ? "Open the book — your turn"
+                          : "Your turn"}
                       </div>
                       {book.turns.length > 0 && (
                         <label className="chapter-toggle" title="Start a new chapter with this passage">
@@ -561,6 +595,11 @@ export default function BookStudio() {
                           <span>Begin a new chapter here</span>
                         </label>
                       )}
+                      {guideMode && draftIsSuggestion && (
+                        <div className="suggest-hint">
+                          ✎ Suggested next direction — accept it as is, or rewrite it to steer your own way.
+                        </div>
+                      )}
                       <textarea
                         ref={textareaRef}
                         className="write-area"
@@ -570,7 +609,11 @@ export default function BookStudio() {
                         onKeyDown={onKeyDown}
                         disabled={generating}
                         placeholder={
-                          book.turns.length === 0
+                          guideMode
+                            ? book.turns.length === 0
+                              ? "Describe how the story opens — the character, the place, the moment. A line or a paragraph is plenty; the AI will write ~275 words from it."
+                              : "Describe what happens next in this section. Steer the characters, the turn, the tone — the AI writes ~275 words from your direction."
+                            : book.turns.length === 0
                             ? "Begin your story. Write as much or as little as you like — the AI author will answer with about the same length, in your voice."
                             : "Write the next passage…"
                         }
@@ -600,8 +643,8 @@ export default function BookStudio() {
                               </div>
                             );
                           }
-                          const isAI = run.author === "claude";
-                          const animating = isAI && run.turnId === animTurn;
+                          const isAI = run.author === "claude" && !guideMode;
+                          const animating = run.turnId === animTurn;
                           let wcount = 0;
                           return (
                             <div
@@ -609,7 +652,7 @@ export default function BookStudio() {
                               className={`ink-run${isAI ? " ink-run--ai" : ""}${animating ? " is-fresh" : ""}`}
                               data-author={run.author}
                             >
-                              {run.turnStart && (
+                              {run.turnStart && !guideMode && (
                                 <div className="run-tab" data-author={run.author}>
                                   {authorName(run.author, book.author)}
                                 </div>
@@ -651,7 +694,9 @@ export default function BookStudio() {
                 <span className="pulse">
                   <i /><i /><i />
                 </span>
-                The AI author is writing about {draftWords} words in your voice…
+                {guideMode
+                  ? "The AI author is writing the next section…"
+                  : `The AI author is writing about ${draftWords} words in your voice…`}
               </div>
             )}
 
@@ -687,7 +732,7 @@ export default function BookStudio() {
                 </div>
                 <div className={`counter${onWritingPage ? " live" : ""}`}>
                   <div className="num">{counters.turn}</div>
-                  <div className="lab">Turn</div>
+                  <div className="lab">{turnLabel}</div>
                 </div>
                 <div className="counter">
                   <div className="num">{counters.total}</div>
@@ -696,11 +741,11 @@ export default function BookStudio() {
               </div>
               {onWritingPage ? (
                 <button className="btn btn-primary" onClick={submitTurn} disabled={generating || !draft.trim()}>
-                  {generating ? "Weaving…" : "Hand to the AI author →"}
+                  {generating ? "Weaving…" : guideMode ? "Write this section →" : "Hand to the AI author →"}
                 </button>
               ) : usersMove ? (
                 <button className="btn btn-primary" onClick={goWrite}>
-                  Continue writing →
+                  {guideMode ? "Direct the next section →" : "Continue writing →"}
                 </button>
               ) : null}
             </div>
@@ -741,9 +786,12 @@ export default function BookStudio() {
             )}
           </div>
           <div className="note-card">
-            <div className="k">Your writing style</div>
+            <div className="k">{guideMode ? "Prose & voice" : "Your writing style"}</div>
             <div className={`v${a.style ? "" : " muted"}`}>
-              {a.style || "The AI author will describe your voice as the book grows."}
+              {a.style ||
+                (guideMode
+                  ? "The AI author's voice will be described as the story grows."
+                  : "The AI author will describe your voice as the book grows.")}
             </div>
           </div>
           <div className="note-card">

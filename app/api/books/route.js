@@ -36,6 +36,8 @@ export async function POST(request) {
     title: body.title,
     author: body.author,
     settings: body.settings,
+    mode: body.mode,
+    guide: body.guide,
   });
 
   await saveBook(book);

@@ -2,6 +2,13 @@
 
 You write a passage. An AI author answers in your voice, at about the same length, matching the genre and tone you've established. The book is woven from two hands — and you can always see which hand wrote which thread.
 
+## Two ways to write
+
+When you start a book, Loom asks how you want to make it:
+
+- **Write together (participate)** — you and the AI author trade passages in one shared voice. You write; it continues in your style and at your length.
+- **Guide the story (guide)** — you direct, the AI author writes. You describe what should happen next and it writes the next ~275-word section. Instead of a paper/material choice, the setup offers a **writing style** (Literary, Cinematic, Cozy, Noir, Whimsical, Adventure, Gothic, Minimalist), plus **point of view**, **tense**, **creative latitude**, and — for adult books — an **adult-audiences** toggle with **violence/gore, sexual content, and language** intensity sliders (off by default; all characters written as adults). The reader's notes (genre, prose voice, synopsis, story memory, craft) update as the story develops, the page-based reading/navigation is identical, and each section shows the direction that produced it. After the first section, the next direction box is **pre-filled with a suggested direction** the AI proposes — accept it to continue the arc, or rewrite it to steer your own way. **Section length** is adjustable from 150–400 words (default 275). Both the writing style and these guide options stay editable later from Settings.
+
 ## What's inside
 
 - **Title page setup** — name the book and author, pick a cover, page format, material, typeface (serif, sans, mono, storybook, or **cursive**), **ink color**, and reading size. A **live preview** updates as you choose, both here and in **Settings**, so you see the page before you commit. Sensible defaults are pre-selected, so you can just press **Continue**. Everything is editable later, on any page.

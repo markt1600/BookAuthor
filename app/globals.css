@@ -1313,3 +1313,69 @@ body {
 .lock-card .text-input:focus { outline: none; border-color: var(--brass); }
 .lock-err { font-size: 12.5px; color: #e08a78; }
 .lock-card .btn-primary { width: 100%; }
+
+/* ===================================================================
+   v5 — mode fork + guide mode
+   =================================================================== */
+.fork { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 860px; margin: 8px auto 0; }
+.fork-card {
+  text-align: left; cursor: pointer; padding: 26px 24px 22px;
+  background: linear-gradient(180deg, rgba(40,45,56,0.7), rgba(28,32,40,0.7));
+  border: 1px solid var(--desk-line); border-radius: 14px;
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.fork-card:hover { transform: translateY(-3px); border-color: rgba(192,145,63,0.5); box-shadow: 0 24px 50px -30px rgba(0,0,0,0.8); }
+.fork-eyebrow { font-family: var(--data); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass); }
+.fork-title { font-family: var(--display); font-size: 23px; font-weight: 600; line-height: 1.15; }
+.fork-body { font-size: 14px; line-height: 1.6; color: var(--on-desk-dim); margin: 2px 0 6px; }
+.fork-go { font-family: var(--data); font-size: 12px; letter-spacing: 0.06em; color: var(--on-desk); margin-top: auto; }
+
+.back-link {
+  background: none; border: none; cursor: pointer; align-self: center;
+  font-family: var(--data); font-size: 12px; letter-spacing: 0.04em; color: var(--on-desk-dim);
+  margin: -8px auto 22px; padding: 4px 8px;
+}
+.back-link:hover { color: var(--on-desk); }
+
+.setup-subhead {
+  font-family: var(--data); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--on-desk-dim); margin: 26px 0 4px; padding-top: 18px; border-top: 1px solid var(--desk-line);
+}
+
+/* maturity sliders */
+.maturity { display: flex; flex-direction: column; gap: 12px; }
+.intensity-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
+.intensity-label { font-size: 13px; color: var(--on-desk); }
+.intensity-row input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--brass); }
+.intensity-val {
+  font-family: var(--data); font-size: 11px; letter-spacing: 0.04em; color: var(--brass);
+  grid-row: 1; grid-column: 2; min-width: 64px; text-align: right;
+}
+
+/* the originating direction shown above the page in guide mode */
+.section-direction {
+  max-width: 600px; margin: 0 auto 16px; padding: 12px 16px;
+  background: rgba(192,145,63,0.08); border: 1px solid rgba(192,145,63,0.25);
+  border-radius: 10px; font-size: 13.5px; line-height: 1.55; color: var(--on-desk);
+  font-style: italic;
+}
+.section-direction .sd-mark {
+  display: block; font-style: normal; font-family: var(--data); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--brass); margin-bottom: 5px;
+}
+
+/* the direction composer reads as a note, not a manuscript page */
+.book-page.is-direction .run-tab[data-author="user"] { color: var(--brass); }
+.book-page.is-direction .write-area::placeholder { font-style: italic; }
+
+@media (max-width: 720px) {
+  .fork { grid-template-columns: 1fr; }
+}
+
+/* guide mode: suggested-direction hint on the composer */
+.suggest-hint {
+  font-family: var(--data); font-size: 11px; letter-spacing: 0.02em; line-height: 1.5;
+  color: #b07f2e; margin: -4px 0 12px;
+}
+.book-page[data-material="midnight"] .suggest-hint { color: var(--brass); }
