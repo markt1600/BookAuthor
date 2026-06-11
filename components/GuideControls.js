@@ -22,7 +22,7 @@ function Chips({ field, value, onChange }) {
 
 const SLIDERS = [
   { key: "violence", label: "Violence & gore" },
-  { key: "sexual", label: "Sexual content" },
+  { key: "sexual", label: "Explicitness" },
   { key: "language", label: "Strong language" },
 ];
 
