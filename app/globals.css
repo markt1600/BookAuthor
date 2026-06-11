@@ -1379,3 +1379,6 @@ body {
   color: #b07f2e; margin: -4px 0 12px;
 }
 .book-page[data-material="midnight"] .suggest-hint { color: var(--brass); }
+
+/* let horizontal swipes drive page turns while vertical scroll still works */
+.page-viewport { touch-action: pan-y; }

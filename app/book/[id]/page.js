@@ -304,6 +304,10 @@ export default function BookStudio() {
   const writingIndex = pages.length;
   const pageCount = pages.length + (usersMove ? 1 : 0);
   const onWritingPage = usersMove && currentPage >= writingIndex;
+  // Highest page reachable by next/prev/swipe. In guide mode the blank composer
+  // is excluded — it's reached only via "Direct the next section" — unless it's
+  // the only page (a brand-new book with no sections yet).
+  const navMax = guideMode ? (pages.length === 0 ? 0 : pages.length - 1) : pageCount - 1;
 
   useEffect(() => {
     if (currentPage > pageCount - 1) setCurrentPage(Math.max(0, pageCount - 1));
@@ -441,6 +445,37 @@ export default function BookStudio() {
     setCurrentPage(t);
   }
 
+  // Touch swipe: left = next page, right = previous. Respects navMax (won't
+  // swipe into the guide composer) and ignores swipes that begin on controls.
+  const touchRef = useRef(null);
+  function onTouchStart(e) {
+    if (!e.touches || e.touches.length !== 1) {
+      touchRef.current = null;
+      return;
+    }
+    const t = e.touches[0];
+    const onControl =
+      e.target && e.target.closest
+        ? !!e.target.closest("textarea, input, button, a, .spine, .chapter-toggle")
+        : false;
+    touchRef.current = { x: t.clientX, y: t.clientY, onControl };
+  }
+  function onTouchEnd(e) {
+    const s = touchRef.current;
+    touchRef.current = null;
+    if (!s || s.onControl || generating) return;
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.2) return; // not a clear horizontal swipe
+    if (dx < 0) {
+      if (!onWritingPage && currentPage < navMax) turnTo(Math.min(navMax, currentPage + 1));
+    } else {
+      if (currentPage > 0) turnTo(Math.max(0, currentPage - 1));
+    }
+  }
+
   if (status === "loading")
     return (
       <div className="screen-center">
@@ -560,7 +595,7 @@ export default function BookStudio() {
               </div>
             )}
 
-            <div className="page-viewport" ref={vpRef}>
+            <div className="page-viewport" ref={vpRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
               <div className="page-scaler" style={{ width: geom.w * scale, height: geom.h * scale }}>
                 <div className="page-shell" style={{ width: geom.w, height: geom.h, transform: `scale(${scale})` }}>
                   <div className="page-stack" aria-hidden="true">
@@ -712,8 +747,8 @@ export default function BookStudio() {
                 </button>
                 <button
                   className="icon-btn"
-                  onClick={() => turnTo(Math.min(pageCount - 1, currentPage + 1))}
-                  disabled={currentPage >= pageCount - 1}
+                  onClick={() => turnTo(Math.min(navMax, currentPage + 1))}
+                  disabled={currentPage >= navMax}
                   aria-label="Next page"
                 >
                   ›
@@ -722,7 +757,7 @@ export default function BookStudio() {
               <span className="pageno">
                 {onWritingPage ? "Writing" : `Page ${currentPage + 1}`}
                 {" / "}
-                {pageCount}
+                {guideMode ? Math.max(pages.length, 1) : pageCount}
               </span>
               <div className="dock-spacer" />
               <div className="counters">
