@@ -107,10 +107,7 @@ export default function GuideControls({ guide, onChange, allowErotica = false })
                       checked={!!guide.erotica}
                       onChange={(e) => onChange("erotica", e.target.checked)}
                     />
-                    <span>
-                      Lean into erotica
-                      <em> — takes effect when explicitness is at maximum</em>
-                    </span>
+                    <span>Enhance</span>
                   </label>
                 )}
               </div>
