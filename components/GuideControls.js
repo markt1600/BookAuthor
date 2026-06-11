@@ -26,7 +26,7 @@ const SLIDERS = [
   { key: "language", label: "Strong language" },
 ];
 
-export default function GuideControls({ guide, onChange }) {
+export default function GuideControls({ guide, onChange, allowErotica = false }) {
   return (
     <>
       <div className="setup-row">
@@ -87,17 +87,32 @@ export default function GuideControls({ guide, onChange }) {
           <div className="setup-label">Maturity</div>
           <div className="maturity">
             {SLIDERS.map((s) => (
-              <div className="intensity-row" key={s.key}>
-                <span className="intensity-label">{s.label}</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="3"
-                  step="1"
-                  value={guide[s.key]}
-                  onChange={(e) => onChange(s.key, Number(e.target.value))}
-                />
-                <span className="intensity-val">{GUIDE_LABELS.intensity[guide[s.key]]}</span>
+              <div key={s.key}>
+                <div className="intensity-row">
+                  <span className="intensity-label">{s.label}</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="3"
+                    step="1"
+                    value={guide[s.key]}
+                    onChange={(e) => onChange(s.key, Number(e.target.value))}
+                  />
+                  <span className="intensity-val">{GUIDE_LABELS.intensity[guide[s.key]]}</span>
+                </div>
+                {s.key === "sexual" && allowErotica && (
+                  <label className="erotica-check">
+                    <input
+                      type="checkbox"
+                      checked={!!guide.erotica}
+                      onChange={(e) => onChange("erotica", e.target.checked)}
+                    />
+                    <span>
+                      Lean into erotica
+                      <em> — takes effect when explicitness is at maximum</em>
+                    </span>
+                  </label>
+                )}
               </div>
             ))}
           </div>

@@ -1382,3 +1382,11 @@ body {
 
 /* let horizontal swipes drive page turns while vertical scroll still works */
 .page-viewport { touch-action: pan-y; }
+
+/* guide: erotica lean checkbox (Settings only) */
+.erotica-check {
+  display: flex; align-items: flex-start; gap: 8px; margin: 8px 0 2px;
+  font-size: 12.5px; line-height: 1.45; color: var(--on-desk); cursor: pointer;
+}
+.erotica-check input { margin-top: 2px; accent-color: var(--brass); flex: none; }
+.erotica-check em { font-style: normal; color: var(--on-desk-dim); }

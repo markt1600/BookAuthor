@@ -70,6 +70,12 @@ export async function POST(request, { params }) {
         fullText: manuscriptText(book),
         prior: priorAnalysis,
         guide: book.mode === "guide",
+        eroticaLean:
+          book.mode === "guide" &&
+          book.guide &&
+          book.guide.adult &&
+          book.guide.erotica &&
+          book.guide.sexual === 3,
       });
       if (analysis) book.analysis = analysis;
     } catch {

@@ -72,7 +72,7 @@ export default function SettingsDrawer({ book, onClose, onSave }) {
 
         {guideMode && (
           <>
-            <GuideControls guide={guide} onChange={changeGuide} />
+            <GuideControls guide={guide} onChange={changeGuide} allowErotica />
             <div className="setup-subhead">Book design — how the pages look</div>
           </>
         )}
