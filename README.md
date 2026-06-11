@@ -18,5 +18,6 @@ When you start a book, Loom asks how you want to make it:
 - **Navigate & fork** — page back and forth through the book. "Edit from here" pulls a passage (or a direction) back into the editor and discards everything after it — the book forks at that point.
 - **Chapters** — mark a new chapter while you write, or manage them later from the **Chapters** panel: add, rename, remove, and jump to any chapter. Chapters open on a fresh page, with a heading, both on screen and in the PDF.
 - **Shareable URL** — every book lives at its own link; return to it later or share it.
+- **Read aloud** — narrate the book with one tap: it starts from the current page and auto-advances, turning pages as it goes, until the end of the story or you stop. Uses ElevenLabs text-to-speech (set `ELEVENLABS_API_KEY`; optional `ELEVENLABS_VOICE_ID` / `ELEVENLABS_MODEL_ID`).
 - **PDF export** — exports through a print view that honors your cover, format, material, typeface, and size.
 - **Library** — an `admin · all books` view lists every book with its word count and last-edited time, where you can open or delete any book. It can be protected with an optional admin password.

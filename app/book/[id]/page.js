@@ -78,6 +78,13 @@ export default function BookStudio() {
   const [fontsReady, setFontsReady] = useState(false);
   const [animTurn, setAnimTurn] = useState(null);
 
+  const [reading, setReading] = useState(false); // read-aloud active
+  const [ttsBusy, setTtsBusy] = useState(false); // fetching audio
+  const audioElRef = useRef(null);
+  const readingRef = useRef(false);
+  const readIdxRef = useRef(0);
+  const audioCacheRef = useRef(new Map()); // pageIndex -> object URL
+
   const textareaRef = useRef(null);
   const measureRef = useRef(null);
   const vpRef = useRef(null);
@@ -440,10 +447,155 @@ export default function BookStudio() {
     }
     turnTo(writingIndex);
   };
-  function turnTo(t) {
+  function turnTo(t, fromRead = false) {
+    if (!fromRead && readingRef.current) stopReading();
     setNav(t > currentPage ? "next" : t < currentPage ? "prev" : null);
     setCurrentPage(t);
   }
+
+  // ---- Read aloud (ElevenLabs) ----
+  // Reads the current page, then auto-advances through the manuscript until the
+  // last page or the user stops. Composer page is never read.
+  const stopReading = useCallback(() => {
+    readingRef.current = false;
+    setReading(false);
+    setTtsBusy(false);
+    const a = audioElRef.current;
+    if (a) {
+      try {
+        a.pause();
+        a.removeAttribute("src");
+        a.load();
+      } catch {}
+    }
+  }, []);
+
+  function pageTextAt(index) {
+    const runs = pages[index];
+    if (!runs) return "";
+    const out = [];
+    for (const run of runs) {
+      if (run.type === "chapter") {
+        out.push(`Chapter ${run.num}${run.title ? `. ${run.title}` : ""}.`);
+      } else if (run.paras) {
+        out.push(run.paras.join("\n"));
+      }
+    }
+    return out.join("\n").trim();
+  }
+
+  async function fetchPageAudio(index) {
+    const cache = audioCacheRef.current;
+    if (cache.has(index)) return cache.get(index);
+    const text = pageTextAt(index);
+    if (!text) throw new Error("There's nothing to read on this page.");
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      let msg = "Read-aloud failed.";
+      try {
+        const j = await res.json();
+        if (j && j.error) msg = j.error;
+      } catch {}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    cache.set(index, url);
+    return url;
+  }
+
+  function prefetchAudio(index) {
+    if (index < 0 || index >= pages.length) return;
+    fetchPageAudio(index).catch(() => {});
+  }
+
+  async function playIndex(index) {
+    if (!readingRef.current) return;
+    if (index < 0 || index >= pages.length) {
+      stopReading();
+      return;
+    }
+    readIdxRef.current = index;
+    turnTo(index, true); // flip to the page being read (without cancelling read-aloud)
+    setTtsBusy(true);
+    let url;
+    try {
+      url = await fetchPageAudio(index);
+    } catch (e) {
+      setBanner(e.message || "Read-aloud failed.");
+      stopReading();
+      return;
+    }
+    setTtsBusy(false);
+    if (!readingRef.current || readIdxRef.current !== index) return;
+    const a = audioElRef.current;
+    if (!a) return;
+    a.src = url;
+    try {
+      await a.play();
+    } catch {
+      setBanner("Couldn't start audio — tap Read aloud again to begin.");
+      stopReading();
+      return;
+    }
+    prefetchAudio(index + 1); // smooth the gap to the next page
+  }
+
+  function onAudioEnded() {
+    if (!readingRef.current) return;
+    const next = readIdxRef.current + 1;
+    if (next >= pages.length) {
+      stopReading();
+      return;
+    }
+    playIndex(next);
+  }
+
+  function toggleReading() {
+    if (readingRef.current) {
+      stopReading();
+      return;
+    }
+    if (pages.length === 0) return;
+    let start = onWritingPage ? pages.length - 1 : Math.min(currentPage, pages.length - 1);
+    start = Math.max(0, start);
+    setBanner("");
+    readingRef.current = true;
+    setReading(true);
+    playIndex(start);
+  }
+
+  // Re-pagination (new section, font/format change) invalidates cached audio
+  // and stops playback, since page indices may have shifted.
+  useEffect(() => {
+    const cache = audioCacheRef.current;
+    for (const url of cache.values()) URL.revokeObjectURL(url);
+    cache.clear();
+    readingRef.current = false;
+    setReading(false);
+    setTtsBusy(false);
+    const a = audioElRef.current;
+    if (a) {
+      try {
+        a.pause();
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages]);
+
+  useEffect(
+    () => () => {
+      const cache = audioCacheRef.current;
+      for (const url of cache.values()) URL.revokeObjectURL(url);
+      cache.clear();
+      readingRef.current = false;
+    },
+    []
+  );
 
   // Touch swipe: left = next page, right = previous. Respects navMax (won't
   // swipe into the guide composer) and ignores swipes that begin on controls.
@@ -571,6 +723,14 @@ export default function BookStudio() {
               Notes
             </button>
           )}
+          <button
+            className={`btn btn-ghost read-btn${reading ? " is-reading" : ""}`}
+            onClick={toggleReading}
+            disabled={pages.length === 0}
+            title={reading ? "Stop read aloud" : "Read the book aloud from the current page"}
+          >
+            {reading ? (ttsBusy ? "Loading…" : "◼ Stop") : "▶ Read aloud"}
+          </button>
           <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
             Chapters
           </button>
@@ -582,6 +742,8 @@ export default function BookStudio() {
           </button>
         </div>
       </header>
+
+      <audio ref={audioElRef} onEnded={onAudioEnded} preload="auto" hidden />
 
       <div className="work">
         <div className="stage">

@@ -1390,3 +1390,19 @@ body {
 }
 .erotica-check input { margin-top: 2px; accent-color: var(--brass); flex: none; }
 .erotica-check em { font-style: normal; color: var(--on-desk-dim); }
+
+/* read-aloud toggle */
+.read-btn.is-reading {
+  color: var(--brass);
+  border-color: rgba(192, 145, 63, 0.55);
+  background: rgba(192, 145, 63, 0.08);
+}
+.read-btn.is-reading::after {
+  content: "";
+  display: inline-block;
+  width: 6px; height: 6px; margin-left: 7px; border-radius: 50%;
+  background: var(--brass); vertical-align: middle;
+  animation: readPulse 1.1s ease-in-out infinite;
+}
+@keyframes readPulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .read-btn.is-reading::after { animation: none; } }
