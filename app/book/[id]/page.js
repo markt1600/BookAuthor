@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { countWords, isUsersMove, totalWords } from "@/lib/book";
+import { countWords, isUsersMove, totalWords, fullTextWithChapters } from "@/lib/book";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
 
@@ -677,7 +677,7 @@ export default function BookStudio() {
 
   function openFullEdit() {
     if (readingRef.current) stopReading();
-    setFullEditText((book.turns || []).map((t) => t.text).join("\n\n"));
+    setFullEditText(fullTextWithChapters(book));
     setFullEditOpen(true);
   }
   async function saveFullText() {
@@ -1326,8 +1326,9 @@ export default function BookStudio() {
                 <div className="fulledit-title">Edit the full text</div>
                 <div className="fulledit-sub">
                   Revise the whole manuscript freely — add, delete, rewrite. Separate paragraphs with a
-                  blank line. Saving replaces the book with your edited text as one continuous passage and
-                  repaginates.
+                  blank line. A line that starts with <code>## Chapter</code> (or <code>## Chapter: Title</code>)
+                  marks where a chapter begins — move, add, or remove these to reshape the chapters. Saving
+                  repaginates the book.
                 </div>
               </div>
               <button className="btn btn-ghost" onClick={() => setFullEditOpen(false)} disabled={fullEditSaving}>

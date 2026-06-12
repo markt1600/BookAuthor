@@ -1252,8 +1252,20 @@ body {
 .studio.is-mobile .topbar { flex-wrap: wrap; row-gap: 8px; gap: 10px; padding: 12px 14px; }
 .studio.is-mobile .topbar-spacer { display: none; }
 .studio.is-mobile .topbar-title { flex: 1 1 auto; }
-.studio.is-mobile .topbar-actions { width: 100%; justify-content: space-between; gap: 6px; }
-.studio.is-mobile .topbar-actions .btn { padding: 8px 12px; font-size: 13px; flex: 1; }
+.studio.is-mobile .topbar-actions {
+  width: 100%;
+  flex-wrap: wrap;            /* wrap to multiple rows instead of clipping */
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+}
+.studio.is-mobile .topbar-actions .btn {
+  padding: 8px 12px;
+  font-size: 13px;
+  flex: 0 0 auto;            /* size to content so everything stays visible */
+}
+.studio.is-mobile .read-cluster { flex: 0 0 auto; }
+.studio.is-mobile .read-toggle-text { white-space: nowrap; min-width: 0; }
 .studio.is-mobile .stage { padding: 22px 10px 140px; }
 .studio.is-mobile .dock {
   flex-wrap: wrap; row-gap: 10px; max-width: none; width: 100%;
@@ -1484,3 +1496,10 @@ body {
   margin: 10px auto 0;
 }
 .studio.is-mobile .thinking { flex: 0 0 auto; }
+
+/* inline code styling inside the full-text editor help line */
+.fulledit-sub code {
+  font-family: var(--data); font-size: 11.5px; color: var(--brass);
+  background: rgba(192,145,63,0.1); border: 1px solid rgba(192,145,63,0.22);
+  border-radius: 4px; padding: 1px 5px;
+}
