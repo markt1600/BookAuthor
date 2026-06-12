@@ -692,6 +692,7 @@ export default function BookStudio() {
       if (res.ok && data.book) {
         setBook(data.book);
         setDraft("");
+        prefilledRef.current = null; // allow the refreshed suggestion to pre-fill
         setCurrentPage(0);
         setFullEditOpen(false);
         setBanner("");
