@@ -1023,8 +1023,18 @@ export default function BookStudio() {
             )}
 
             <div className="page-viewport" ref={vpRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-              <div className="page-scaler" style={{ width: geom.w * scale, height: geom.h * scale }}>
-                <div className="page-shell" style={{ width: geom.w, height: geom.h, transform: `scale(${scale})` }}>
+              <div
+                className={`page-scaler${onWritingPage ? " is-flat" : ""}`}
+                style={{ width: geom.w * scale, height: geom.h * scale }}
+              >
+                <div
+                  className="page-shell"
+                  style={{
+                    width: geom.w,
+                    height: geom.h,
+                    transform: onWritingPage && scale === 1 ? "none" : `scale(${scale})`,
+                  }}
+                >
                   <div className="page-stack" aria-hidden="true">
                     <i /><i /><i />
                   </div>

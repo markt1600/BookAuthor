@@ -1503,3 +1503,15 @@ body {
   background: rgba(192,145,63,0.1); border: 1px solid rgba(192,145,63,0.22);
   border-radius: 4px; padding: 1px 5px;
 }
+
+/* writing page: flatten the 3D context so iOS can focus the composer textarea */
+.page-scaler.is-flat { perspective: none; }
+.page-scaler.is-flat .page-shell { transform-style: flat; }
+
+/* full-text editor: size to the visible viewport so the footer (Save) stays
+   reachable above the on-screen keyboard on mobile */
+@media (max-width: 560px) {
+  .fulledit-modal { height: var(--app-h, 100dvh); max-height: var(--app-h, 100dvh); }
+  .fulledit-head, .fulledit-foot { flex: 0 0 auto; }
+  .fulledit-area { min-height: 0; }
+}
