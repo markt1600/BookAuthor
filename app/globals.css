@@ -1509,9 +1509,26 @@ body {
 .page-scaler.is-flat .page-shell { transform-style: flat; }
 
 /* full-text editor: size to the visible viewport so the footer (Save) stays
-   reachable above the on-screen keyboard on mobile */
+   reachable above the on-screen keyboard on mobile. The scrim is pinned to the
+   visual viewport via JS; the modal fills it from the top. */
 @media (max-width: 560px) {
-  .fulledit-modal { height: var(--app-h, 100dvh); max-height: var(--app-h, 100dvh); }
+  .fulledit-scrim { padding: 0; align-items: stretch; overflow: hidden; }
+  .fulledit-modal { height: 100%; max-height: none; }
   .fulledit-head, .fulledit-foot { flex: 0 0 auto; }
   .fulledit-area { min-height: 0; }
+}
+
+/* Mobile: the direction banner keeps a CONSTANT footprint so its height can
+   never feed back into the measured page geometry (which would oscillate the
+   pagination and flicker between pages). Long directions scroll inside it;
+   when there's no direction the slot is reserved but transparent. */
+.studio.is-mobile .section-direction {
+  flex: 0 0 auto;
+  height: 56px; min-height: 56px; max-height: 56px;
+  margin: 0 auto 8px; padding: 8px 14px;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  width: 100%; max-width: 600px;
+}
+.studio.is-mobile .section-direction.is-empty {
+  background: transparent; border-color: transparent; padding: 0;
 }

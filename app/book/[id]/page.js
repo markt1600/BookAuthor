@@ -99,6 +99,7 @@ export default function BookStudio() {
   const measureRef = useRef(null);
   const vpRef = useRef(null);
   const stageRef = useRef(null);
+  const editScrimRef = useRef(null);
   const pendingJump = useRef(null);
   const prefilledRef = useRef(null); // guide mode: which turns-count we've pre-filled a suggestion for
 
@@ -340,6 +341,39 @@ export default function BookStudio() {
     };
   }, [isMobile]);
 
+  // Pin the full-text editor to the *visual* viewport on mobile so the footer
+  // (Save) stays above the on-screen keyboard. iOS positions fixed elements
+  // against the layout viewport, which doesn't shrink for the keyboard, so we
+  // size/position the overlay from window.visualViewport directly.
+  useEffect(() => {
+    if (!fullEditOpen || !isMobile || typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const fit = () => {
+      const el = editScrimRef.current;
+      if (!el) return;
+      el.style.position = "fixed";
+      el.style.top = `${vv.offsetTop}px`;
+      el.style.left = `${vv.offsetLeft}px`;
+      el.style.right = "auto";
+      el.style.bottom = "auto";
+      el.style.width = `${vv.width}px`;
+      el.style.height = `${vv.height}px`;
+    };
+    fit();
+    vv.addEventListener("resize", fit);
+    vv.addEventListener("scroll", fit);
+    return () => {
+      vv.removeEventListener("resize", fit);
+      vv.removeEventListener("scroll", fit);
+      const el = editScrimRef.current;
+      if (el) {
+        el.style.top = el.style.left = el.style.right = el.style.bottom = "";
+        el.style.width = el.style.height = el.style.position = "";
+      }
+    };
+  }, [fullEditOpen, isMobile]);
+
   // ---- draft persistence ----
   const draftKey = book ? `loom-draft-${id}-${book.turns.length}` : null;
   useEffect(() => {
@@ -367,6 +401,8 @@ export default function BookStudio() {
   // is excluded — it's reached only via "Direct the next section" — unless it's
   // the only page (a brand-new book with no sections yet).
   const navMax = guideMode ? (pages.length === 0 ? 0 : pages.length - 1) : pageCount - 1;
+  // Fast-nav (skip 10 / jump to ends) only earns its place on longer books.
+  const showFastNav = navMax >= 10;
 
   useEffect(() => {
     if (currentPage > pageCount - 1) setCurrentPage(Math.max(0, pageCount - 1));
@@ -504,6 +540,8 @@ export default function BookStudio() {
     setNav(t > currentPage ? "next" : t < currentPage ? "prev" : null);
     setCurrentPage(t);
   }
+  const jumpTo = (p) => turnTo(Math.max(0, Math.min(navMax, p)));
+  const jumpBy = (delta) => turnTo(Math.max(0, Math.min(navMax, currentPage + delta)));
 
   // ---- Read aloud (ElevenLabs) ----
   // Reads the current page, then auto-advances through the manuscript until the
@@ -1015,10 +1053,17 @@ export default function BookStudio() {
           <div className="stage-col">
             {banner && <div className="banner">{banner}</div>}
 
-            {guideMode && !onWritingPage && currentTurn && currentTurn.prompt && (
-              <div className="section-direction" title="Your direction for this section">
-                <span className="sd-mark">▸ your direction</span>
-                {currentTurn.prompt}
+            {guideMode && !onWritingPage && (currentTurn?.prompt || isMobile) && (
+              <div
+                className={`section-direction${currentTurn?.prompt ? "" : " is-empty"}`}
+                title="Your direction for this section"
+              >
+                {currentTurn?.prompt ? (
+                  <>
+                    <span className="sd-mark">▸ your direction</span>
+                    {currentTurn.prompt}
+                  </>
+                ) : null}
               </div>
             )}
 
@@ -1174,9 +1219,31 @@ export default function BookStudio() {
 
             <div className="dock">
               <div className="nav">
+                {showFastNav && (
+                  <button
+                    className="icon-btn"
+                    onClick={() => jumpTo(0)}
+                    disabled={currentPage <= 0}
+                    aria-label="First page"
+                    title="First page"
+                  >
+                    |‹
+                  </button>
+                )}
+                {showFastNav && (
+                  <button
+                    className="icon-btn"
+                    onClick={() => jumpBy(-10)}
+                    disabled={currentPage <= 0}
+                    aria-label="Back 10 pages"
+                    title="Back 10 pages"
+                  >
+                    «
+                  </button>
+                )}
                 <button
                   className="icon-btn"
-                  onClick={() => turnTo(Math.max(0, currentPage - 1))}
+                  onClick={() => jumpBy(-1)}
                   disabled={currentPage <= 0}
                   aria-label="Previous page"
                 >
@@ -1184,12 +1251,34 @@ export default function BookStudio() {
                 </button>
                 <button
                   className="icon-btn"
-                  onClick={() => turnTo(Math.min(navMax, currentPage + 1))}
+                  onClick={() => jumpBy(1)}
                   disabled={currentPage >= navMax}
                   aria-label="Next page"
                 >
                   ›
                 </button>
+                {showFastNav && (
+                  <button
+                    className="icon-btn"
+                    onClick={() => jumpBy(10)}
+                    disabled={currentPage >= navMax}
+                    aria-label="Forward 10 pages"
+                    title="Forward 10 pages"
+                  >
+                    »
+                  </button>
+                )}
+                {showFastNav && (
+                  <button
+                    className="icon-btn"
+                    onClick={() => jumpTo(navMax)}
+                    disabled={currentPage >= navMax}
+                    aria-label="Last page"
+                    title="Last page"
+                  >
+                    ›|
+                  </button>
+                )}
               </div>
               <span className="pageno">
                 {onWritingPage ? "Writing" : `Page ${currentPage + 1}`}
@@ -1329,7 +1418,7 @@ export default function BookStudio() {
       />
 
       {fullEditOpen && (
-        <div className="fulledit-scrim" onClick={() => !fullEditSaving && setFullEditOpen(false)}>
+        <div className="fulledit-scrim" ref={editScrimRef} onClick={() => !fullEditSaving && setFullEditOpen(false)}>
           <div className="fulledit-modal" onClick={(e) => e.stopPropagation()}>
             <div className="fulledit-head">
               <div>
