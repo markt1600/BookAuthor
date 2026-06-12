@@ -67,6 +67,7 @@ export default function BookStudio() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [newChapter, setNewChapter] = useState(false);
+  const [composing, setComposing] = useState(false); // intent to be on the composer, robust to page-count shifts
   const [nav, setNav] = useState(null); // 'next' | 'prev' | null — page-turn direction
   const [copied, setCopied] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -286,7 +287,10 @@ export default function BookStudio() {
     setTurnStart(starts);
     if (pendingJump.current != null) {
       const target = starts[pendingJump.current];
-      if (target != null) setCurrentPage(target);
+      if (target != null) {
+        setComposing(false); // the new section is a reading page, not the composer
+        setCurrentPage(target);
+      }
       pendingJump.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -396,7 +400,12 @@ export default function BookStudio() {
   const guideMode = book ? book.mode === "guide" : false;
   const writingIndex = pages.length;
   const pageCount = pages.length + (usersMove ? 1 : 0);
-  const onWritingPage = usersMove && currentPage >= writingIndex;
+  // Whether the composer is showing. Driven by an explicit `composing` intent
+  // (not `currentPage >= writingIndex`): on mobile the composer's index shifts
+  // when the keyboard opens and re-paginates, so a fixed currentPage would stop
+  // pointing at it and snap back to a reading page. A brand-new book with no
+  // sections always opens on the composer.
+  const onWritingPage = usersMove && (pages.length === 0 || composing);
   // Highest page reachable by next/prev/swipe. In guide mode the blank composer
   // is excluded — it's reached only via "Direct the next section" — unless it's
   // the only page (a brand-new book with no sections yet).
@@ -408,6 +417,12 @@ export default function BookStudio() {
     if (currentPage > pageCount - 1) setCurrentPage(Math.max(0, pageCount - 1));
     if (currentPage < 0) setCurrentPage(0);
   }, [pageCount, currentPage]);
+
+  // While composing, keep currentPage pinned to the (possibly shifting) composer
+  // index so the folio and back-navigation stay correct as pages re-flow.
+  useEffect(() => {
+    if (composing && currentPage !== writingIndex) setCurrentPage(writingIndex);
+  }, [composing, writingIndex, currentPage]);
 
   useEffect(() => {
     if (animTurn == null) return;
@@ -537,6 +552,10 @@ export default function BookStudio() {
   };
   function turnTo(t, fromRead = false) {
     if (!fromRead && readingRef.current) stopReading();
+    // Reaching the composer (the page past the last committed one) sets the
+    // `composing` intent so it survives the keyboard-driven re-pagination on
+    // mobile; any other target is a reading page.
+    setComposing(usersMove && t >= writingIndex);
     setNav(t > currentPage ? "next" : t < currentPage ? "prev" : null);
     setCurrentPage(t);
   }
