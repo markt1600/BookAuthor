@@ -1681,3 +1681,11 @@ body {
   display: flex; flex-wrap: wrap; gap: 8px; width: 100%;
   margin-top: 2px; padding-top: 8px; border-top: 1px solid var(--desk-line);
 }
+
+/* ---- password protection section in settings ---- */
+.pw-section { display: flex; flex-direction: column; gap: 8px; }
+.pw-status { font-size: 13px; color: var(--on-desk-dim); }
+.pw-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pw-msg { font-size: 12.5px; color: var(--brass); }
+.pw-err { font-size: 12.5px; color: #e0a08a; }
+.pw-hint { font-size: 11.5px; color: var(--on-desk-dim); line-height: 1.45; }

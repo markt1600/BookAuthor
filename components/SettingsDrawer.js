@@ -6,13 +6,18 @@ import GuideControls from "@/components/GuideControls";
 import BookPreview from "@/components/BookPreview";
 import { DEFAULT_GUIDE } from "@/lib/book";
 
-export default function SettingsDrawer({ book, onClose, onSave }) {
+export default function SettingsDrawer({ book, onClose, onSave, onSetPassword }) {
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
   const [settings, setSettings] = useState(book.settings);
   const [guide, setGuide] = useState({ ...DEFAULT_GUIDE, ...(book.guide || {}) });
   const [saving, setSaving] = useState(false);
+  const [pw, setPw] = useState("");
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState("");
+  const [pwErr, setPwErr] = useState("");
   const guideMode = book.mode === "guide";
+  const isProtected = Boolean(book.protected);
 
   useEffect(() => {
     function onKey(e) {
@@ -34,6 +39,21 @@ export default function SettingsDrawer({ book, onClose, onSave }) {
     await onSave(guideMode ? { title, author, settings, guide } : { title, author, settings });
     setSaving(false);
     onClose();
+  }
+
+  async function applyPassword(value) {
+    if (!onSetPassword || pwBusy) return;
+    setPwBusy(true);
+    setPwMsg("");
+    setPwErr("");
+    const r = await onSetPassword(value);
+    setPwBusy(false);
+    if (!r || !r.ok) {
+      setPwErr((r && r.error) || "Could not update the password.");
+      return;
+    }
+    setPw("");
+    setPwMsg(r.protected ? "Password set — this book is now locked." : "Protection removed.");
   }
 
   return (
@@ -100,6 +120,53 @@ export default function SettingsDrawer({ book, onClose, onSave }) {
             </span>
           </label>
         </div>
+
+        {onSetPassword && (
+          <div className="setup-row" style={{ marginTop: 22 }}>
+            <div className="setup-label">Protection</div>
+            <div className="pw-section">
+              <div className="pw-status">
+                {isProtected ? "🔒 This book is password-protected." : "This book is open — anyone with the link can read it."}
+              </div>
+              <input
+                className="text-input"
+                type="password"
+                value={pw}
+                onChange={(e) => {
+                  setPw(e.target.value);
+                  setPwMsg("");
+                  setPwErr("");
+                }}
+                placeholder={isProtected ? "New password" : "Set a password"}
+                autoComplete="new-password"
+              />
+              <div className="pw-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => applyPassword(pw)}
+                  disabled={pwBusy || !pw.trim()}
+                >
+                  {pwBusy ? "Saving…" : isProtected ? "Change password" : "Lock book"}
+                </button>
+                {isProtected && (
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => applyPassword("")}
+                    disabled={pwBusy}
+                  >
+                    Remove protection
+                  </button>
+                )}
+              </div>
+              {pwMsg && <div className="pw-msg">{pwMsg}</div>}
+              {pwErr && <div className="pw-err">{pwErr}</div>}
+              <div className="pw-hint">
+                Readers will need this password to open the book’s link. You can change or remove it
+                here any time.
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="continue-row" style={{ marginTop: 28, justifyContent: "stretch" }}>
           <button className="btn btn-primary" style={{ width: "100%" }} onClick={save} disabled={saving}>

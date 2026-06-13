@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
-import { isAuthed, hashBookPassword } from "@/lib/admin";
+import { bookUnlocked, hashBookPassword, bookUnlockToken, bookCookieName } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
-// Set, change, or remove a book's password. Admin only. Send { password: "…" }
-// to set/change, or { password: "" } (or null) to remove protection.
+// Set, change, or remove a book's password. Allowed for an admin OR anyone who
+// currently has the book open (no password yet, or a valid unlock). Send
+// { password: "…" } to set/change, or { password: "" } (or null) to remove.
 export async function PUT(request, { params }) {
-  if (!isAuthed(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  if (!bookUnlocked(request, book)) {
+    return NextResponse.json({ error: "This book is locked." }, { status: 401 });
+  }
 
   let body = {};
   try {
@@ -27,5 +28,20 @@ export async function PUT(request, { params }) {
   }
   book.updatedAt = Date.now();
   await saveBook(book);
-  return NextResponse.json({ ok: true, protected: Boolean(book.passwordHash) });
+
+  const res = NextResponse.json({ ok: true, protected: Boolean(book.passwordHash) });
+  // Keep whoever just set/changed the password unlocked (the cookie token is
+  // derived from the hash, so a change would otherwise invalidate their access).
+  if (book.passwordHash) {
+    res.cookies.set(bookCookieName(id), bookUnlockToken(book), {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  } else {
+    res.cookies.set(bookCookieName(id), "", { path: "/", maxAge: 0 });
+  }
+  return res;
 }

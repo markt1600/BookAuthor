@@ -1735,7 +1735,28 @@ export default function BookStudio() {
         </div>
       )}
 
-      {settingsOpen && <SettingsDrawer book={book} onClose={() => setSettingsOpen(false)} onSave={save} />}
+      {settingsOpen && (
+        <SettingsDrawer
+          book={book}
+          onClose={() => setSettingsOpen(false)}
+          onSave={save}
+          onSetPassword={async (password) => {
+            try {
+              const res = await fetch(`/api/books/${id}/password`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password }),
+              });
+              const d = await res.json().catch(() => ({}));
+              if (!res.ok) return { ok: false, error: d.error || "Could not update the password." };
+              setBook((b) => (b ? { ...b, protected: !!d.protected } : b));
+              return { ok: true, protected: !!d.protected };
+            } catch {
+              return { ok: false, error: "Network error — try again." };
+            }
+          }}
+        />
+      )}
       {chaptersOpen && (
         <ChaptersDrawer
           book={book}
