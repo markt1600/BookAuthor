@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook, saveSnapshot } from "@/lib/store";
-import { makeTurn, countWords } from "@/lib/book";
+import { makeTurn, countWords, publicBook } from "@/lib/book";
 import { continueStory, guideStory } from "@/lib/claude";
 import { withContext, refreshAnalysis, ndjsonResponse } from "@/lib/generate";
+import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -13,6 +14,9 @@ export async function POST(request, { params }) {
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  if (!bookUnlocked(request, book)) {
+    return NextResponse.json({ error: "This book is locked." }, { status: 401 });
+  }
 
   const turns = book.turns || [];
   const last = turns[turns.length - 1];
@@ -55,7 +59,7 @@ export async function POST(request, { params }) {
       send({ t: "generated" });
       await refreshAnalysis(book, priorAnalysis);
       await saveBook(book);
-      send({ t: "done", book, addedTurnIds: [section.id] });
+      send({ t: "done", book: publicBook(book), addedTurnIds: [section.id] });
       return;
     }
 
@@ -77,6 +81,6 @@ export async function POST(request, { params }) {
     send({ t: "generated" });
     await refreshAnalysis(book, priorAnalysis);
     await saveBook(book);
-    send({ t: "done", book, addedTurnIds: [claudeTurn.id] });
+    send({ t: "done", book: publicBook(book), addedTurnIds: [claudeTurn.id] });
   });
 }

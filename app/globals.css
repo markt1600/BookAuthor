@@ -1659,3 +1659,25 @@ body {
   .reader { padding: 36px 22px 32px; border-radius: 0; }
   .reader-title h1 { font-size: 27px; }
 }
+
+/* ---- per-book password gate ---- */
+.lock-gate { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 320px; margin: 0 auto; }
+.lock-mark { font-size: 30px; opacity: 0.85; }
+.lock-input { width: 100%; text-align: center; font-size: 15px; }
+.lock-err { color: #e0a08a; font-size: 13px; }
+.lock-gate .btn-primary { width: 100%; }
+.lock-badge { color: var(--brass); }
+
+/* ---- Topbar: collapsible secondary actions ----
+   Desktop: the secondary actions flow inline (wrapper is transparent) and the
+   toggle is hidden. Mobile: the audio cluster stays on the first row always;
+   everything else collapses behind a More/Less toggle to reclaim screen space. */
+.topbar-more { display: contents; }
+.more-toggle { display: none; }
+.studio.is-mobile .read-cluster { flex: 1 1 auto; }
+.studio.is-mobile .more-toggle { display: inline-flex; flex: 0 0 auto; }
+.studio.is-mobile .topbar-more { display: none; flex-basis: 100%; width: 100%; }
+.studio.is-mobile .topbar-more.open {
+  display: flex; flex-wrap: wrap; gap: 8px; width: 100%;
+  margin-top: 2px; padding-top: 8px; border-top: 1px solid var(--desk-line);
+}

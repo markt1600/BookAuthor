@@ -18,6 +18,8 @@ export async function GET(request) {
     turns: b.turns?.length || 0,
     words: totalWords(b),
     cover: b.settings?.cover || "classic",
+    protected: Boolean(b.passwordHash),
+    shared: Boolean(b.shared),
     createdAt: b.createdAt,
     updatedAt: b.updatedAt,
   }));

@@ -62,6 +62,10 @@ export default function BookStudio() {
 
   const [book, setBook] = useState(null);
   const [status, setStatus] = useState("loading");
+  const [lockTitle, setLockTitle] = useState("");
+  const [unlockPw, setUnlockPw] = useState("");
+  const [unlockErr, setUnlockErr] = useState("");
+  const [unlocking, setUnlocking] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [draft, setDraft] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -69,6 +73,7 @@ export default function BookStudio() {
   const [streamPhase, setStreamPhase] = useState("idle"); // 'idle' | 'writing' | 'finalizing'
   const [historyOpen, setHistoryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false); // mobile: expand the secondary action row
   const [banner, setBanner] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
@@ -118,6 +123,15 @@ export default function BookStudio() {
       try {
         const res = await fetch(`/api/books/${id}`);
         if (res.status === 404) return alive && setStatus("notfound");
+        if (res.status === 401) {
+          const d = await res.json().catch(() => ({}));
+          if (!alive) return;
+          if (d && d.locked) {
+            setLockTitle(d.title || "");
+            return setStatus("locked");
+          }
+          return setStatus("error");
+        }
         if (!res.ok) return alive && setStatus("error");
         const { book } = await res.json();
         if (!alive) return;
@@ -1038,6 +1052,56 @@ export default function BookStudio() {
         </div>
       </div>
     );
+  if (status === "locked") {
+    const submitUnlock = async (e) => {
+      e?.preventDefault?.();
+      if (unlocking) return;
+      setUnlocking(true);
+      setUnlockErr("");
+      try {
+        const res = await fetch(`/api/books/${id}/unlock`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: unlockPw }),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          setUnlockErr(d.error || "Incorrect password.");
+          setUnlocking(false);
+          return;
+        }
+        const data = await res.json();
+        setBook(data.book);
+        setUnlockPw("");
+        setStatus("ready");
+      } catch {
+        setUnlockErr("Something went wrong. Try again.");
+        setUnlocking(false);
+      }
+    };
+    return (
+      <div className="screen-center">
+        <form className="lock-gate" onSubmit={submitUnlock}>
+          <div className="lock-mark">🔒</div>
+          <p className="big">{lockTitle || "This book"} is locked</p>
+          <p className="sub">Enter the book’s password to read and write.</p>
+          <input
+            type="password"
+            className="text-input lock-input"
+            value={unlockPw}
+            onChange={(e) => setUnlockPw(e.target.value)}
+            placeholder="Password"
+            autoFocus
+            autoComplete="current-password"
+          />
+          {unlockErr && <div className="lock-err">{unlockErr}</div>}
+          <button className="btn btn-primary" type="submit" disabled={unlocking || !unlockPw}>
+            {unlocking ? "Unlocking…" : "Open the book"}
+          </button>
+        </form>
+      </div>
+    );
+  }
   if (status === "notfound")
     return (
       <div className="screen-center">
@@ -1119,11 +1183,6 @@ export default function BookStudio() {
           )}
         </div>
         <div className="topbar-actions">
-          {isMobile && (
-            <button className="btn btn-ghost" onClick={() => setNotesOpen((v) => !v)}>
-              Notes
-            </button>
-          )}
           <div className="read-cluster">
             <label
               className="read-toggle"
@@ -1156,27 +1215,49 @@ export default function BookStudio() {
               {speed}×
             </button>
           </div>
-          <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
-            Chapters
-          </button>
-          <button className="btn btn-ghost" onClick={() => setHistoryOpen(true)}>
-            History
-          </button>
-          <button className="btn btn-ghost" onClick={() => setShareOpen(true)}>
-            Share
-          </button>
-          <button className="btn btn-ghost" onClick={openFullEdit}>
-            Edit text
-          </button>
-          <button className="btn btn-ghost" onClick={exportPdf}>
-            Export PDF
-          </button>
-          <a className="btn btn-ghost" href={`/api/books/${id}/epub`} download>
-            EPUB
-          </a>
-          <button className="btn" onClick={() => setSettingsOpen(true)}>
-            Settings
-          </button>
+          {isMobile && (
+            <button
+              className="btn btn-ghost more-toggle"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+            >
+              {moreOpen ? "Less ▴" : "More ▾"}
+            </button>
+          )}
+          <div className={`topbar-more${moreOpen ? " open" : ""}`}>
+            {isMobile && (
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setNotesOpen((v) => !v);
+                  setMoreOpen(false);
+                }}
+              >
+                Notes
+              </button>
+            )}
+            <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
+              Chapters
+            </button>
+            <button className="btn btn-ghost" onClick={() => setHistoryOpen(true)}>
+              History
+            </button>
+            <button className="btn btn-ghost" onClick={() => setShareOpen(true)}>
+              Share
+            </button>
+            <button className="btn btn-ghost" onClick={openFullEdit}>
+              Edit text
+            </button>
+            <button className="btn btn-ghost" onClick={exportPdf}>
+              Export PDF
+            </button>
+            <a className="btn btn-ghost" href={`/api/books/${id}/epub`} download>
+              EPUB
+            </a>
+            <button className="btn" onClick={() => setSettingsOpen(true)}>
+              Settings
+            </button>
+          </div>
         </div>
       </header>
 

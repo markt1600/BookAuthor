@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
-import { makeTurn, countWords, isUsersMove } from "@/lib/book";
+import { makeTurn, countWords, isUsersMove, publicBook } from "@/lib/book";
 import { continueStory, guideStory } from "@/lib/claude";
 import { withContext, refreshAnalysis, ndjsonResponse } from "@/lib/generate";
+import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 // Generating prose + analysis can take a while; give it room on Vercel.
@@ -12,6 +13,9 @@ export async function POST(request, { params }) {
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  if (!bookUnlocked(request, book)) {
+    return NextResponse.json({ error: "This book is locked." }, { status: 401 });
+  }
 
   let body = {};
   try {
@@ -55,7 +59,7 @@ export async function POST(request, { params }) {
       send({ t: "generated" });
       await refreshAnalysis(book, priorAnalysis);
       await saveBook(book);
-      send({ t: "done", book, addedTurnIds: [section.id] });
+      send({ t: "done", book: publicBook(book), addedTurnIds: [section.id] });
       return;
     }
 
@@ -83,6 +87,6 @@ export async function POST(request, { params }) {
     send({ t: "generated" });
     await refreshAnalysis(book, priorAnalysis);
     await saveBook(book);
-    send({ t: "done", book, addedTurnIds: [userTurn.id, claudeTurn.id] });
+    send({ t: "done", book: publicBook(book), addedTurnIds: [userTurn.id, claudeTurn.id] });
   });
 }

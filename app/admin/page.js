@@ -99,6 +99,34 @@ export default function Admin() {
     setBooks([]);
   }
 
+  async function managePassword(book) {
+    const msg = book.protected
+      ? "This book is password-protected.\n\nType a NEW password to change it, or leave it blank and press OK to REMOVE protection:"
+      : "Set a password for this book.\n\nAnyone opening the link will be asked for it. You (as admin) always bypass it.";
+    const pw = window.prompt(msg, "");
+    if (pw === null) return; // cancelled
+    setBusyId(book.id);
+    try {
+      const res = await fetch(`/api/books/${book.id}/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+      if (res.status === 401) {
+        setGate("locked");
+        return;
+      }
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setBooks((list) => list.map((b) => (b.id === book.id ? { ...b, protected: !!d.protected } : b)));
+      }
+    } catch {
+      // leave as-is; user can retry
+    } finally {
+      setBusyId("");
+    }
+  }
+
   async function remove(book) {
     const ok = window.confirm(`Delete “${book.title || "Untitled"}” permanently? This cannot be undone.`);
     if (!ok) return;
@@ -213,7 +241,10 @@ export default function Admin() {
                   <CoverArt cover={b.cover} />
                 </span>
                 <span className="book-row-main">
-                  <span className="book-row-title">{b.title || "Untitled"}</span>
+                  <span className="book-row-title">
+                    {b.protected ? <span className="lock-badge" title="Password-protected">🔒 </span> : null}
+                    {b.title || "Untitled"}
+                  </span>
                   <span className="book-row-by">by {b.author || "Unknown"}</span>
                 </span>
                 <span className="book-row-meta">
@@ -224,6 +255,14 @@ export default function Admin() {
                 <span className="book-row-actions">
                   <button className="btn btn-small" onClick={() => router.push(`/book/${b.id}`)}>
                     Open
+                  </button>
+                  <button
+                    className="btn btn-small"
+                    onClick={() => managePassword(b)}
+                    disabled={busyId === b.id}
+                    title={b.protected ? "Change or remove the password" : "Set a password"}
+                  >
+                    {b.protected ? "Password ✓" : "Password"}
                   </button>
                   <button
                     className="btn btn-small btn-danger"

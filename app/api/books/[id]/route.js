@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { applyPatch, truncateAt, mergeFullText, manuscriptText } from "@/lib/book";
+import { applyPatch, truncateAt, mergeFullText, manuscriptText, publicBook } from "@/lib/book";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
-import { isAuthed } from "@/lib/admin";
+import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,10 @@ export async function GET(request, { params }) {
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
-  return NextResponse.json({ book });
+  if (!bookUnlocked(request, book)) {
+    return NextResponse.json({ locked: true, title: book.title || "Untitled" }, { status: 401 });
+  }
+  return NextResponse.json({ book: publicBook(book) });
 }
 
 export async function DELETE(request, { params }) {
@@ -28,6 +31,9 @@ export async function PUT(request, { params }) {
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  if (!bookUnlocked(request, book)) {
+    return NextResponse.json({ error: "This book is locked." }, { status: 401 });
+  }
 
   let body = {};
   try {
@@ -77,7 +83,7 @@ export async function PUT(request, { params }) {
       };
     }
     await saveBook(merged);
-    return NextResponse.json({ book: merged });
+    return NextResponse.json({ book: publicBook(merged) });
   }
 
   let next = applyPatch(book, body);
@@ -94,5 +100,5 @@ export async function PUT(request, { params }) {
   }
 
   await saveBook(next);
-  return NextResponse.json({ book: next });
+  return NextResponse.json({ book: publicBook(next) });
 }

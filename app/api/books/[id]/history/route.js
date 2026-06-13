@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook, listSnapshots, getSnapshot, saveSnapshot } from "@/lib/store";
+import { publicBook } from "@/lib/book";
+import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +10,7 @@ export async function GET(request, { params }) {
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  if (!bookUnlocked(request, book)) return NextResponse.json({ error: "This book is locked." }, { status: 401 });
   const snapshots = await listSnapshots(id);
   return NextResponse.json({ snapshots });
 }
@@ -18,6 +21,7 @@ export async function POST(request, { params }) {
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  if (!bookUnlocked(request, book)) return NextResponse.json({ error: "This book is locked." }, { status: 401 });
 
   let body = {};
   try {
@@ -33,13 +37,14 @@ export async function POST(request, { params }) {
   if (!snap) return NextResponse.json({ error: "That version is no longer available." }, { status: 404 });
 
   await saveSnapshot(book, "Before restoring an earlier version");
-  // Keep identity/sharing on the live record; restore the manuscript content.
+  // Keep identity/sharing/password on the live record; restore the content.
   const restored = {
     ...snap,
     id: book.id,
     createdAt: book.createdAt,
     shared: book.shared,
+    passwordHash: book.passwordHash,
   };
   await saveBook(restored);
-  return NextResponse.json({ book: restored });
+  return NextResponse.json({ book: publicBook(restored) });
 }
