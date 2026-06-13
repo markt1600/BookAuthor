@@ -109,7 +109,7 @@ export default function BookStudio() {
   const editScrimRef = useRef(null);
   const liveRef = useRef(null);
   const pendingJump = useRef(null);
-  const prefilledRef = useRef(null); // guide mode: which turns-count we've pre-filled a suggestion for
+  const prefilledRef = useRef(null); // guide mode: the last-turn id we've pre-filled a suggestion for
 
   // ---- load ----
   useEffect(() => {
@@ -386,7 +386,11 @@ export default function BookStudio() {
   }, [fullEditOpen, isMobile]);
 
   // ---- draft persistence ----
-  const draftKey = book ? `loom-draft-${id}-${book.turns.length}` : null;
+  // Keyed on the *last turn's id* (unique, never reused) rather than the turn
+  // count — the count repeats after edits/regenerations/restores, which would
+  // otherwise resurface a stale draft from an earlier book state.
+  const lastTurnId = book && book.turns.length ? book.turns[book.turns.length - 1].id : "start";
+  const draftKey = book ? `loom-draft-${id}-${lastTurnId}` : null;
   useEffect(() => {
     if (!draftKey) return;
     try {
@@ -645,10 +649,10 @@ export default function BookStudio() {
     }
   }
   const goWrite = () => {
-    if (guideMode && book.turns.length > 0 && prefilledRef.current !== book.turns.length) {
+    if (guideMode && book.turns.length > 0 && prefilledRef.current !== lastTurnId) {
       const sug = book.analysis && book.analysis.nextDirection;
       if (sug && draft.trim() === "") setDraft(sug);
-      prefilledRef.current = book.turns.length;
+      prefilledRef.current = lastTurnId;
     }
     turnTo(writingIndex);
   };
