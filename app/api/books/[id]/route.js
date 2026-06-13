@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { applyPatch, truncateAt, mergeFullText, manuscriptText } from "@/lib/book";
-import { getBook, saveBook, deleteBook } from "@/lib/store";
+import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
 
@@ -20,6 +20,7 @@ export async function DELETE(request, { params }) {
   }
   const { id } = await params;
   await deleteBook(id);
+  await deleteSnapshots(id);
   return NextResponse.json({ ok: true });
 }
 
@@ -37,6 +38,7 @@ export async function PUT(request, { params }) {
 
   // Full-manuscript edit: replace the book's text with the edited version.
   if (typeof body.fullText === "string") {
+    await saveSnapshot(book, "Before full-text edit");
     const merged = mergeFullText(book, body.fullText);
     if (merged.turns.length) {
       // Re-read the edited manuscript so the synopsis, story memory, and the
@@ -68,6 +70,7 @@ export async function PUT(request, { params }) {
         synopsis: "",
         quality: "",
         qualityScore: null,
+        critique: "",
         nextDirection: "",
         continuity: "",
         updatedAt: 0,
@@ -79,8 +82,14 @@ export async function PUT(request, { params }) {
 
   let next = applyPatch(book, body);
 
+  // Snapshot before chapter changes (reversible via revision history).
+  if (Array.isArray(body.chapters)) {
+    await saveSnapshot(book, "Before chapter change");
+  }
+
   // Forking: drop everything from `truncateFrom` (a turn index) onward.
   if (Number.isInteger(body.truncateFrom)) {
+    await saveSnapshot(book, "Before trimming the manuscript");
     next = truncateAt(next, body.truncateFrom);
   }
 

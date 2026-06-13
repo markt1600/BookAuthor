@@ -54,8 +54,8 @@ export default function ChaptersDrawer({ book, currentTurnId, turnStart, onJump,
         </div>
 
         <p className="drawer-hint">
-          Chapters open on a fresh page. Mark one at the current page, then name them
-          here — names can be changed any time.
+          Chapters open on a fresh page. Tap a chapter to jump to it, rename it in the field, or
+          mark a new one at the current page.
         </p>
 
         <button className="btn chap-add" onClick={addHere} disabled={!canAddHere}>
@@ -72,7 +72,14 @@ export default function ChaptersDrawer({ book, currentTurnId, turnStart, onJump,
           <ol className="chapter-list">
             {list.map((c, i) => (
               <li className="chapter-item" key={c.id || c.startTurn}>
-                <div className="chapter-num">Ch. {i + 1}</div>
+                <button
+                  className="chapter-num chapter-jump"
+                  onClick={() => onJump(pageOf(c.startTurn))}
+                  title="Go to this chapter"
+                >
+                  <span className="cj-ch">Ch. {i + 1}</span>
+                  <span className="cj-pg">p.{pageOf(c.startTurn) + 1} →</span>
+                </button>
                 <div className="chapter-body">
                   <input
                     className="text-input"
@@ -82,7 +89,7 @@ export default function ChaptersDrawer({ book, currentTurnId, turnStart, onJump,
                   />
                   <div className="chapter-meta">
                     <button className="linkish" onClick={() => onJump(pageOf(c.startTurn))}>
-                      Go to page {pageOf(c.startTurn) + 1}
+                      Go to chapter
                     </button>
                     <button className="linkish danger" onClick={() => remove(i)}>
                       Remove

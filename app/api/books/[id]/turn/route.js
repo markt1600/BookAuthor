@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
-import {
-  makeTurn,
-  countWords,
-  isUsersMove,
-  continuationParts,
-  fullManuscript,
-  FULL_CONTEXT_WORD_CAP,
-  manuscriptText,
-} from "@/lib/book";
-import { continueStory, guideStory, analyzeStory } from "@/lib/claude";
+import { makeTurn, countWords, isUsersMove } from "@/lib/book";
+import { continueStory, guideStory } from "@/lib/claude";
+import { withContext, refreshAnalysis, ndjsonResponse } from "@/lib/generate";
 
 export const dynamic = "force-dynamic";
 // Generating prose + analysis can take a while; give it room on Vercel.
@@ -41,99 +34,55 @@ export async function POST(request, { params }) {
 
   const priorAnalysis = book.analysis && book.analysis.updatedAt ? book.analysis : null;
 
-  const apiError = (err) => {
-    const status = err.code === "NO_API_KEY" ? 500 : 502;
-    const message =
-      err.code === "NO_API_KEY"
-        ? "The server is missing ANTHROPIC_API_KEY."
-        : "The AI author could not continue the story. Your text was not saved — try again.";
-    return NextResponse.json({ error: message }, { status });
-  };
+  // Stream the prose as it's written, then finalize (commit + analysis + save).
+  return ndjsonResponse(async (send) => {
+    const onDelta = (d) => send({ t: "delta", d });
 
-  // Build the generation context (whole book, or layered opening + recent).
-  const withContext = (args) => {
-    const whole = fullManuscript(book);
-    if (book.settings.fullContext && countWords(whole) <= FULL_CONTEXT_WORD_CAP) {
-      args.whole = whole;
-    } else {
-      const parts = continuationParts(book);
-      args.opening = parts.opening;
-      args.recent = parts.recent;
-    }
-    return args;
-  };
-
-  const refreshAnalysis = async () => {
-    try {
-      const analysis = await analyzeStory({
-        title: book.title,
-        fullText: manuscriptText(book),
-        prior: priorAnalysis,
-        guide: book.mode === "guide",
-        eroticaLean:
-          book.mode === "guide" &&
-          book.guide &&
-          book.guide.adult &&
-          book.guide.erotica &&
-          book.guide.sexual === 3,
-      });
-      if (analysis) book.analysis = analysis;
-    } catch {
-      // keep previous analysis
-    }
-  };
-
-  // ---- GUIDE MODE: the user directs; the AI writes the whole section. ----
-  if (guideMode) {
-    let section = null;
-    try {
+    if (guideMode) {
       const prose = await guideStory(
-        withContext({
+        withContext(book, {
           title: book.title,
           author: book.author,
           guide: book.guide,
           prompt: text,
           memory: priorAnalysis,
           targetWords: (book.guide && book.guide.sectionWords) || 275,
+          onDelta,
         })
       );
-      section = makeTurn("claude", prose, text); // store the originating direction
+      const section = makeTurn("claude", prose, text); // store the originating direction
       book.turns.push(section);
-    } catch (err) {
-      return apiError(err);
+      send({ t: "generated" });
+      await refreshAnalysis(book, priorAnalysis);
+      await saveBook(book);
+      send({ t: "done", book, addedTurnIds: [section.id] });
+      return;
     }
-    await refreshAnalysis();
+
+    // Participate: commit the user's turn, then continue in one voice.
+    const userTurn = makeTurn("user", text);
+    book.turns.push(userTurn);
+    let claudeTurn = null;
+    try {
+      const continuation = await continueStory(
+        withContext(book, {
+          title: book.title,
+          author: book.author,
+          settings: book.settings,
+          memory: priorAnalysis,
+          targetWords: countWords(text),
+          onDelta,
+        })
+      );
+      claudeTurn = makeTurn("claude", continuation);
+      book.turns.push(claudeTurn);
+    } catch (err) {
+      book.turns.pop(); // roll back the user's turn
+      throw err;
+    }
+    send({ t: "generated" });
+    await refreshAnalysis(book, priorAnalysis);
     await saveBook(book);
-    return NextResponse.json({ book, addedTurnIds: [section.id] });
-  }
-
-  // ---- PARTICIPATE MODE: trade passages in one shared voice. ----
-  // 1) Commit the user's turn.
-  const userTurn = makeTurn("user", text);
-  book.turns.push(userTurn);
-
-  // 2) Ask the AI author to continue in the established voice, ~matching length.
-  let claudeTurn = null;
-  try {
-    const continuation = await continueStory(
-      withContext({
-        title: book.title,
-        author: book.author,
-        settings: book.settings,
-        memory: priorAnalysis,
-        targetWords: countWords(text),
-      })
-    );
-    claudeTurn = makeTurn("claude", continuation);
-    book.turns.push(claudeTurn);
-  } catch (err) {
-    book.turns.pop(); // roll back the user's turn
-    return apiError(err);
-  }
-
-  // 3) Refresh the live analysis. Never let this block the turn.
-  await refreshAnalysis();
-
-  await saveBook(book);
-  return NextResponse.json({ book, addedTurnIds: [userTurn.id, claudeTurn.id] });
+    send({ t: "done", book, addedTurnIds: [userTurn.id, claudeTurn.id] });
+  });
 }

@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { countWords, isUsersMove, totalWords, fullTextWithChapters } from "@/lib/book";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
+import HistoryDrawer from "@/components/HistoryDrawer";
+import ShareDrawer from "@/components/ShareDrawer";
 
 /* physical page geometry (px @96dpi) — real trim sizes */
 const PAGE_GEOM = {
@@ -63,6 +65,10 @@ export default function BookStudio() {
   const [currentPage, setCurrentPage] = useState(0);
   const [draft, setDraft] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [streamText, setStreamText] = useState(""); // live prose as it's written
+  const [streamPhase, setStreamPhase] = useState("idle"); // 'idle' | 'writing' | 'finalizing'
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [banner, setBanner] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
@@ -101,6 +107,7 @@ export default function BookStudio() {
   const vpRef = useRef(null);
   const stageRef = useRef(null);
   const editScrimRef = useRef(null);
+  const liveRef = useRef(null);
   const pendingJump = useRef(null);
   const prefilledRef = useRef(null); // guide mode: which turns-count we've pre-filled a suggestion for
 
@@ -406,12 +413,18 @@ export default function BookStudio() {
   // pointing at it and snap back to a reading page. A brand-new book with no
   // sections always opens on the composer.
   const onWritingPage = usersMove && (pages.length === 0 || composing);
+  // On mobile, the composer scrolls (textarea + commit button in flow) instead
+  // of pinning the button in the dock, where the keyboard would crowd it.
+  const onComposerMobile = isMobile && onWritingPage;
   // Highest page reachable by next/prev/swipe. In guide mode the blank composer
   // is excluded — it's reached only via "Direct the next section" — unless it's
   // the only page (a brand-new book with no sections yet).
   const navMax = guideMode ? (pages.length === 0 ? 0 : pages.length - 1) : pageCount - 1;
   // Fast-nav (skip 10 / jump to ends) only earns its place on longer books.
   const showFastNav = navMax >= 10;
+  const lastTurn = book && book.turns.length ? book.turns[book.turns.length - 1] : null;
+  const canRegenerate =
+    !generating && !!lastTurn && lastTurn.author === "claude" && (!guideMode || !!lastTurn.prompt);
 
   useEffect(() => {
     if (currentPage > pageCount - 1) setCurrentPage(Math.max(0, pageCount - 1));
@@ -429,6 +442,11 @@ export default function BookStudio() {
     const t = setTimeout(() => setAnimTurn(null), 1600);
     return () => clearTimeout(t);
   }, [animTurn]);
+
+  // keep the live, streaming prose scrolled to its newest line
+  useEffect(() => {
+    if (liveRef.current) liveRef.current.scrollTop = liveRef.current.scrollHeight;
+  }, [streamText]);
 
   const draftWords = useMemo(() => countWords(draft), [draft]);
   const committedWords = book ? totalWords(book) : 0;
@@ -466,40 +484,124 @@ export default function BookStudio() {
     [id]
   );
 
+  // Read a newline-delimited JSON generation stream, surfacing prose deltas as
+  // they arrive and finalizing on the terminal event. Shared by submit + regen.
+  const consumeStream = useCallback(
+    async (url, payload, { onDone }) => {
+      setBanner("");
+      setStreamText("");
+      setStreamPhase("writing");
+      setGenerating(true);
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload || {}),
+        });
+        if (!res.ok || !res.body) {
+          let msg = "The AI author could not continue. Try again.";
+          try {
+            const j = await res.json();
+            if (j && j.error) msg = j.error;
+          } catch {}
+          setBanner(msg);
+          setStreamPhase("idle");
+          setGenerating(false);
+          return false;
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let acc = "";
+        let finished = false;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (!line) continue;
+            let ev;
+            try {
+              ev = JSON.parse(line);
+            } catch {
+              continue;
+            }
+            if (ev.t === "delta") {
+              acc += ev.d;
+              setStreamText(acc);
+            } else if (ev.t === "generated") {
+              setStreamPhase("finalizing");
+            } else if (ev.t === "error") {
+              setBanner(ev.error || "The AI author could not continue. Try again.");
+              setStreamPhase("idle");
+              setGenerating(false);
+              return false;
+            } else if (ev.t === "done") {
+              finished = true;
+              if (onDone) onDone(ev.book);
+            }
+          }
+        }
+        if (!finished) {
+          setBanner("The connection dropped before the passage finished. Try again.");
+          setStreamPhase("idle");
+          setGenerating(false);
+          return false;
+        }
+        return true;
+      } catch {
+        setBanner("Network error — your text is still here. Try again.");
+        setStreamPhase("idle");
+        setGenerating(false);
+        return false;
+      } finally {
+        setStreamPhase("idle");
+        setStreamText("");
+        setGenerating(false);
+      }
+    },
+    []
+  );
+
   const submitTurn = useCallback(async () => {
     if (!draft.trim() || generating) return;
-    setGenerating(true);
-    setBanner("");
-    try {
-      const res = await fetch(`/api/books/${id}/turn`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: draft }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setBanner(data.error || "The AI author could not continue. Try again.");
-        setGenerating(false);
-        return;
-      }
-      const aiTurn = data.book.turns[data.book.turns.length - 1];
-      pendingJump.current = aiTurn ? aiTurn.id : null;
-      setAnimTurn(aiTurn ? aiTurn.id : null);
-      setDraft("");
-      setBook(data.book);
-      if (newChapter) {
-        const startTurn = guideMode
-          ? Math.max(0, data.book.turns.length - 1) // the section just written
-          : Math.max(0, data.book.turns.length - 2); // the user turn just written
-        save({ chapters: [...(data.book.chapters || []), { startTurn, title: "" }] });
-        setNewChapter(false);
-      }
-    } catch {
-      setBanner("Network error — your text is still here. Try again.");
-    } finally {
-      setGenerating(false);
-    }
-  }, [draft, generating, id, newChapter, save, guideMode]);
+    const wasNewChapter = newChapter;
+    await consumeStream(`/api/books/${id}/turn`, { text: draft }, {
+      onDone: (b) => {
+        const aiTurn = b.turns[b.turns.length - 1];
+        pendingJump.current = aiTurn ? aiTurn.id : null;
+        setAnimTurn(aiTurn ? aiTurn.id : null);
+        setDraft("");
+        setBook(b);
+        if (wasNewChapter) {
+          const startTurn = guideMode
+            ? Math.max(0, b.turns.length - 1) // the section just written
+            : Math.max(0, b.turns.length - 2); // the user turn just written
+          save({ chapters: [...(b.chapters || []), { startTurn, title: "" }] });
+          setNewChapter(false);
+        }
+      },
+    });
+  }, [draft, generating, id, newChapter, save, guideMode, consumeStream]);
+
+  const regenerate = useCallback(async () => {
+    if (generating || !book) return;
+    const last = book.turns[book.turns.length - 1];
+    if (!last || last.author !== "claude") return;
+    await consumeStream(`/api/books/${id}/regenerate`, {}, {
+      onDone: (b) => {
+        const aiTurn = b.turns[b.turns.length - 1];
+        pendingJump.current = aiTurn ? aiTurn.id : null;
+        setAnimTurn(aiTurn ? aiTurn.id : null);
+        setComposing(false);
+        setBook(b);
+      },
+    });
+  }, [generating, book, id, consumeStream]);
 
   const editFromHere = useCallback(
     async (turnId) => {
@@ -974,7 +1076,7 @@ export default function BookStudio() {
   };
 
   return (
-    <div className={`studio${isMobile ? " is-mobile" : ""}`}>
+    <div className={`studio${isMobile ? " is-mobile" : ""}${onComposerMobile ? " composer-scroll" : ""}`}>
       <header className="topbar">
         <div className="topbar-title">
           <h1>{book.title}</h1>
@@ -1053,12 +1155,21 @@ export default function BookStudio() {
           <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
             Chapters
           </button>
+          <button className="btn btn-ghost" onClick={() => setHistoryOpen(true)}>
+            History
+          </button>
+          <button className="btn btn-ghost" onClick={() => setShareOpen(true)}>
+            Share
+          </button>
           <button className="btn btn-ghost" onClick={openFullEdit}>
             Edit text
           </button>
           <button className="btn btn-ghost" onClick={exportPdf}>
             Export PDF
           </button>
+          <a className="btn btn-ghost" href={`/api/books/${id}/epub`} download>
+            EPUB
+          </a>
           <button className="btn" onClick={() => setSettingsOpen(true)}>
             Settings
           </button>
@@ -1089,13 +1200,13 @@ export default function BookStudio() {
             <div className="page-viewport" ref={vpRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
               <div
                 className={`page-scaler${onWritingPage ? " is-flat" : ""}`}
-                style={{ width: geom.w * scale, height: geom.h * scale }}
+                style={{ width: geom.w * scale, height: onComposerMobile ? "auto" : geom.h * scale }}
               >
                 <div
                   className="page-shell"
                   style={{
                     width: geom.w,
-                    height: geom.h,
+                    height: onComposerMobile ? "auto" : geom.h,
                     transform: onWritingPage && scale === 1 ? "none" : `scale(${scale})`,
                   }}
                 >
@@ -1103,7 +1214,31 @@ export default function BookStudio() {
                     <i /><i /><i />
                   </div>
 
-                  {onWritingPage ? (
+                  {generating ? (
+                    <div
+                      key="live"
+                      className={`book-page paper is-writing is-live${guideMode ? " is-direction" : ""}`}
+                      data-material={s.material}
+                      style={{ padding: `${geom.padY}px ${geom.padX}px` }}
+                    >
+                      <div className="run-tab" data-author="claude">
+                        {streamPhase === "finalizing" ? "Binding the page…" : "The AI author is writing…"}
+                      </div>
+                      <div
+                        ref={liveRef}
+                        className="page-prose live-prose"
+                        style={{ ...proseStyle, height: onComposerMobile ? undefined : contentH }}
+                      >
+                        {streamText
+                          ? streamText
+                              .split(/\n{2,}/)
+                              .filter((p) => p.trim().length)
+                              .map((p, i) => <p key={i}>{p}</p>)
+                          : <p className="live-waiting">Gathering the first words…</p>}
+                        {streamPhase !== "finalizing" && <span className="live-caret" aria-hidden="true" />}
+                      </div>
+                    </div>
+                  ) : onWritingPage ? (
                     <div
                       key="writing"
                       className={`book-page paper is-writing ${flipClass}${generating ? " is-busy" : ""}${
@@ -1139,7 +1274,7 @@ export default function BookStudio() {
                       <textarea
                         ref={textareaRef}
                         className="write-area"
-                        style={{ ...proseStyle, height: contentH }}
+                        style={{ ...proseStyle, height: onComposerMobile ? undefined : contentH }}
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         onKeyDown={onKeyDown}
@@ -1155,6 +1290,24 @@ export default function BookStudio() {
                         }
                         autoFocus
                       />
+                      {onComposerMobile && (
+                        <div className="composer-actions-m">
+                          <button
+                            className="btn btn-primary"
+                            onClick={submitTurn}
+                            disabled={generating || !draft.trim()}
+                          >
+                            {generating ? "Weaving…" : guideMode ? "Write this section →" : "Hand to the AI author →"}
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            onClick={() => turnTo(Math.max(0, writingIndex - 1))}
+                            disabled={writingIndex === 0 || generating}
+                          >
+                            ← Back to the book
+                          </button>
+                        </div>
+                      )}
                       <div className="folio">{writingIndex + 1}</div>
                     </div>
                   ) : (
@@ -1333,9 +1486,21 @@ export default function BookStudio() {
                   {generating ? "Weaving…" : guideMode ? "Write this section →" : "Hand to the AI author →"}
                 </button>
               ) : usersMove ? (
-                <button className="btn btn-primary" onClick={goWrite}>
-                  {guideMode ? "Direct the next section →" : "Continue writing →"}
-                </button>
+                <>
+                  {canRegenerate && (
+                    <button
+                      className="btn btn-ghost dock-regen"
+                      onClick={regenerate}
+                      disabled={generating}
+                      title="Discard the latest AI passage and write a fresh version"
+                    >
+                      ↻ Regenerate
+                    </button>
+                  )}
+                  <button className="btn btn-primary" onClick={goWrite}>
+                    {guideMode ? "Direct the next section →" : "Continue writing →"}
+                  </button>
+                </>
               ) : null}
             </div>
           </div>
@@ -1405,6 +1570,20 @@ export default function BookStudio() {
             {a.quality && (
               <div className="v" style={{ marginTop: 10 }}>
                 {a.quality}
+              </div>
+            )}
+            {a.critique && (
+              <div className="critique">
+                <div className="critique-h">What's holding it back</div>
+                <ul className="critique-list">
+                  {a.critique
+                    .split(/\n+/)
+                    .map((line) => line.replace(/^[\s•\-–*]+/, "").trim())
+                    .filter(Boolean)
+                    .map((line, ci) => (
+                      <li key={ci}>{line}</li>
+                    ))}
+                </ul>
               </div>
             )}
           </div>
@@ -1483,6 +1662,27 @@ export default function BookStudio() {
           }}
           onClose={() => setChaptersOpen(false)}
           onSave={save}
+        />
+      )}
+      {historyOpen && (
+        <HistoryDrawer
+          bookId={id}
+          onClose={() => setHistoryOpen(false)}
+          onRestore={(b) => {
+            pendingJump.current = null;
+            setComposing(false);
+            setCurrentPage(0);
+            setBook(b);
+          }}
+        />
+      )}
+      {shareOpen && (
+        <ShareDrawer
+          book={book}
+          onClose={() => setShareOpen(false)}
+          onSetShared={async (next) => {
+            await save({ shared: next });
+          }}
         />
       )}
     </div>

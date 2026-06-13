@@ -1532,3 +1532,130 @@ body {
 .studio.is-mobile .section-direction.is-empty {
   background: transparent; border-color: transparent; padding: 0;
 }
+
+/* Chapters drawer: the number is a tap target that jumps to the chapter */
+.chapter-jump {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: rgba(192,145,63,0.08); border: 1px solid rgba(192,145,63,0.22);
+  border-radius: 8px; padding: 8px 10px; cursor: pointer; min-width: 64px;
+  color: var(--on-desk); transition: background 0.15s ease, border-color 0.15s ease;
+}
+.chapter-jump:hover { background: rgba(192,145,63,0.16); border-color: rgba(192,145,63,0.4); }
+.chapter-jump:active { transform: translateY(1px); }
+.chapter-jump .cj-ch { font-family: var(--display); font-size: 14px; font-weight: 600; }
+.chapter-jump .cj-pg { font-family: var(--data); font-size: 10.5px; color: var(--brass); letter-spacing: 0.02em; }
+
+/* ---- Mobile composer: scroll the writing area with the commit button in flow
+   (below the textarea) instead of pinning it in the dock, where the keyboard
+   would crowd and obscure it. ---- */
+.studio.is-mobile.composer-scroll .stage {
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: block; height: 100%;
+}
+.studio.is-mobile.composer-scroll .stage-col,
+.studio.is-mobile.composer-scroll .page-viewport {
+  flex: 0 0 auto; min-height: 0; height: auto; display: block;
+}
+/* the writing page flows to its content height so the page can grow and scroll */
+.studio.is-mobile.composer-scroll .book-page.is-writing {
+  position: relative; inset: auto; min-height: 0;
+}
+.studio.is-mobile.composer-scroll .write-area {
+  height: auto; min-height: 42vh;
+}
+/* in-flow actions under the textarea */
+.composer-actions-m {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 18px;
+}
+.composer-actions-m .btn-primary { width: 100%; padding: 14px; font-size: 15px; }
+.composer-actions-m .btn-ghost { width: 100%; }
+/* the pinned dock is redundant while composing on mobile — the actions live in
+   the scroll flow now */
+.studio.is-mobile.composer-scroll .dock { display: none; }
+.studio.is-mobile.composer-scroll .folio { display: none; }
+
+/* Reader's notes: critique points explaining what detracts from the score */
+.critique { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--desk-line); }
+.critique-h {
+  font-family: var(--data); font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--brass); margin-bottom: 6px;
+}
+.critique-list { margin: 0; padding-left: 16px; }
+.critique-list li {
+  font-size: 13px; line-height: 1.5; color: var(--on-desk); margin: 4px 0;
+}
+.critique-list li::marker { color: var(--brass); }
+
+/* ---- live streaming prose (the book being written in real time) ---- */
+.book-page.is-live .page-prose { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.live-prose p { margin: 0 0 0.85em; }
+.live-waiting { opacity: 0.5; font-style: italic; }
+.live-caret {
+  display: inline-block; width: 2px; height: 1.05em; vertical-align: -0.18em;
+  margin-left: 1px; background: var(--brass); animation: blink-caret 1s steps(1) infinite;
+}
+@keyframes blink-caret { 0%,50% { opacity: 1; } 50.01%,100% { opacity: 0; } }
+.dock-regen { white-space: nowrap; }
+.studio.is-mobile .dock-regen { order: 4; flex: 1 1 100%; }
+
+/* ---- History (revision) drawer ---- */
+.hist-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hist-item {
+  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+  padding: 12px 14px; border: 1px solid var(--desk-line); border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+}
+.hist-body { min-width: 0; }
+.hist-reason { font-family: var(--display); font-size: 14.5px; color: var(--on-desk); }
+.hist-meta { font-family: var(--data); font-size: 11px; color: var(--on-desk-dim); margin-top: 3px; }
+
+/* ---- Share drawer ---- */
+.share-toggle { display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; cursor: pointer; font-size: 14px; }
+.share-toggle input { width: 18px; height: 18px; accent-color: var(--brass); }
+.share-link-row { display: flex; gap: 8px; align-items: center; }
+.share-link { flex: 1; font-family: var(--data); font-size: 12.5px; }
+
+/* ============================ READ-ONLY READER ============================ */
+.reader-shell {
+  min-height: 100vh; width: 100%;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #20242e, #14171d 70%);
+  padding: 48px 20px 80px; display: flex; justify-content: center;
+}
+.reader-shell.mat-midnight { background: radial-gradient(120% 90% at 50% 0%, #0f1116, #08090c 70%); }
+.reader {
+  width: 100%; max-width: 680px;
+  background: #f6f1e6; color: #1c1b18;
+  border-radius: 4px; padding: 64px 60px 48px;
+  box-shadow: 0 40px 90px -40px rgba(0,0,0,0.8), 0 2px 0 rgba(255,255,255,0.04);
+  line-height: 1.62;
+  background-image:
+    radial-gradient(120% 80% at 50% 0%, rgba(255,255,255,0.5), transparent 60%);
+}
+.reader-shell.mat-midnight .reader { background: #14151a; color: #d9dae0; }
+.reader p { margin: 0 0 0.95em; text-align: justify; -webkit-hyphens: auto; hyphens: auto; }
+.reader-title { text-align: center; margin-bottom: 44px; padding-bottom: 28px; border-bottom: 1px solid rgba(0,0,0,0.12); }
+.reader-shell.mat-midnight .reader-title { border-color: rgba(255,255,255,0.12); }
+.reader-title h1 { font-family: "Fraunces", Georgia, serif; font-size: 34px; font-weight: 600; margin: 0 0 8px; letter-spacing: 0.01em; }
+.reader-by { font-style: italic; opacity: 0.7; font-size: 15px; }
+.reader-chapter { margin-top: 38px; }
+.reader-chapter:first-of-type { margin-top: 0; }
+.reader-ch-eyebrow {
+  font-family: var(--data, ui-monospace, monospace); font-size: 11px; letter-spacing: 0.22em;
+  text-transform: uppercase; opacity: 0.55; text-align: center; margin-bottom: 4px;
+}
+.reader-ch-title { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 22px; text-align: center; margin: 0 0 22px; }
+.reader-empty { text-align: center; opacity: 0.6; font-style: italic; }
+.reader-foot { margin-top: 56px; padding-top: 22px; border-top: 1px solid rgba(0,0,0,0.12); text-align: center; }
+.reader-shell.mat-midnight .reader-foot { border-color: rgba(255,255,255,0.12); }
+.reader-home { font-family: var(--data, monospace); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: inherit; opacity: 0.5; text-decoration: none; }
+.reader-home:hover { opacity: 0.85; }
+.reader-unavailable { color: #e7e3d8; text-align: center; margin-top: 18vh; font-family: "Fraunces", Georgia, serif; }
+.reader-unavailable h1 { font-size: 28px; margin-bottom: 8px; }
+.reader-unavailable p { opacity: 0.7; margin-bottom: 20px; }
+@media (max-width: 560px) {
+  .reader-shell { padding: 18px 10px 50px; }
+  .reader { padding: 36px 22px 32px; border-radius: 0; }
+  .reader-title h1 { font-size: 27px; }
+}
