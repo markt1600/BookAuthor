@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { getBook } from "@/lib/store";
+import { segmentQuotes } from "@/lib/book";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,8 @@ h1.book-title{font-size:1.9em;text-align:center;margin:1.2em 0 0.2em;}
 .ch-eyebrow{text-align:center;letter-spacing:0.18em;text-transform:uppercase;font-size:0.72em;color:#888;margin:0 0 0.3em;}
 h2.ch-title{text-align:center;font-size:1.3em;margin:0 0 1.4em;font-weight:600;}
 p{margin:0 0 0.85em;text-align:justify;text-indent:1.3em;}
-p.first{text-indent:0;}`;
+p.first{text-indent:0;}
+blockquote.quote{margin:0 0 0.85em;padding-left:1.5em;border-left:2px solid #aaa;white-space:pre-wrap;font-style:normal;}`;
 
 export async function GET(request, { params }) {
   const { id } = await params;
@@ -76,9 +78,16 @@ export async function GET(request, { params }) {
     const heading = `<div class="ch-eyebrow">Chapter ${c.num}</div>${
       c.title ? `<h2 class="ch-title">${esc(c.title)}</h2>` : '<h2 class="ch-title">&#160;</h2>'
     }`;
+    const segs = segmentQuotes(c.paras.join("\n\n"));
     const body =
       heading +
-      c.paras.map((p, i) => `<p${i === 0 ? ' class="first"' : ""}>${esc(p)}</p>`).join("\n");
+      segs
+        .map((seg, i) =>
+          seg.quote
+            ? `<blockquote class="quote">${esc(seg.text)}</blockquote>`
+            : `<p${i === 0 ? ' class="first"' : ""}>${esc(seg.text)}</p>`
+        )
+        .join("\n");
     return { name: `chapter-${c.num}.xhtml`, label: c.title || `Chapter ${c.num}`, num: c.num, xhtml: page(c.title || `Chapter ${c.num}`, body) };
   });
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import CoverArt from "@/components/CoverArt";
+import { segmentQuotes } from "@/lib/book";
 
 const PAGE_DIMS = {
   portrait: { size: "6in 9in", margin: "0.85in 0.8in" },
@@ -114,6 +115,7 @@ export default function PrintView() {
 
     .pv-body { font-size: ${s.fontSize}px; line-height: 1.6; }
     .pv-body p { margin: 0 0 0.9em; orphans: 2; widows: 2; white-space: pre-wrap; }
+    .pv-body .print-quote { margin: 0 0 0.9em; padding-left: 1.6em; white-space: pre-wrap; border-left: 2px solid rgba(0,0,0,0.3); }
     .pv-turn { margin-bottom: 6px; }
     .pv-marker { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 26px 0 18px; break-after: avoid; }
     .pv-marker[data-hide="1"] { display: none; }
@@ -172,9 +174,15 @@ export default function PrintView() {
                 <span className="lab">{t.author === "user" ? book.author : "AI Author"}</span>
                 <span className="rule" />
               </div>
-              {paragraphs(t.text).map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
+              {segmentQuotes(t.text).map((p, i) =>
+                p.quote ? (
+                  <blockquote className="print-quote" key={i}>
+                    {p.text}
+                  </blockquote>
+                ) : (
+                  <p key={i}>{p.text}</p>
+                )
+              )}
             </div>
           ))}
 

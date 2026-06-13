@@ -1,4 +1,5 @@
 import { getBook } from "@/lib/store";
+import { segmentQuotes } from "@/lib/book";
 
 export const dynamic = "force-dynamic";
 
@@ -77,9 +78,15 @@ export default async function ReadPage({ params }) {
               <section className="reader-chapter" key={c.num}>
                 <div className="reader-ch-eyebrow">Chapter {c.num}</div>
                 {c.title ? <h2 className="reader-ch-title">{c.title}</h2> : null}
-                {c.paras.map((p, pi) => (
-                  <p key={pi}>{p}</p>
-                ))}
+                {segmentQuotes(c.paras.join("\n\n")).map((p, pi) =>
+                  p.quote ? (
+                    <blockquote className="reader-quote" key={pi}>
+                      {p.text}
+                    </blockquote>
+                  ) : (
+                    <p key={pi}>{p.text}</p>
+                  )
+                )}
               </section>
             ) : null
           )

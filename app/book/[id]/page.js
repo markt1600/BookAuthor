@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { countWords, isUsersMove, totalWords, fullTextWithChapters } from "@/lib/book";
+import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes } from "@/lib/book";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
 import HistoryDrawer from "@/components/HistoryDrawer";
@@ -185,6 +185,7 @@ export default function BookStudio() {
   const contentH = geom.h - geom.padY * 2 - 26; // leave room for the folio
   const fontFamily = (s && FONT[s.font]) || FONT.serif;
   const paraGap = s ? Math.round(s.fontSize * 0.95) : 16;
+  const quoteIndent = s ? Math.round(s.fontSize * 1.5) : 28; // left indent for ">" block quotes
 
   // ---- paginate: flow the manuscript into fixed-height pages, box-aware ----
   useEffect(() => {
@@ -245,12 +246,13 @@ export default function BookStudio() {
         runs.push({ type: "chapter", num: ch.num, title: ch.title });
         base += measureHead(ch.title);
       }
-      const paras = String(turn.text).split(/\n{2,}/).filter((p) => p.length);
-      if (!paras.length) paras.push("");
+      const paras = segmentQuotes(turn.text);
+      if (!paras.length) paras.push({ text: "", quote: false });
       let firstOfTurn = true;
       starts[turn.id] = out.length;
       for (let pi = 0; pi < paras.length; pi++) {
-        let text = paras[pi];
+        const quote = paras[pi].quote;
+        let text = paras[pi].text;
         while (true) {
           if (++guard > 2e6) throw new Error("pagination loop");
           const last = runs[runs.length - 1];
@@ -258,7 +260,7 @@ export default function BookStudio() {
           const gapPart = extend ? paraGap : runs.length > 0 ? paraGap : 0;
           const chrome = !extend && boxed(turn) ? AI_VCHROME : 0;
           const fixed = gapPart + chrome;
-          const w = widthFor(turn);
+          const w = widthFor(turn) - (quote ? quoteIndent : 0);
           const availText = contentH - base - fixed;
 
           if (availText < oneLine && runs.length > 0) {
@@ -268,7 +270,7 @@ export default function BookStudio() {
           }
           const fullH = measure(text, w);
           if (fullH <= availText) {
-            place(turn, text, !extend);
+            place(turn, { text, quote }, !extend);
             base += fixed + fullH;
             firstOfTurn = false;
             break;
@@ -294,7 +296,7 @@ export default function BookStudio() {
             best = 1; // degenerate: force a word so we always progress
           }
           const head = words.slice(0, best).join(" ");
-          place(turn, head, !extend);
+          place(turn, { text: head, quote }, !extend);
           base += fixed + measure(head, w);
           firstOfTurn = false;
           flush();
@@ -473,7 +475,7 @@ export default function BookStudio() {
   const pageWords = useMemo(
     () =>
       currentRuns.reduce(
-        (n, r) => n + (r.paras ? r.paras.reduce((m, p) => m + countWords(p), 0) : 0),
+        (n, r) => n + (r.paras ? r.paras.reduce((m, p) => m + countWords(p.text), 0) : 0),
         0
       ),
     [currentRuns]
@@ -710,7 +712,7 @@ export default function BookStudio() {
       if (run.type === "chapter") {
         out.push(`Chapter ${run.num}${run.title ? `. ${run.title}` : ""}.`);
       } else if (run.paras) {
-        out.push(run.paras.join("\n"));
+        out.push(run.paras.map((p) => p.text).join("\n"));
       }
     }
     return out.join("\n").trim();
@@ -1141,6 +1143,7 @@ export default function BookStudio() {
     height: contentH,
     color: s.inkColor || undefined,
     "--para-gap": `${paraGap}px`,
+    "--quote-indent": `${quoteIndent}px`,
   };
 
   return (
@@ -1315,10 +1318,15 @@ export default function BookStudio() {
                         style={{ ...proseStyle, height: onComposerMobile ? undefined : contentH }}
                       >
                         {streamText
-                          ? streamText
-                              .split(/\n{2,}/)
-                              .filter((p) => p.trim().length)
-                              .map((p, i) => <p key={i}>{p}</p>)
+                          ? segmentQuotes(streamText).map((p, i) =>
+                              p.quote ? (
+                                <blockquote key={i} className="prose-quote">
+                                  <p>{p.text}</p>
+                                </blockquote>
+                              ) : (
+                                <p key={i}>{p.text}</p>
+                              )
+                            )
                           : <p className="live-waiting">Gathering the first words…</p>}
                         {streamPhase !== "finalizing" && <span className="live-caret" aria-hidden="true" />}
                       </div>
@@ -1431,19 +1439,26 @@ export default function BookStudio() {
                                   {authorName(run.author, book.author)}
                                 </div>
                               )}
-                              {run.paras.map((p, pi) =>
-                                animating ? (
+                              {run.paras.map((p, pi) => {
+                                const inner = animating ? (
                                   <RevealParagraph
                                     key={pi}
-                                    text={p}
+                                    text={p.text}
                                     delayStart={wcount}
                                     perWord={perWord}
                                     onWordCount={(n) => (wcount = n)}
                                   />
                                 ) : (
-                                  <p key={pi}>{p}</p>
-                                )
-                              )}
+                                  <p key={pi}>{p.text}</p>
+                                );
+                                return p.quote ? (
+                                  <blockquote key={pi} className="prose-quote">
+                                    {inner}
+                                  </blockquote>
+                                ) : (
+                                  inner
+                                );
+                              })}
                               {animating && <span className="nib" aria-hidden="true" />}
                             </div>
                           );
