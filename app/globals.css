@@ -1706,3 +1706,17 @@ body {
 .reader-quote { margin: 0 0 0.95em; padding-left: 1.6em; white-space: pre-wrap;
   background: linear-gradient(to right, rgba(0,0,0,0.22) 0 2px, transparent 2px); }
 .reader-shell.mat-midnight .reader-quote { background: linear-gradient(to right, rgba(255,255,255,0.22) 0 2px, transparent 2px); }
+
+/* ---- next-segment suggestions (tap to load into the composer) ---- */
+.suggestions { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--desk-line); }
+.suggestion-cards { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.suggestion-card {
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  padding: 10px 12px; border: 1px solid rgba(192,145,63,0.28); border-radius: 9px;
+  background: rgba(192,145,63,0.06); cursor: pointer; width: 100%;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+.suggestion-card:hover { background: rgba(192,145,63,0.13); border-color: rgba(192,145,63,0.45); }
+.suggestion-card:active { transform: translateY(1px); }
+.suggestion-text { font-size: 13px; line-height: 1.5; color: var(--on-desk); }
+.suggestion-cta { font-family: var(--data); font-size: 10.5px; letter-spacing: 0.04em; color: var(--brass); }

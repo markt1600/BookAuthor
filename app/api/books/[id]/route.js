@@ -48,11 +48,11 @@ export async function PUT(request, { params }) {
     const merged = mergeFullText(book, body.fullText);
     if (merged.turns.length) {
       // A full-text edit can change anything — rename or remove characters,
-      // alter facts, rewrite the arc. So rebuild ALL of the notes from scratch
-      // (synopsis, story memory/cast, genre, style, score, critique, and the
-      // suggested next direction) rather than carrying the old analysis forward,
-      // which could keep characters or facts the edit removed. Passing prior:null
-      // tells the analyzer to read the edited manuscript afresh.
+      // alter facts, rewrite the arc. So run the FULL analysis afresh and rebuild
+      // every note: synopsis, story memory/cast, genre, style, score, the in-depth
+      // critique, the "ways the next section could answer this" suggestions, and
+      // the suggested next direction. Passing prior:null prevents the old analysis
+      // (which could keep characters or facts the edit removed) from carrying over.
       try {
         const analysis = await analyzeStory({
           title: merged.title,
@@ -80,6 +80,7 @@ export async function PUT(request, { params }) {
         qualityScore: null,
         critique: "",
         nextDirection: "",
+        suggestions: "",
         continuity: "",
         updatedAt: 0,
       };

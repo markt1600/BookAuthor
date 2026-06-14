@@ -672,6 +672,13 @@ export default function BookStudio() {
     }
     turnTo(writingIndex);
   };
+  // Load a suggested next-segment direction into the composer and go there.
+  const useSuggestion = (text) => {
+    setDraft(text);
+    prefilledRef.current = lastTurnId; // don't let the auto-suggestion overwrite it
+    if (isMobile) setNotesOpen(false);
+    turnTo(writingIndex);
+  };
   function turnTo(t, fromRead = false) {
     if (!fromRead && readingRef.current) stopReading();
     // Reaching the composer (the page past the last committed one) sets the
@@ -1684,6 +1691,30 @@ export default function BookStudio() {
                       <li key={ci}>{line}</li>
                     ))}
                 </ul>
+              </div>
+            )}
+            {a.suggestions && (
+              <div className="suggestions">
+                <div className="critique-h">
+                  {guideMode ? "Ways the next section could answer this" : "Ways to write into this next"}
+                </div>
+                <div className="suggestion-cards">
+                  {a.suggestions
+                    .split(/\n+/)
+                    .map((line) => line.replace(/^[\s•\-–*]+/, "").trim())
+                    .filter(Boolean)
+                    .map((line, si) => (
+                      <button
+                        key={si}
+                        className="suggestion-card"
+                        onClick={() => useSuggestion(line)}
+                        title="Use this as your next direction"
+                      >
+                        <span className="suggestion-text">{line}</span>
+                        <span className="suggestion-cta">{guideMode ? "Direct this →" : "Write this →"}</span>
+                      </button>
+                    ))}
+                </div>
               </div>
             )}
           </div>
