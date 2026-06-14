@@ -47,15 +47,17 @@ export async function PUT(request, { params }) {
     await saveSnapshot(book, "Before full-text edit");
     const merged = mergeFullText(book, body.fullText);
     if (merged.turns.length) {
-      // Re-read the edited manuscript so the synopsis, story memory, and the
-      // suggested next direction reflect the new text — not the prior turns or
-      // their (now-discarded) prompts.
+      // A full-text edit can change anything — rename or remove characters,
+      // alter facts, rewrite the arc. So rebuild ALL of the notes from scratch
+      // (synopsis, story memory/cast, genre, style, score, critique, and the
+      // suggested next direction) rather than carrying the old analysis forward,
+      // which could keep characters or facts the edit removed. Passing prior:null
+      // tells the analyzer to read the edited manuscript afresh.
       try {
-        const prior = book.analysis && book.analysis.updatedAt ? book.analysis : null;
         const analysis = await analyzeStory({
           title: merged.title,
           fullText: manuscriptText(merged),
-          prior,
+          prior: null,
           guide: merged.mode === "guide",
           eroticaLean:
             merged.mode === "guide" &&
