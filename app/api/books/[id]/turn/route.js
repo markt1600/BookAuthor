@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
-import { makeTurn, countWords, isUsersMove, publicBook } from "@/lib/book";
+import { makeTurn, countWords, isUsersMove, publicBook, normalizeChapters } from "@/lib/book";
 import { continueStory, guideStory } from "@/lib/claude";
 import { withContext, refreshAnalysis, ndjsonResponse } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
-// Generating prose + analysis can take a while; give it room on Vercel.
-export const maxDuration = 60;
+// Long books carry a large context, and the section is followed by a second
+// (analysis) model call. Give the whole thing generous room on Vercel — this is
+// clamped to your plan's ceiling (Hobby 60s, Pro up to 300s).
+export const maxDuration = 300;
 
 export async function POST(request, { params }) {
   const { id } = await params;
@@ -25,6 +27,7 @@ export async function POST(request, { params }) {
   }
 
   const text = String(body.text || "").trim();
+  const wantsChapter = body.newChapter === true;
   const guideMode = book.mode === "guide";
   if (!text) {
     return NextResponse.json(
@@ -38,10 +41,22 @@ export async function POST(request, { params }) {
 
   const priorAnalysis = book.analysis && book.analysis.updatedAt ? book.analysis : null;
 
-  // Stream the prose as it's written, then finalize (commit + analysis + save).
+  // Open a new chapter at the given turn index, if requested.
+  const addChapter = (startTurn) => {
+    if (!wantsChapter) return;
+    book.chapters = normalizeChapters(
+      [...(book.chapters || []), { startTurn: Math.max(0, startTurn), title: "" }],
+      book.turns.length
+    );
+  };
+
+  // Stream the prose, COMMIT + SAVE + deliver it, THEN refresh the notes as a
+  // best-effort follow-up. Decoupling the analysis means a slow second call on a
+  // long book can never drop the connection or lose the section that was written.
   return ndjsonResponse(async (send) => {
     const onDelta = (d) => send({ t: "delta", d });
 
+    let addedTurnIds;
     if (guideMode) {
       const prose = await guideStory(
         withContext(book, {
@@ -56,37 +71,44 @@ export async function POST(request, { params }) {
       );
       const section = makeTurn("claude", prose, text); // store the originating direction
       book.turns.push(section);
-      send({ t: "generated" });
-      await refreshAnalysis(book, priorAnalysis);
-      await saveBook(book);
-      send({ t: "done", book: publicBook(book), addedTurnIds: [section.id] });
-      return;
+      addChapter(book.turns.length - 1); // chapter opens on the new section
+      addedTurnIds = [section.id];
+    } else {
+      // Participate: commit the user's turn, then continue in one voice.
+      const userTurn = makeTurn("user", text);
+      book.turns.push(userTurn);
+      let claudeTurn = null;
+      try {
+        const continuation = await continueStory(
+          withContext(book, {
+            title: book.title,
+            author: book.author,
+            settings: book.settings,
+            memory: priorAnalysis,
+            targetWords: countWords(text),
+            onDelta,
+          })
+        );
+        claudeTurn = makeTurn("claude", continuation);
+        book.turns.push(claudeTurn);
+      } catch (err) {
+        book.turns.pop(); // roll back the user's turn
+        throw err;
+      }
+      addChapter(book.turns.length - 2); // chapter opens on the user's turn
+      addedTurnIds = [userTurn.id, claudeTurn.id];
     }
 
-    // Participate: commit the user's turn, then continue in one voice.
-    const userTurn = makeTurn("user", text);
-    book.turns.push(userTurn);
-    let claudeTurn = null;
-    try {
-      const continuation = await continueStory(
-        withContext(book, {
-          title: book.title,
-          author: book.author,
-          settings: book.settings,
-          memory: priorAnalysis,
-          targetWords: countWords(text),
-          onDelta,
-        })
-      );
-      claudeTurn = makeTurn("claude", continuation);
-      book.turns.push(claudeTurn);
-    } catch (err) {
-      book.turns.pop(); // roll back the user's turn
-      throw err;
-    }
+    await saveBook(book); // persist the section before the (slower) analysis
     send({ t: "generated" });
+    send({ t: "done", book: publicBook(book), addedTurnIds });
+
+    // Best-effort notes refresh. refreshAnalysis never throws; re-read the latest
+    // book first so we don't clobber any concurrent edit, then merge the notes in.
     await refreshAnalysis(book, priorAnalysis);
-    await saveBook(book);
-    send({ t: "done", book: publicBook(book), addedTurnIds: [userTurn.id, claudeTurn.id] });
+    const latest = (await getBook(id)) || book;
+    latest.analysis = book.analysis;
+    await saveBook(latest);
+    send({ t: "analysis", analysis: latest.analysis });
   });
 }

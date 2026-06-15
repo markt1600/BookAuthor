@@ -1720,3 +1720,10 @@ body {
 .suggestion-card:active { transform: translateY(1px); }
 .suggestion-text { font-size: 13px; line-height: 1.5; color: var(--on-desk); }
 .suggestion-cta { font-family: var(--data); font-size: 10.5px; letter-spacing: 0.04em; color: var(--brass); }
+
+/* notes re-reading indicator (section landed; notes refreshing in the background) */
+.notes-refreshing {
+  margin-left: 10px; font-family: var(--data); font-size: 10.5px; letter-spacing: 0.05em;
+  color: var(--brass); opacity: 0.85; animation: notesPulse 1.4s ease-in-out infinite;
+}
+@keyframes notesPulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.9; } }

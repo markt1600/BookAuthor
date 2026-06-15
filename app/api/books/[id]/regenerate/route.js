@@ -6,7 +6,8 @@ import { withContext, refreshAnalysis, ndjsonResponse } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Match the turn route: room for a large context plus the follow-up analysis.
+export const maxDuration = 300;
 
 // Re-write the most recent AI passage with a fresh take. The prior version is
 // snapshotted first (revision history), so a regenerate is reversible.
@@ -56,10 +57,14 @@ export async function POST(request, { params }) {
       );
       const section = makeTurn("claude", prose, directionPrompt);
       book.turns.push(section);
+      await saveBook(book); // persist before the slower analysis call
       send({ t: "generated" });
-      await refreshAnalysis(book, priorAnalysis);
-      await saveBook(book);
       send({ t: "done", book: publicBook(book), addedTurnIds: [section.id] });
+      await refreshAnalysis(book, priorAnalysis);
+      const latest = (await getBook(id)) || book;
+      latest.analysis = book.analysis;
+      await saveBook(latest);
+      send({ t: "analysis", analysis: latest.analysis });
       return;
     }
 
@@ -78,9 +83,13 @@ export async function POST(request, { params }) {
     );
     const claudeTurn = makeTurn("claude", continuation);
     book.turns.push(claudeTurn);
+    await saveBook(book); // persist before the slower analysis call
     send({ t: "generated" });
-    await refreshAnalysis(book, priorAnalysis);
-    await saveBook(book);
     send({ t: "done", book: publicBook(book), addedTurnIds: [claudeTurn.id] });
+    await refreshAnalysis(book, priorAnalysis);
+    const latest = (await getBook(id)) || book;
+    latest.analysis = book.analysis;
+    await saveBook(latest);
+    send({ t: "analysis", analysis: latest.analysis });
   });
 }

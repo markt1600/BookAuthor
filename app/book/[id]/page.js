@@ -71,6 +71,7 @@ export default function BookStudio() {
   const [generating, setGenerating] = useState(false);
   const [streamText, setStreamText] = useState(""); // live prose as it's written
   const [streamPhase, setStreamPhase] = useState("idle"); // 'idle' | 'writing' | 'finalizing'
+  const [notesRefreshing, setNotesRefreshing] = useState(false); // notes re-reading after a section lands
   const [historyOpen, setHistoryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false); // mobile: expand the secondary action row
@@ -313,8 +314,8 @@ export default function BookStudio() {
       if (target != null) {
         setComposing(false); // the new section is a reading page, not the composer
         setCurrentPage(target);
+        pendingJump.current = null; // only clear once we've actually landed the jump
       }
-      pendingJump.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book, fontsReady, s?.font, s?.fontSize, s?.format, contentW, contentH]);
@@ -490,7 +491,7 @@ export default function BookStudio() {
     : { page: pageWords, turn: currentTurn ? currentTurn.words : pageWords, total: committedWords };
 
   const save = useCallback(
-    async (patch) => {
+    async (patch, jumpTurnId) => {
       const res = await fetch(`/api/books/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -498,6 +499,9 @@ export default function BookStudio() {
       });
       if (res.ok) {
         const { book } = await res.json();
+        // Re-arm the jump so the re-pagination this triggers (e.g. after a new
+        // chapter shifts the section onto a fresh page) lands on the section.
+        if (jumpTurnId != null) pendingJump.current = jumpTurnId;
         setBook(book);
       }
     },
@@ -563,6 +567,15 @@ export default function BookStudio() {
             } else if (ev.t === "done") {
               finished = true;
               if (onDone) onDone(ev.book);
+              // The section is committed — reveal the page immediately and let the
+              // notes refresh land as a follow-up event (it no longer gates this).
+              setStreamPhase("idle");
+              setStreamText("");
+              setGenerating(false);
+              setNotesRefreshing(true);
+            } else if (ev.t === "analysis") {
+              setBook((prev) => (prev ? { ...prev, analysis: ev.analysis } : prev));
+              setNotesRefreshing(false);
             }
           }
         }
@@ -582,6 +595,7 @@ export default function BookStudio() {
         setStreamPhase("idle");
         setStreamText("");
         setGenerating(false);
+        setNotesRefreshing(false);
       }
     },
     []
@@ -590,23 +604,20 @@ export default function BookStudio() {
   const submitTurn = useCallback(async () => {
     if (!draft.trim() || generating) return;
     const wasNewChapter = newChapter;
-    await consumeStream(`/api/books/${id}/turn`, { text: draft }, {
+    if (wasNewChapter) setNewChapter(false);
+    await consumeStream(`/api/books/${id}/turn`, { text: draft, newChapter: wasNewChapter }, {
       onDone: (b) => {
+        // The book already includes the new chapter (added server-side), so a
+        // single update paginates once and the jump lands on the right page.
         const aiTurn = b.turns[b.turns.length - 1];
         pendingJump.current = aiTurn ? aiTurn.id : null;
         setAnimTurn(aiTurn ? aiTurn.id : null);
+        setComposing(false);
         setDraft("");
         setBook(b);
-        if (wasNewChapter) {
-          const startTurn = guideMode
-            ? Math.max(0, b.turns.length - 1) // the section just written
-            : Math.max(0, b.turns.length - 2); // the user turn just written
-          save({ chapters: [...(b.chapters || []), { startTurn, title: "" }] });
-          setNewChapter(false);
-        }
       },
     });
-  }, [draft, generating, id, newChapter, save, guideMode, consumeStream]);
+  }, [draft, generating, id, newChapter, consumeStream]);
 
   const regenerate = useCallback(async () => {
     if (generating || !book) return;
@@ -1616,6 +1627,7 @@ export default function BookStudio() {
         <aside className={`notes${isMobile ? (notesOpen ? " notes-open" : " notes-closed") : ""}`}>
           <div className="notes-head">
             <h2>Reader’s notes</h2>
+            {notesRefreshing && <span className="notes-refreshing">Re-reading…</span>}
             {isMobile && (
               <button className="btn btn-ghost x" onClick={() => setNotesOpen(false)} aria-label="Close notes">
                 Close
