@@ -6,6 +6,7 @@ import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuote
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
 import HistoryDrawer from "@/components/HistoryDrawer";
+import ArcDrawer from "@/components/ArcDrawer";
 import ShareDrawer from "@/components/ShareDrawer";
 
 /* physical page geometry (px @96dpi) — real trim sizes */
@@ -78,6 +79,7 @@ export default function BookStudio() {
   const [banner, setBanner] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
+  const [arcOpen, setArcOpen] = useState(false);
   const [newChapter, setNewChapter] = useState(false);
   const [composing, setComposing] = useState(false); // intent to be on the composer, robust to page-count shifts
   const [nav, setNav] = useState(null); // 'next' | 'prev' | null — page-turn direction
@@ -1260,6 +1262,9 @@ export default function BookStudio() {
             <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
               Chapters
             </button>
+            <button className="btn btn-ghost" onClick={() => setArcOpen(true)}>
+              Heading{book.arc && book.arc.length ? ` (${book.arc.length})` : ""}
+            </button>
             <button className="btn btn-ghost" onClick={() => setHistoryOpen(true)}>
               History
             </button>
@@ -1382,6 +1387,26 @@ export default function BookStudio() {
                           ✎ Suggested next direction — accept it as is, or rewrite it to steer your own way.
                         </div>
                       )}
+                      <button
+                        className={`arc-bar${book.arc && book.arc.length ? " has" : ""}`}
+                        onClick={() => setArcOpen(true)}
+                        type="button"
+                        title="Where the story is heading"
+                      >
+                        {book.arc && book.arc.length ? (
+                          <>
+                            <span className="arc-bar-k">Heading toward</span>
+                            {book.arc.map((h) => (
+                              <span className="arc-bar-chip" key={h.id} data-pace={h.pace}>
+                                {h.text}
+                              </span>
+                            ))}
+                            <span className="arc-bar-edit">edit</span>
+                          </>
+                        ) : (
+                          <span className="arc-bar-add">＋ Set where it’s heading (optional)</span>
+                        )}
+                      </button>
                       <textarea
                         ref={textareaRef}
                         className="write-area"
@@ -1736,6 +1761,30 @@ export default function BookStudio() {
               <div className="v continuity-note">{a.continuity}</div>
             </div>
           )}
+          {book.arc && book.arc.length > 0 && (
+            <div className="note-card">
+              <div className="k">Where it’s heading</div>
+              <div className="arc-notes">
+                {(() => {
+                  const prog = (a.arcProgress || "")
+                    .split(/\n+/)
+                    .map((l) => l.replace(/^[\s•\-–*\d.]+/, "").trim())
+                    .filter(Boolean);
+                  return book.arc.map((h, i) => (
+                    <div className="arc-note" key={h.id}>
+                      <div className="arc-note-goal">
+                        <span className="arc-note-pace" data-pace={h.pace}>
+                          {h.pace}
+                        </span>
+                        {h.text}
+                      </div>
+                      <div className="arc-note-prog">{prog[i] || "Not yet assessed."}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
         </aside>
         {isMobile && notesOpen && <div className="notes-scrim" onClick={() => setNotesOpen(false)} />}
       </div>
@@ -1826,6 +1875,14 @@ export default function BookStudio() {
           }}
           onClose={() => setChaptersOpen(false)}
           onSave={save}
+        />
+      )}
+      {arcOpen && (
+        <ArcDrawer
+          arc={book.arc || []}
+          analysis={book.analysis}
+          onSave={(a) => save({ arc: a })}
+          onClose={() => setArcOpen(false)}
         />
       )}
       {historyOpen && (

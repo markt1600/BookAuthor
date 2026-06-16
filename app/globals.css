@@ -1727,3 +1727,72 @@ body {
   color: var(--brass); opacity: 0.85; animation: notesPulse 1.4s ease-in-out infinite;
 }
 @keyframes notesPulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.9; } }
+
+/* ===== Heading goals (long-range steering) ===== */
+
+/* composer slim bar — auto-shows current headings, opens the editor */
+.arc-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
+  width: 100%; max-width: var(--measure); margin: 0 auto 10px;
+  padding: 6px 10px; border: 1px dashed rgba(120,98,60,0.4); border-radius: 8px;
+  background: rgba(192,145,63,0.05); cursor: pointer; text-align: left;
+  font-family: var(--data); transition: background 0.15s ease, border-color 0.15s ease;
+}
+.arc-bar:hover { background: rgba(192,145,63,0.11); border-color: rgba(192,145,63,0.6); }
+.arc-bar-k { font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); opacity: 0.85; }
+.arc-bar-chip {
+  font-size: 11.5px; line-height: 1.3; color: #2a2620;
+  max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 1px 8px; border-radius: 999px; background: rgba(120,98,60,0.13);
+  border-left: 3px solid var(--brass);
+}
+.arc-bar-chip[data-pace="soon"] { border-left-color: #c0563f; }
+.arc-bar-chip[data-pace="gradually"] { border-left-color: var(--brass); }
+.arc-bar-chip[data-pace="eventually"] { border-left-color: #8a8378; }
+.arc-bar-edit { font-size: 10px; letter-spacing: 0.06em; color: var(--brass); margin-left: auto; text-decoration: underline; }
+.arc-bar-add { font-size: 11.5px; color: rgba(80,66,44,0.85); letter-spacing: 0.02em; }
+.book-page[data-material="midnight"] .arc-bar-chip { color: #e6e3da; background: rgba(255,255,255,0.08); }
+.book-page[data-material="midnight"] .arc-bar-add { color: rgba(220,216,206,0.75); }
+
+/* drawer editor */
+.arc-help { font-size: 12.5px; line-height: 1.55; color: var(--on-desk); opacity: 0.78; margin: 4px 0 14px; }
+.arc-list { display: flex; flex-direction: column; gap: 12px; }
+.arc-empty { font-size: 13px; opacity: 0.6; font-style: italic; padding: 6px 0; }
+.arc-item {
+  border: 1px solid var(--desk-line); border-radius: 10px; padding: 10px 11px;
+  background: rgba(255,255,255,0.02);
+}
+.arc-text {
+  width: 100%; resize: vertical; min-height: 46px; border: 1px solid var(--desk-line);
+  border-radius: 7px; background: rgba(0,0,0,0.16); color: var(--on-desk);
+  font-family: inherit; font-size: 13.5px; line-height: 1.5; padding: 8px 9px;
+}
+.arc-text:focus { outline: none; border-color: var(--brass); }
+.arc-item-foot { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.arc-pace-label { font-family: var(--data); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brass); display: inline-flex; align-items: center; gap: 6px; }
+.arc-pace {
+  font-family: var(--data); font-size: 12px; color: var(--on-desk); background: rgba(0,0,0,0.2);
+  border: 1px solid var(--desk-line); border-radius: 6px; padding: 3px 6px;
+}
+.arc-pace-hint { font-size: 11px; opacity: 0.6; flex: 1; min-width: 120px; }
+.arc-remove { font-family: var(--data); font-size: 10.5px; letter-spacing: 0.05em; color: #c0796f; background: none; border: none; cursor: pointer; text-decoration: underline; }
+.arc-progress { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--on-desk); opacity: 0.85; }
+.arc-progress-k { font-family: var(--data); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brass); margin-right: 6px; }
+.arc-add {
+  margin-top: 14px; font-family: var(--data); font-size: 12px; letter-spacing: 0.04em;
+  color: var(--brass); background: none; border: 1px dashed rgba(192,145,63,0.45);
+  border-radius: 8px; padding: 8px 12px; cursor: pointer; width: 100%;
+}
+.arc-add:hover { background: rgba(192,145,63,0.08); }
+
+/* reader's-notes progress block */
+.arc-notes { display: flex; flex-direction: column; gap: 10px; }
+.arc-note { padding-left: 10px; border-left: 2px solid rgba(192,145,63,0.4); }
+.arc-note-goal { font-size: 12.5px; line-height: 1.45; color: var(--on-desk); }
+.arc-note-pace {
+  display: inline-block; font-family: var(--data); font-size: 8.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--brass); margin-right: 7px; vertical-align: middle;
+  padding: 1px 6px; border-radius: 999px; background: rgba(192,145,63,0.12);
+}
+.arc-note-pace[data-pace="soon"] { color: #d2715f; background: rgba(192,86,63,0.14); }
+.arc-note-prog { font-size: 11.5px; line-height: 1.45; opacity: 0.72; margin-top: 3px; }

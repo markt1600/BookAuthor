@@ -59,6 +59,7 @@ export async function PUT(request, { params }) {
           fullText: manuscriptText(merged),
           prior: null,
           guide: merged.mode === "guide",
+          arc: merged.arc,
           eroticaLean:
             merged.mode === "guide" &&
             merged.guide &&
@@ -81,6 +82,7 @@ export async function PUT(request, { params }) {
         critique: "",
         nextDirection: "",
         suggestions: "",
+        arcProgress: "",
         continuity: "",
         updatedAt: 0,
       };

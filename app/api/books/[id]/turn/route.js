@@ -65,6 +65,7 @@ export async function POST(request, { params }) {
           guide: book.guide,
           prompt: text,
           memory: priorAnalysis,
+          arc: book.arc,
           targetWords: (book.guide && book.guide.sectionWords) || 275,
           onDelta,
         })
@@ -86,6 +87,7 @@ export async function POST(request, { params }) {
             settings: book.settings,
             memory: priorAnalysis,
             targetWords: countWords(text),
+            arc: book.arc,
             onDelta,
           })
         );
