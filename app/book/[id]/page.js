@@ -78,6 +78,10 @@ export default function BookStudio() {
   const [moreOpen, setMoreOpen] = useState(false); // mobile: expand the secondary action row
   const [banner, setBanner] = useState("");
   const [doneSuggestions, setDoneSuggestions] = useState([]); // headings the AI thinks are achieved (awaiting one-tap confirm)
+  const [revising, setRevising] = useState(false); // fork-and-revise in progress
+  const [reviseText, setReviseText] = useState(""); // live rewritten manuscript
+  const [reviseErr, setReviseErr] = useState("");
+  const [reviseProgress, setReviseProgress] = useState(null); // {done,total} across chunks
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [arcOpen, setArcOpen] = useState(false);
@@ -119,6 +123,13 @@ export default function BookStudio() {
   const liveRef = useRef(null);
   const pendingJump = useRef(null);
   const seenDoneRef = useRef(new Set()); // heading ids already surfaced as "looks achieved"
+  const reviseScrollRef = useRef(null);
+
+  // Keep the revision view pinned to the newest text as it streams in.
+  useEffect(() => {
+    const el = reviseScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [reviseText]);
 
   // Surface newly-suggested-done headings as a one-tap confirm (never auto-removed).
   useEffect(() => {
@@ -749,6 +760,89 @@ export default function BookStudio() {
     setDoneSuggestions((prev) => prev.filter((p) => p.id !== id));
     seenDoneRef.current.add(id);
   };
+  // Fork the (ended) book and rewrite it to address the critique, aiming higher.
+  // Long books are rewritten in chunks (one streamed request each). Honest: the
+  // new book is re-scored normally — nothing here fakes the number.
+  const reviseBook = useCallback(async () => {
+    if (revising) return;
+    setRevising(true);
+    setReviseText("");
+    setReviseErr("");
+    setReviseProgress(null);
+
+    const streamStep = async (forkId) => {
+      const res = await fetch(`/api/books/${forkId}/revise/step`, { method: "POST" });
+      if (!res.ok || !res.body) {
+        let msg = "The revision step failed. Try again.";
+        try {
+          const j = await res.json();
+          if (j && j.error) msg = j.error;
+        } catch {}
+        setReviseErr(msg);
+        return { ok: false };
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let acc = "";
+      let complete = false;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let ev;
+          try {
+            ev = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (ev.t === "delta") {
+            acc += ev.d;
+            setReviseText(acc);
+          } else if (ev.t === "error") {
+            setReviseErr(ev.error || "The revision failed. Try again.");
+            return { ok: false };
+          } else if (ev.t === "done") {
+            complete = !!ev.complete;
+          }
+        }
+      }
+      return { ok: true, complete };
+    };
+
+    try {
+      const startRes = await fetch(`/api/books/${id}/revise/start`, { method: "POST" });
+      const startData = await startRes.json().catch(() => ({}));
+      if (!startRes.ok || !startData.forkId) {
+        setReviseErr(startData.error || "Couldn't start the revision. Try again.");
+        setRevising(false);
+        return;
+      }
+      const forkId = startData.forkId;
+      const total = startData.total || 1;
+      for (let i = 0; i < total; i++) {
+        setReviseProgress({ done: i, total });
+        setReviseText("");
+        const r = await streamStep(forkId);
+        if (!r.ok) {
+          setRevising(false);
+          return;
+        }
+        if (r.complete) break;
+      }
+      window.location.assign(`/book/${forkId}`); // open the finished revision
+    } catch {
+      setReviseErr("Network error during the revision. Try again.");
+      setRevising(false);
+    }
+  }, [id, revising]);
+
   // Load a suggested next-segment direction into the composer and go there.
   const useSuggestion = (text) => {
     setDraft(text);
@@ -1823,6 +1917,18 @@ export default function BookStudio() {
                 </ul>
               </div>
             )}
+            {ended && (
+              <div className="revise-cta">
+                <button className="btn btn-primary revise-btn" onClick={reviseBook} disabled={revising}>
+                  {revising ? "Revising…" : "↑ Revise toward 90 — fork a stronger draft"}
+                </button>
+                <div className="revise-hint">
+                  Creates a new book: the AI rewrites this one to address the critique above, then re-scores it
+                  honestly. Your original is kept untouched.
+                </div>
+                {reviseErr && <div className="pw-err">{reviseErr}</div>}
+              </div>
+            )}
             {!ended && a.suggestions && (
               <div className="suggestions">
                 <div className="critique-h">
@@ -1964,6 +2070,42 @@ export default function BookStudio() {
             await save({ ended });
           }}
         />
+      )}
+      {revising && (
+        <div className="revise-scrim">
+          <div className="revise-modal">
+            <div className="revise-modal-head">
+              <span className="live-caret" aria-hidden="true" /> Revising toward a stronger draft…
+              {reviseProgress && reviseProgress.total > 1 && (
+                <span className="revise-prog">
+                  part {reviseProgress.done + 1} of {reviseProgress.total}
+                </span>
+              )}
+            </div>
+            <div className="revise-modal-body" ref={reviseScrollRef}>
+              {reviseText ? (
+                reviseText.split(/\n+/).map((line, i) => {
+                  const m = line.match(/^[ \t]*##[ \t]+chapter\b[ \t]*[:.\-]?[ \t]*(.*)$/i);
+                  if (m) {
+                    return (
+                      <div className="revise-chap" key={i}>
+                        Chapter{m[1] ? ` · ${m[1]}` : ""}
+                      </div>
+                    );
+                  }
+                  return line.trim() ? <p key={i}>{line}</p> : null;
+                })
+              ) : (
+                <p className="live-waiting">Reading the manuscript and planning the revision…</p>
+              )}
+            </div>
+            <div className="revise-modal-foot">
+              {reviseProgress && reviseProgress.total > 1
+                ? "Longer books are rewritten in parts — this can take several minutes. The new book opens automatically when it’s done; your original is untouched."
+                : "This can take a minute. The new book opens automatically when it’s ready — your original is untouched."}
+            </div>
+          </div>
+        </div>
       )}
       {chaptersOpen && (
         <ChaptersDrawer
