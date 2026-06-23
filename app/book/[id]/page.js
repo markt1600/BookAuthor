@@ -462,13 +462,13 @@ export default function BookStudio() {
   const usersMove = book ? isUsersMove(book) : true;
   const guideMode = book ? book.mode === "guide" : false;
   const writingIndex = pages.length;
-  const pageCount = pages.length + (usersMove && !book.ended ? 1 : 0);
+  const pageCount = pages.length + (usersMove && !book?.ended ? 1 : 0);
   // Whether the composer is showing. Driven by an explicit `composing` intent
   // (not `currentPage >= writingIndex`): on mobile the composer's index shifts
   // when the keyboard opens and re-paginates, so a fixed currentPage would stop
   // pointing at it and snap back to a reading page. A brand-new book with no
   // sections always opens on the composer.
-  const onWritingPage = usersMove && !book.ended && (pages.length === 0 || composing);
+  const onWritingPage = usersMove && !book?.ended && (pages.length === 0 || composing);
   // On mobile, the composer scrolls (textarea + commit button in flow) instead
   // of pinning the button in the dock, where the keyboard would crowd it.
   const onComposerMobile = isMobile && onWritingPage;
