@@ -116,6 +116,7 @@ export default function PrintView() {
     .pv-body { font-size: ${s.fontSize}px; line-height: 1.6; }
     .pv-body p { margin: 0 0 0.9em; orphans: 2; widows: 2; white-space: pre-wrap; }
     .pv-body .print-quote { margin: 0 0 0.9em; padding-left: 1.6em; white-space: pre-wrap; border-left: 2px solid rgba(0,0,0,0.3); }
+    .print-the-end { text-align: center; margin: 2.4em 0 1.2em; font-variant: small-caps; letter-spacing: 0.18em; }
     .pv-turn { margin-bottom: 6px; }
     .pv-marker { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 26px 0 18px; break-after: avoid; }
     .pv-marker[data-hide="1"] { display: none; }
@@ -185,6 +186,8 @@ export default function PrintView() {
               )}
             </div>
           ))}
+
+          {book.ended && <div className="print-the-end">The End</div>}
 
           <div className="pv-colophon">
             Woven on Loom · {book.author} &amp; an AI author · {book.turns.length} turns

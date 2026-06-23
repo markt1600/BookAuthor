@@ -138,6 +138,11 @@ export default function BookStudio() {
     const t = setTimeout(() => setDoneSuggestions([]), 14000);
     return () => clearTimeout(t);
   }, [doneSuggestions]);
+
+  // An ended book has no composer — leave it if the book was just finished.
+  useEffect(() => {
+    if (book && book.ended && composing) setComposing(false);
+  }, [book, composing]);
   const prefilledRef = useRef(null); // guide mode: the last-turn id we've pre-filled a suggestion for
 
   // ---- load ----
@@ -328,6 +333,13 @@ export default function BookStudio() {
         }
       }
     }
+    if (book.ended && book.turns.length) {
+      // "The End" sits after the last turn, on a fresh page if it won't fit.
+      const endH = Math.round(s.fontSize * 1.6) + paraGap * 4;
+      if (base + endH > contentH && runs.length > 0) flush();
+      runs.push({ type: "end" });
+      base += endH;
+    }
     flush();
 
     setPages(out);
@@ -450,13 +462,13 @@ export default function BookStudio() {
   const usersMove = book ? isUsersMove(book) : true;
   const guideMode = book ? book.mode === "guide" : false;
   const writingIndex = pages.length;
-  const pageCount = pages.length + (usersMove ? 1 : 0);
+  const pageCount = pages.length + (usersMove && !book.ended ? 1 : 0);
   // Whether the composer is showing. Driven by an explicit `composing` intent
   // (not `currentPage >= writingIndex`): on mobile the composer's index shifts
   // when the keyboard opens and re-paginates, so a fixed currentPage would stop
   // pointing at it and snap back to a reading page. A brand-new book with no
   // sections always opens on the composer.
-  const onWritingPage = usersMove && (pages.length === 0 || composing);
+  const onWritingPage = usersMove && !book.ended && (pages.length === 0 || composing);
   // On mobile, the composer scrolls (textarea + commit button in flow) instead
   // of pinning the button in the dock, where the keyboard would crowd it.
   const onComposerMobile = isMobile && onWritingPage;
@@ -1202,6 +1214,7 @@ export default function BookStudio() {
     );
 
   const a = book.analysis || {};
+  const ended = Boolean(book.ended);
   const perWord = 26;
   const flipClass = nav === "next" ? "flip-next" : nav === "prev" ? "flip-prev" : "";
   const turnLabel = guideMode ? "Section" : "Turn";
@@ -1245,7 +1258,7 @@ export default function BookStudio() {
               {generating && (
                 <span className="ledger-band is-draft" style={{ flexGrow: Math.max(1, draftWords) }} />
               )}
-              {!generating && usersMove && (
+              {!generating && usersMove && !book.ended && (
                 <span
                   className="ledger-band is-draft"
                   data-current={onWritingPage}
@@ -1537,6 +1550,13 @@ export default function BookStudio() {
                               </div>
                             );
                           }
+                          if (run.type === "end") {
+                            return (
+                              <div className="the-end" key={ri}>
+                                The End
+                              </div>
+                            );
+                          }
                           const isAI = run.author === "claude" && !guideMode && !run.merged;
                           const animating = run.turnId === animTurn;
                           let wcount = 0;
@@ -1697,7 +1717,7 @@ export default function BookStudio() {
                 <button className="btn btn-primary" onClick={submitTurn} disabled={generating || !draft.trim()}>
                   {generating ? "Weaving…" : guideMode ? "Write this section →" : "Hand to the AI author →"}
                 </button>
-              ) : usersMove ? (
+              ) : usersMove && !book.ended ? (
                 <>
                   {canRegenerate && (
                     <button
@@ -1766,11 +1786,11 @@ export default function BookStudio() {
             </div>
           </div>
           <div className="note-card">
-            <div className="k">Synopsis so far</div>
+            <div className="k">{ended ? "Synopsis" : "Synopsis so far"}</div>
             <div className={`v${a.synopsis ? "" : " muted"}`}>{a.synopsis || "Nothing written yet."}</div>
           </div>
           <div className="note-card">
-            <div className="k">{guideMode ? "Story & direction" : "Craft"}</div>
+            <div className="k">{ended ? "Final assessment" : guideMode ? "Story & direction" : "Craft"}</div>
             {a.qualityScore != null ? (
               <div className="quality">
                 <div className="score">
@@ -1803,7 +1823,7 @@ export default function BookStudio() {
                 </ul>
               </div>
             )}
-            {a.suggestions && (
+            {!ended && a.suggestions && (
               <div className="suggestions">
                 <div className="critique-h">
                   {guideMode ? "Ways the next section could answer this" : "Ways to write into this next"}
@@ -1939,6 +1959,9 @@ export default function BookStudio() {
             } catch {
               return { ok: false, error: "Network error — try again." };
             }
+          }}
+          onSetEnded={async (ended) => {
+            await save({ ended });
           }}
         />
       )}

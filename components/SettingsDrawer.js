@@ -6,7 +6,7 @@ import GuideControls from "@/components/GuideControls";
 import BookPreview from "@/components/BookPreview";
 import { DEFAULT_GUIDE, applyStyleProfile } from "@/lib/book";
 
-export default function SettingsDrawer({ book, onClose, onSave, onSetPassword }) {
+export default function SettingsDrawer({ book, onClose, onSave, onSetPassword, onSetEnded }) {
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
   const [settings, setSettings] = useState(book.settings);
@@ -16,8 +16,11 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
   const [pwBusy, setPwBusy] = useState(false);
   const [pwMsg, setPwMsg] = useState("");
   const [pwErr, setPwErr] = useState("");
+  const [endBusy, setEndBusy] = useState(false);
   const guideMode = book.mode === "guide";
   const isProtected = Boolean(book.protected);
+  const isEnded = Boolean(book.ended);
+  const hasText = (book.turns || []).length > 0;
 
   useEffect(() => {
     function onKey(e) {
@@ -54,6 +57,13 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
     }
     setPw("");
     setPwMsg(r.protected ? "Password set — this book is now locked." : "Protection removed.");
+  }
+
+  async function toggleEnded(value) {
+    if (!onSetEnded || endBusy) return;
+    setEndBusy(true);
+    await onSetEnded(value);
+    setEndBusy(false);
   }
 
   return (
@@ -120,6 +130,39 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
             </span>
           </label>
         </div>
+
+        {onSetEnded && hasText && (
+          <div className="setup-row" style={{ marginTop: 22 }}>
+            <div className="setup-label">The end</div>
+            <div className="pw-section">
+              <div className="pw-status">
+                {isEnded
+                  ? "✓ This book is marked as ended — “The End” is shown and the notes assess the finished work."
+                  : "Mark the book as finished when you’re done. This appends “The End” and re-reads the whole manuscript for a final assessment."}
+              </div>
+              <div className="pw-actions">
+                <button
+                  className={isEnded ? "btn btn-ghost" : "btn btn-primary"}
+                  onClick={() => toggleEnded(!isEnded)}
+                  disabled={endBusy}
+                >
+                  {endBusy
+                    ? isEnded
+                      ? "Reopening…"
+                      : "Finishing…"
+                    : isEnded
+                    ? "Reopen the book"
+                    : "Mark as ended"}
+                </button>
+              </div>
+              <div className="pw-hint">
+                {isEnded
+                  ? "Reopening restores the forward-looking notes and removes “The End”."
+                  : "You can undo this any time — nothing is deleted."}
+              </div>
+            </div>
+          </div>
+        )}
 
         {onSetPassword && (
           <div className="setup-row" style={{ marginTop: 22 }}>

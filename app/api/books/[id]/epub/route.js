@@ -47,7 +47,8 @@ h1.book-title{font-size:1.9em;text-align:center;margin:1.2em 0 0.2em;}
 h2.ch-title{text-align:center;font-size:1.3em;margin:0 0 1.4em;font-weight:600;}
 p{margin:0 0 0.85em;text-align:justify;text-indent:1.3em;}
 p.first{text-indent:0;}
-blockquote.quote{margin:0 0 0.85em;padding-left:1.5em;border-left:2px solid #aaa;white-space:pre-wrap;font-style:normal;}`;
+blockquote.quote{margin:0 0 0.85em;padding-left:1.5em;border-left:2px solid #aaa;white-space:pre-wrap;font-style:normal;}
+p.the-end{text-align:center;text-indent:0;margin:2.4em 0 0;font-variant:small-caps;letter-spacing:0.18em;}`;
 
 export async function GET(request, { params }) {
   const { id } = await params;
@@ -74,7 +75,7 @@ export async function GET(request, { params }) {
     `<h1 class="book-title">${esc(title)}</h1><div class="byline">${esc(author)}</div>`
   );
 
-  const chapterFiles = chapters.map((c) => {
+  const chapterFiles = chapters.map((c, ci) => {
     const heading = `<div class="ch-eyebrow">Chapter ${c.num}</div>${
       c.title ? `<h2 class="ch-title">${esc(c.title)}</h2>` : '<h2 class="ch-title">&#160;</h2>'
     }`;
@@ -87,7 +88,8 @@ export async function GET(request, { params }) {
             ? `<blockquote class="quote">${esc(seg.text)}</blockquote>`
             : `<p${i === 0 ? ' class="first"' : ""}>${esc(seg.text)}</p>`
         )
-        .join("\n");
+        .join("\n") +
+      (book.ended && ci === chapters.length - 1 ? '\n<p class="the-end">The End</p>' : "");
     return { name: `chapter-${c.num}.xhtml`, label: c.title || `Chapter ${c.num}`, num: c.num, xhtml: page(c.title || `Chapter ${c.num}`, body) };
   });
 

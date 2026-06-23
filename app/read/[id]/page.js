@@ -92,6 +92,8 @@ export default async function ReadPage({ params }) {
           )
         )}
 
+        {book.ended && <div className="reader-the-end">The End</div>}
+
         <footer className="reader-foot">
           <a className="reader-home" href="/">
             Woven on Loom

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { applyPatch, truncateAt, mergeFullText, manuscriptText, publicBook, sectionCount } from "@/lib/book";
+import { applyPatch, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, sectionCount } from "@/lib/book";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
 import { resolveDoneSuggestions } from "@/lib/generate";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// The full-text edit and the one-time "mark ended" final evaluation both run an
+// analysis over the whole manuscript, which can be slow on a long book.
+export const maxDuration = 300;
 
 export async function GET(request, { params }) {
   const { id } = await params;
@@ -108,6 +110,29 @@ export async function PUT(request, { params }) {
   if (Number.isInteger(body.truncateFrom)) {
     await saveSnapshot(book, "Before trimming the manuscript");
     next = truncateAt(next, body.truncateFrom);
+  }
+
+  // Marking (or un-marking) the book as ended re-reads the notes. Marking ended
+  // runs a one-time evaluation of the ENTIRE manuscript (regardless of the
+  // full-context setting); un-marking restores normal forward-looking notes.
+  if (typeof body.ended === "boolean" && body.ended !== Boolean(book.ended) && next.turns.length) {
+    try {
+      const analysis = await analyzeStory({
+        title: next.title,
+        fullText: body.ended ? fullManuscript(next) : manuscriptText(next),
+        prior: body.ended ? null : next.analysis && next.analysis.updatedAt ? next.analysis : null,
+        guide: next.mode === "guide",
+        arc: next.arc,
+        sections: sectionCount(next),
+        final: body.ended,
+      });
+      if (analysis) {
+        next.analysis = analysis;
+        if (!body.ended) resolveDoneSuggestions(next, analysis);
+      }
+    } catch {
+      // keep the prior analysis if the evaluation fails (e.g. no API key)
+    }
   }
 
   await saveBook(next);
