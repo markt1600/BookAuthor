@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { applyPatch, truncateAt, mergeFullText, manuscriptText, publicBook } from "@/lib/book";
+import { applyPatch, truncateAt, mergeFullText, manuscriptText, publicBook, sectionCount } from "@/lib/book";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
+import { resolveDoneSuggestions } from "@/lib/generate";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -60,6 +61,7 @@ export async function PUT(request, { params }) {
           prior: null,
           guide: merged.mode === "guide",
           arc: merged.arc,
+          sections: sectionCount(merged),
           eroticaLean:
             merged.mode === "guide" &&
             merged.guide &&
@@ -67,7 +69,10 @@ export async function PUT(request, { params }) {
             merged.guide.erotica &&
             merged.guide.sexual === 3,
         });
-        if (analysis) merged.analysis = analysis;
+        if (analysis) {
+          merged.analysis = analysis;
+          resolveDoneSuggestions(merged, analysis);
+        }
       } catch {
         // keep the prior analysis if the re-read fails (e.g. no API key)
       }
@@ -83,6 +88,7 @@ export async function PUT(request, { params }) {
         nextDirection: "",
         suggestions: "",
         arcProgress: "",
+        arcDoneIds: [],
         continuity: "",
         updatedAt: 0,
       };

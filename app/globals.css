@@ -1796,3 +1796,33 @@ body {
 }
 .arc-note-pace[data-pace="soon"] { color: #d2715f; background: rgba(192,86,63,0.14); }
 .arc-note-prog { font-size: 11.5px; line-height: 1.45; opacity: 0.72; margin-top: 3px; }
+
+.arc-elapsed { margin-top: 6px; font-family: var(--data); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brass); opacity: 0.7; }
+
+/* heading "looks achieved" prompt — one-tap confirm, never auto-removes */
+.arc-toast {
+  margin: 0 auto 10px; max-width: var(--measure);
+  display: flex; flex-direction: column; gap: 6px;
+  background: rgba(76,150,98,0.1); border: 1px solid rgba(76,150,98,0.32);
+  border-radius: 8px; padding: 8px 12px; animation: arcToastIn 0.3s ease;
+}
+.arc-toast-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.arc-toast-text { font-family: var(--data); font-size: 11.5px; line-height: 1.5; color: #2f6b46; flex: 1; min-width: 160px; }
+.arc-toast-actions { display: inline-flex; gap: 6px; }
+.arc-toast-yes, .arc-toast-no {
+  font-family: var(--data); font-size: 10.5px; letter-spacing: 0.03em; cursor: pointer;
+  border-radius: 6px; padding: 4px 10px; border: 1px solid transparent;
+}
+.arc-toast-yes { color: #fff; background: #4c9662; }
+.arc-toast-yes:hover { background: #3f8454; }
+.arc-toast-no { color: #5b6b5f; background: transparent; border-color: rgba(76,150,98,0.4); }
+.arc-toast-no:hover { background: rgba(76,150,98,0.1); }
+@keyframes arcToastIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* notes: one-tap "mark done" when a heading looks achieved */
+.arc-note-done {
+  margin-top: 6px; font-family: var(--data); font-size: 10px; letter-spacing: 0.04em; cursor: pointer;
+  color: #4c9662; background: rgba(76,150,98,0.1); border: 1px solid rgba(76,150,98,0.35);
+  border-radius: 6px; padding: 4px 9px;
+}
+.arc-note-done:hover { background: rgba(76,150,98,0.18); }

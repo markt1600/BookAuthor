@@ -77,6 +77,7 @@ export default function BookStudio() {
   const [shareOpen, setShareOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false); // mobile: expand the secondary action row
   const [banner, setBanner] = useState("");
+  const [doneSuggestions, setDoneSuggestions] = useState([]); // headings the AI thinks are achieved (awaiting one-tap confirm)
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [arcOpen, setArcOpen] = useState(false);
@@ -117,6 +118,26 @@ export default function BookStudio() {
   const editScrimRef = useRef(null);
   const liveRef = useRef(null);
   const pendingJump = useRef(null);
+  const seenDoneRef = useRef(new Set()); // heading ids already surfaced as "looks achieved"
+
+  // Surface newly-suggested-done headings as a one-tap confirm (never auto-removed).
+  useEffect(() => {
+    const ids = (book && book.analysis && book.analysis.arcDoneIds) || [];
+    const arc = (book && book.arc) || [];
+    if (!ids.length || !arc.length) return;
+    const fresh = ids.filter((id) => !seenDoneRef.current.has(id) && arc.some((h) => h.id === id));
+    if (!fresh.length) return;
+    fresh.forEach((id) => seenDoneRef.current.add(id));
+    const items = arc.filter((h) => fresh.includes(h.id)).map((h) => ({ id: h.id, text: h.text }));
+    setDoneSuggestions((prev) => [...prev.filter((p) => arc.some((h) => h.id === p.id)), ...items]);
+  }, [book]);
+
+  // The suggestion prompt fades on its own; the same control also lives in the notes.
+  useEffect(() => {
+    if (!doneSuggestions.length) return;
+    const t = setTimeout(() => setDoneSuggestions([]), 14000);
+    return () => clearTimeout(t);
+  }, [doneSuggestions]);
   const prefilledRef = useRef(null); // guide mode: the last-turn id we've pre-filled a suggestion for
 
   // ---- load ----
@@ -684,6 +705,17 @@ export default function BookStudio() {
       prefilledRef.current = lastTurnId;
     }
     turnTo(writingIndex);
+  };
+  // One-tap confirm: retire a heading the author agrees is achieved.
+  const markHeadingDone = (id) => {
+    save({ arc: (book.arc || []).filter((h) => h.id !== id) });
+    setDoneSuggestions((prev) => prev.filter((p) => p.id !== id));
+    seenDoneRef.current.add(id);
+  };
+  // Keep the heading; just stop suggesting it.
+  const dismissSuggestion = (id) => {
+    setDoneSuggestions((prev) => prev.filter((p) => p.id !== id));
+    seenDoneRef.current.add(id);
   };
   // Load a suggested next-segment direction into the composer and go there.
   const useSuggestion = (text) => {
@@ -1293,6 +1325,23 @@ export default function BookStudio() {
         <div className="stage">
           <div className="stage-col">
             {banner && <div className="banner">{banner}</div>}
+            {doneSuggestions.length > 0 && (
+              <div className="arc-toast" role="status">
+                {doneSuggestions.map((s) => (
+                  <div className="arc-toast-row" key={s.id}>
+                    <span className="arc-toast-text">✓ “{s.text}” looks achieved.</span>
+                    <span className="arc-toast-actions">
+                      <button className="arc-toast-yes" onClick={() => markHeadingDone(s.id)}>
+                        Mark done
+                      </button>
+                      <button className="arc-toast-no" onClick={() => dismissSuggestion(s.id)}>
+                        Keep
+                      </button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {guideMode && !onWritingPage && (currentTurn?.prompt || isMobile) && (
               <div
@@ -1779,6 +1828,11 @@ export default function BookStudio() {
                         {h.text}
                       </div>
                       <div className="arc-note-prog">{prog[i] || "Not yet assessed."}</div>
+                      {(a.arcDoneIds || []).includes(h.id) && (
+                        <button className="arc-note-done" onClick={() => markHeadingDone(h.id)}>
+                          ✓ Looks achieved — mark done
+                        </button>
+                      )}
                     </div>
                   ));
                 })()}
@@ -1881,6 +1935,7 @@ export default function BookStudio() {
         <ArcDrawer
           arc={book.arc || []}
           analysis={book.analysis}
+          sections={(book.turns || []).filter((t) => t.author === "claude").length}
           onSave={(a) => save({ arc: a })}
           onClose={() => setArcOpen(false)}
         />

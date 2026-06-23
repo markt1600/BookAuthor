@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook, saveSnapshot } from "@/lib/store";
-import { makeTurn, countWords, publicBook } from "@/lib/book";
+import { makeTurn, countWords, publicBook, sectionCount } from "@/lib/book";
 import { continueStory, guideStory } from "@/lib/claude";
 import { withContext, refreshAnalysis, ndjsonResponse } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
@@ -52,6 +52,7 @@ export async function POST(request, { params }) {
           prompt: directionPrompt,
           memory: priorAnalysis,
           arc: book.arc,
+          sections: sectionCount(book),
           targetWords: (book.guide && book.guide.sectionWords) || 275,
           onDelta,
         })
@@ -80,6 +81,7 @@ export async function POST(request, { params }) {
         memory: priorAnalysis,
         targetWords: target,
         arc: book.arc,
+          sections: sectionCount(book),
         onDelta,
       })
     );

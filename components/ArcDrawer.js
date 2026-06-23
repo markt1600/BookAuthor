@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 
 const PACES = [
-  ["soon", "Soon", "actively steer toward this now"],
-  ["gradually", "Gradually", "gentle, natural progress — develop, don't resolve"],
-  ["eventually", "Eventually", "a distant horizon — only the faintest drift"],
+  ["soon", "Soon (~2–3 sections)", "land it within about 2–3 sections"],
+  ["gradually", "Gradually (~6–8 sections)", "gentle progress, landing over ~6–8 sections"],
+  ["eventually", "Eventually (~12+ sections)", "a distant horizon, a dozen-plus sections out"],
 ];
 const MAX = 3;
 const newId = () => `h_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
-export default function ArcDrawer({ arc, analysis, onSave, onClose }) {
+export default function ArcDrawer({ arc, analysis, sections = 0, onSave, onClose }) {
   const [items, setItems] = useState(() => (Array.isArray(arc) ? arc : []));
 
   useEffect(() => {
@@ -51,8 +51,9 @@ export default function ArcDrawer({ arc, analysis, onSave, onClose }) {
         </div>
 
         <p className="arc-help">
-          Up to three long-range headings. The AI works them in gently across many sections — at the pace you
-          choose — instead of forcing them into the next one. Reader’s notes track progress toward each.
+          Up to three long-range headings — where the story is ultimately going, not what happens next. Unlike a
+          section’s direction (which the AI fulfills now), a heading is paced in over many sections at the horizon you
+          choose. Reader’s notes track progress, and the AI is told when one is coming due.
         </p>
 
         <div className="arc-list">
@@ -86,6 +87,12 @@ export default function ArcDrawer({ arc, analysis, onSave, onClose }) {
                   Remove
                 </button>
               </div>
+              {it.text.trim() && Number.isFinite(it.bornTurns) && (
+                <div className="arc-elapsed">
+                  running {Math.max(0, sections - it.bornTurns)} section
+                  {Math.max(0, sections - it.bornTurns) === 1 ? "" : "s"}
+                </div>
+              )}
               {it.text.trim() && progress[i] && (
                 <div className="arc-progress">
                   <span className="arc-progress-k">Progress</span> {progress[i]}
