@@ -32,6 +32,10 @@ export default function GuideControls({ guide, onChange, allowErotica = false })
       <div className="setup-row">
         <div className="setup-label">Writing style</div>
         <Chips field="style" value={guide.style} onChange={onChange} />
+        <div className="setup-hint">
+          Hemingway, Murakami &amp; Burdett also preset point of view, tense, and maturity to match the author —
+          adjust anything below.
+        </div>
       </div>
 
       <div className="setup-row">

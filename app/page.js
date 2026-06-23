@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DEFAULT_SETTINGS, DEFAULT_GUIDE } from "@/lib/book";
+import { DEFAULT_SETTINGS, DEFAULT_GUIDE, applyStyleProfile } from "@/lib/book";
 import DesignControls from "@/components/DesignControls";
 import GuideControls from "@/components/GuideControls";
 import BookPreview from "@/components/BookPreview";
@@ -27,7 +27,8 @@ export default function Home() {
   }, []);
 
   const changeSetting = (field, value) => setSettings((s) => ({ ...s, [field]: value }));
-  const changeGuide = (field, value) => setGuide((g) => ({ ...g, [field]: value }));
+  const changeGuide = (field, value) =>
+    setGuide((g) => (field === "style" ? applyStyleProfile(g, value) : { ...g, [field]: value }));
 
   async function start() {
     setCreating(true);

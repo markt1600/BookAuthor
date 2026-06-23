@@ -1826,3 +1826,5 @@ body {
   border-radius: 6px; padding: 4px 9px;
 }
 .arc-note-done:hover { background: rgba(76,150,98,0.18); }
+
+.setup-hint { margin-top: 7px; font-size: 11.5px; line-height: 1.5; color: var(--on-desk); opacity: 0.6; }

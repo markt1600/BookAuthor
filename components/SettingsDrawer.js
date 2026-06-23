@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import DesignControls from "@/components/DesignControls";
 import GuideControls from "@/components/GuideControls";
 import BookPreview from "@/components/BookPreview";
-import { DEFAULT_GUIDE } from "@/lib/book";
+import { DEFAULT_GUIDE, applyStyleProfile } from "@/lib/book";
 
 export default function SettingsDrawer({ book, onClose, onSave, onSetPassword }) {
   const [title, setTitle] = useState(book.title);
@@ -31,7 +31,7 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
     setSettings((s) => ({ ...s, [field]: value }));
   }
   function changeGuide(field, value) {
-    setGuide((g) => ({ ...g, [field]: value }));
+    setGuide((g) => (field === "style" ? applyStyleProfile(g, value) : { ...g, [field]: value }));
   }
 
   async function save() {
