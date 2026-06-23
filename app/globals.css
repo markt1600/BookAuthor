@@ -1909,3 +1909,17 @@ body {
   font-family: var(--data); letter-spacing: 0.02em;
 }
 .revise-prog { margin-left: auto; font-size: 10.5px; letter-spacing: 0.04em; opacity: 0.8; }
+
+/* live revision diff: existing text black, removed struck-through, new in blue */
+.revise-diff { white-space: pre-wrap; }
+.d-eq { color: #1c1b18; }
+.d-del { color: #b3402f; text-decoration: line-through; text-decoration-thickness: 1px; opacity: 0.72; }
+.d-ins { color: #1d4ed8; }
+.revise-toggle {
+  margin-left: 12px; font-family: var(--data); font-size: 10px; letter-spacing: 0.05em;
+  color: var(--brass); background: rgba(192,145,63,0.1); border: 1px solid rgba(192,145,63,0.4);
+  border-radius: 6px; padding: 3px 9px; cursor: pointer;
+}
+.revise-toggle:hover { background: rgba(192,145,63,0.18); }
+.revise-modal-foot .d-del { color: #b3402f; }
+.revise-modal-foot .d-ins { color: #1d4ed8; text-decoration: none; }

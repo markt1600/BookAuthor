@@ -7,6 +7,7 @@ import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
 import HistoryDrawer from "@/components/HistoryDrawer";
 import ArcDrawer from "@/components/ArcDrawer";
+import { diffWords } from "diff";
 import ShareDrawer from "@/components/ShareDrawer";
 
 /* physical page geometry (px @96dpi) — real trim sizes */
@@ -82,6 +83,9 @@ export default function BookStudio() {
   const [reviseText, setReviseText] = useState(""); // live rewritten manuscript
   const [reviseErr, setReviseErr] = useState("");
   const [reviseProgress, setReviseProgress] = useState(null); // {done,total} across chunks
+  const [reviseSource, setReviseSource] = useState(""); // original prose of the current chunk (for diff)
+  const [reviseDiff, setReviseDiff] = useState(true); // show changes (diff) vs clean view
+  const [reviseDiffSnap, setReviseDiffSnap] = useState(""); // throttled new-text snapshot for diffing
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [arcOpen, setArcOpen] = useState(false);
@@ -124,12 +128,47 @@ export default function BookStudio() {
   const pendingJump = useRef(null);
   const seenDoneRef = useRef(new Set()); // heading ids already surfaced as "looks achieved"
   const reviseScrollRef = useRef(null);
+  const lastDiffRef = useRef(0);
 
   // Keep the revision view pinned to the newest text as it streams in.
   useEffect(() => {
     const el = reviseScrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [reviseText]);
+
+  // Throttle the new-text snapshot used for the live diff (~5x/sec) so diffing
+  // doesn't run on every streamed token.
+  useEffect(() => {
+    if (!revising || !reviseDiff) return;
+    const wait = Math.max(0, 200 - (Date.now() - lastDiffRef.current));
+    const t = setTimeout(() => {
+      lastDiffRef.current = Date.now();
+      setReviseDiffSnap(reviseText);
+    }, wait);
+    return () => clearTimeout(t);
+  }, [reviseText, revising, reviseDiff]);
+
+  // Word-level diff of the original chunk vs the rewritten-so-far text.
+  const reviseDiffHtml = useMemo(() => {
+    if (!reviseDiff || !reviseSource) return null;
+    const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const stripMarkers = (t) =>
+      String(t || "")
+        .replace(/^[ \t]*##[ \t]+chapter\b.*$/gim, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+    try {
+      const parts = diffWords(reviseSource, stripMarkers(reviseDiffSnap));
+      return parts
+        .map((p) => {
+          const cls = p.added ? "d-ins" : p.removed ? "d-del" : "d-eq";
+          return `<span class="${cls}">${esc(p.value)}</span>`;
+        })
+        .join("");
+    } catch {
+      return null;
+    }
+  }, [reviseDiff, reviseSource, reviseDiffSnap]);
 
   // Surface newly-suggested-done headings as a one-tap confirm (never auto-removed).
   useEffect(() => {
@@ -805,6 +844,9 @@ export default function BookStudio() {
           if (ev.t === "delta") {
             acc += ev.d;
             setReviseText(acc);
+          } else if (ev.t === "source") {
+            setReviseSource(ev.text || "");
+            setReviseDiffSnap("");
           } else if (ev.t === "error") {
             setReviseErr(ev.error || "The revision failed. Try again.");
             return { ok: false };
@@ -829,6 +871,8 @@ export default function BookStudio() {
       for (let i = 0; i < total; i++) {
         setReviseProgress({ done: i, total });
         setReviseText("");
+        setReviseSource("");
+        setReviseDiffSnap("");
         const r = await streamStep(forkId);
         if (!r.ok) {
           setRevising(false);
@@ -2066,9 +2110,6 @@ export default function BookStudio() {
               return { ok: false, error: "Network error — try again." };
             }
           }}
-          onSetEnded={async (ended) => {
-            await save({ ended });
-          }}
         />
       )}
       {revising && (
@@ -2081,9 +2122,18 @@ export default function BookStudio() {
                   part {reviseProgress.done + 1} of {reviseProgress.total}
                 </span>
               )}
+              <button
+                className="revise-toggle"
+                onClick={() => setReviseDiff((v) => !v)}
+                title={reviseDiff ? "Show the clean new text" : "Show what changed"}
+              >
+                {reviseDiff ? "Clean view" : "Show changes"}
+              </button>
             </div>
             <div className="revise-modal-body" ref={reviseScrollRef}>
-              {reviseText ? (
+              {reviseDiff && reviseDiffHtml !== null ? (
+                <div className="revise-diff" dangerouslySetInnerHTML={{ __html: reviseDiffHtml }} />
+              ) : reviseText ? (
                 reviseText.split(/\n+/).map((line, i) => {
                   const m = line.match(/^[ \t]*##[ \t]+chapter\b[ \t]*[:.\-]?[ \t]*(.*)$/i);
                   if (m) {
@@ -2100,9 +2150,15 @@ export default function BookStudio() {
               )}
             </div>
             <div className="revise-modal-foot">
+              {reviseDiff ? (
+                <span>
+                  <span className="d-del">struck-through</span> = removed · <span className="d-ins">blue</span> = new.
+                  The AI rewrites substantially, so expect a lot of change.{" "}
+                </span>
+              ) : null}
               {reviseProgress && reviseProgress.total > 1
-                ? "Longer books are rewritten in parts — this can take several minutes. The new book opens automatically when it’s done; your original is untouched."
-                : "This can take a minute. The new book opens automatically when it’s ready — your original is untouched."}
+                ? "Longer books are rewritten in parts — this can take several minutes. Your original is untouched."
+                : "The new book opens automatically when it’s ready — your original is untouched."}
             </div>
           </div>
         </div>

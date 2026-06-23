@@ -39,6 +39,10 @@ export async function POST(request, { params }) {
   return ndjsonResponse(async (send) => {
     const onDelta = (d) => send({ t: "delta", d });
 
+    // Send the original chunk (prose only) so the client can show a live diff.
+    const srcProse = chunkText.replace(/^[ \t]*##[ \t]+chapter\b.*$/gim, "").replace(/\n{3,}/g, "\n\n").trim();
+    send({ t: "source", text: srcProse });
+
     const rewritten = await reviseChunk({
       title: src.title,
       author: src.author,
