@@ -608,6 +608,26 @@ export default function BookStudio() {
           setGenerating(false);
           return false;
         }
+        // The notes (score, suggestions, arc) are refreshed server-side AFTER the
+        // section is delivered, and arrive via the in-stream "analysis" event. To
+        // guarantee the displayed analysis is never a turn behind (in case that
+        // event is missed), re-read the saved book once the stream closes — by
+        // now the server has finished and persisted the current analysis.
+        try {
+          const r = await fetch(`/api/books/${id}`);
+          if (r.ok) {
+            const data = await r.json();
+            const fresh = data && data.book;
+            if (fresh && fresh.analysis) {
+              setBook((prev) => {
+                if (!prev) return prev;
+                const cur = prev.analysis;
+                if (cur && cur.updatedAt && cur.updatedAt === fresh.analysis.updatedAt) return prev;
+                return { ...prev, analysis: fresh.analysis, arc: fresh.arc || prev.arc };
+              });
+            }
+          }
+        } catch {}
         return true;
       } catch {
         setBanner("Network error — your text is still here. Try again.");
@@ -621,7 +641,7 @@ export default function BookStudio() {
         setNotesRefreshing(false);
       }
     },
-    []
+    [id]
   );
 
   const submitTurn = useCallback(async () => {
