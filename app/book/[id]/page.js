@@ -1718,7 +1718,11 @@ export default function BookStudio() {
           </div>
         </div>
 
-        <aside className={`notes${isMobile ? (notesOpen ? " notes-open" : " notes-closed") : ""}`}>
+        <aside
+          className={`notes${isMobile ? (notesOpen ? " notes-open" : " notes-closed") : ""}${
+            notesRefreshing ? " is-refreshing" : ""
+          }`}
+        >
           <div className="notes-head">
             <h2>Reader’s notes</h2>
             {notesRefreshing && <span className="notes-refreshing">Re-reading…</span>}
