@@ -50,6 +50,7 @@ export async function POST(request, { params }) {
       mode: src.mode,
       plan: fork.revisionPlan,
       synopsis: fork.revisionSynopsis,
+      score: fork.revisionScore,
       priorTail: lastWords(fork.revisionText, 800),
       chunkText,
       isFirst,
@@ -65,9 +66,11 @@ export async function POST(request, { params }) {
       // Last part — assemble the finished revision, end it, and re-score honestly.
       let done = mergeFullText(fork, fork.revisionText);
       done.ended = true;
+      done.revisedFromScore = typeof fork.revisionScore === "number" ? fork.revisionScore : null;
       delete done.revisionOf;
       delete done.revisionPlan;
       delete done.revisionSynopsis;
+      delete done.revisionScore;
       delete done.revisionChunks;
       delete done.revisionTotal;
       delete done.revisionDone;

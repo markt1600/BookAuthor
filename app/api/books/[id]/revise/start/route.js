@@ -61,6 +61,7 @@ export async function POST(request, { params }) {
   fork.revisionOf = src.id;
   fork.revisionPlan = plan;
   fork.revisionSynopsis = a.synopsis || "";
+  fork.revisionScore = typeof a.qualityScore === "number" ? a.qualityScore : null;
   fork.revisionChunks = chunks;
   fork.revisionTotal = chunks.length;
   fork.revisionDone = 0;

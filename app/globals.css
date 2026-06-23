@@ -1923,3 +1923,4 @@ body {
 .revise-toggle:hover { background: rgba(192,145,63,0.18); }
 .revise-modal-foot .d-del { color: #b3402f; }
 .revise-modal-foot .d-ins { color: #1d4ed8; text-decoration: none; }
+.revised-from { margin-top: 6px; font-family: var(--data); font-size: 10.5px; letter-spacing: 0.04em; color: var(--brass); opacity: 0.85; }

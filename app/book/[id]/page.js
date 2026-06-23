@@ -1942,6 +1942,16 @@ export default function BookStudio() {
             ) : (
               <div className="v muted">Unscored</div>
             )}
+            {typeof book.revisedFromScore === "number" && a.qualityScore != null && (
+              <div className="revised-from">
+                Revised from {book.revisedFromScore}/100 ·{" "}
+                {a.qualityScore > book.revisedFromScore
+                  ? `+${a.qualityScore - book.revisedFromScore}`
+                  : a.qualityScore < book.revisedFromScore
+                  ? `${a.qualityScore - book.revisedFromScore}`
+                  : "no change"}
+              </div>
+            )}
             {a.quality && (
               <div className="v" style={{ marginTop: 10 }}>
                 {a.quality}
