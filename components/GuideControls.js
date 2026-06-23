@@ -59,7 +59,7 @@ export default function GuideControls({ guide, onChange, allowErotica = false })
           <input
             type="range"
             min="150"
-            max="400"
+            max="800"
             step="25"
             value={guide.sectionWords}
             onChange={(e) => onChange("sectionWords", Number(e.target.value))}
