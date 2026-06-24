@@ -49,11 +49,6 @@ export default function GuideControls({ guide, onChange, allowErotica = false })
       </div>
 
       <div className="setup-row">
-        <div className="setup-label">Creative latitude</div>
-        <Chips field="latitude" value={guide.latitude} onChange={onChange} />
-      </div>
-
-      <div className="setup-row">
         <div className="setup-label">Section length</div>
         <div className="range-row">
           <input
