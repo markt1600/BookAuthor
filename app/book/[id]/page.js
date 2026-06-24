@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes } from "@/lib/book";
+import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes, LARGE_PAGE_SCALE } from "@/lib/book";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
 import HistoryDrawer from "@/components/HistoryDrawer";
@@ -255,7 +255,19 @@ export default function BookStudio() {
   const s = book?.settings;
   // Desktop uses fixed book-trim geometry and scales it to fit. Mobile instead
   // paginates to the actual screen area (full text size, no shrinking).
-  const baseGeom = (s && PAGE_GEOM[s.format]) || PAGE_GEOM.portrait;
+  // "Larger page" enlarges the desktop trim (and its margins) while the font
+  // size stays put, so more words flow onto each page. It's a no-op on mobile,
+  // where the page already fills the screen.
+  const rawGeom = (s && PAGE_GEOM[s.format]) || PAGE_GEOM.portrait;
+  const baseGeom =
+    s && s.largePage
+      ? {
+          w: Math.round(rawGeom.w * LARGE_PAGE_SCALE),
+          h: Math.round(rawGeom.h * LARGE_PAGE_SCALE),
+          padX: Math.round(rawGeom.padX * LARGE_PAGE_SCALE),
+          padY: Math.round(rawGeom.padY * LARGE_PAGE_SCALE),
+        }
+      : rawGeom;
   const geom =
     isMobile && box.w > 0 && box.h > 0
       ? { w: box.w, h: box.h, padX: Math.round(Math.min(28, Math.max(16, box.w * 0.06))), padY: 24 }

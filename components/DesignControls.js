@@ -85,6 +85,28 @@ export default function DesignControls({ settings, onChange }) {
       </div>
 
       <div className="setup-row">
+        <div className="setup-label">Page size</div>
+        <label className="drawer-toggle">
+          <input
+            type="checkbox"
+            checked={!!settings.largePage}
+            onChange={(e) => onChange("largePage", e.target.checked)}
+          />
+          <span className="toggle-track" aria-hidden="true">
+            <span className="toggle-knob" />
+          </span>
+          <span className="toggle-text">
+            <strong>Larger page</strong>
+            <em>
+              On desktop, enlarges the page (keeping the same shape) so more words fit on
+              each page — fewer pages to turn. Also applies to the PDF export. No effect on
+              phones, where the page already fills the screen.
+            </em>
+          </span>
+        </label>
+      </div>
+
+      <div className="setup-row">
         <div className="setup-label">Ink color</div>
         <div className="ink-row">
           <button
