@@ -3,13 +3,27 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import CoverArt from "@/components/CoverArt";
-import { segmentQuotes } from "@/lib/book";
+import { segmentQuotes, LARGE_PAGE_SCALE } from "@/lib/book";
 
+// Trim and margins in inches, plus the cover-band height. "Larger page" scales
+// all of these by LARGE_PAGE_SCALE while the body font size is unchanged, so the
+// printed page keeps its shape but holds more words (matching the on-screen reader).
 const PAGE_DIMS = {
-  portrait: { size: "6in 9in", margin: "0.85in 0.8in" },
-  square: { size: "8in 8in", margin: "0.9in 0.9in" },
-  landscape: { size: "9in 6in", margin: "0.7in 0.9in" },
+  portrait: { w: 6, h: 9, my: 0.85, mx: 0.8, coverH: 8.3 },
+  square: { w: 8, h: 8, my: 0.9, mx: 0.9, coverH: 7 },
+  landscape: { w: 9, h: 6, my: 0.7, mx: 0.9, coverH: 5.6 },
 };
+
+function pageDims(format, large) {
+  const d = PAGE_DIMS[format] || PAGE_DIMS.portrait;
+  const k = large ? LARGE_PAGE_SCALE : 1;
+  const r = (n) => Math.round(n * k * 1000) / 1000;
+  return {
+    size: `${r(d.w)}in ${r(d.h)}in`,
+    margin: `${r(d.my)}in ${r(d.mx)}in`,
+    coverH: `${r(d.coverH)}in`,
+  };
+}
 
 const FONT_STACK = {
   serif: '"Spectral", Georgia, serif',
@@ -73,7 +87,7 @@ export default function PrintView() {
   if (status === "error" || !book) return <div style={{ padding: 40, fontFamily: "var(--ui)" }}>Could not load this book.</div>;
 
   const s = book.settings;
-  const dims = PAGE_DIMS[s.format] || PAGE_DIMS.portrait;
+  const dims = pageDims(s.format, s.largePage);
   const mat = MATERIAL_BG[s.material] || MATERIAL_BG.paper;
   const font = FONT_STACK[s.font] || FONT_STACK.serif;
 
@@ -103,7 +117,7 @@ export default function PrintView() {
     .pv-page { padding-top: 64px; }
 
     .pv-cover {
-      position: relative; height: ${s.format === "landscape" ? "5.6in" : s.format === "square" ? "7in" : "8.3in"};
+      position: relative; height: ${dims.coverH};
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-align: center; color: ${coverInk}; overflow: hidden; border-radius: 2px;
       break-after: page; page-break-after: always;
