@@ -10,6 +10,8 @@ import HistoryDrawer from "@/components/HistoryDrawer";
 import ArcDrawer from "@/components/ArcDrawer";
 import { diffWords } from "diff";
 import ShareDrawer from "@/components/ShareDrawer";
+import CastDrawer from "@/components/CastDrawer";
+import AudiobookDrawer from "@/components/AudiobookDrawer";
 
 /* physical page geometry (px @96dpi) — real trim sizes */
 const PAGE_GEOM = {
@@ -39,6 +41,119 @@ const AI_VCHROME = AI_PAD_Y * 2 + AI_BORDER * 2; // height the AI box adds
 function authorName(author, bookAuthor) {
   if (author === "user") return bookAuthor?.trim() || "You";
   return "AI Author";
+}
+
+// Whether an audit finding's verbatim quote can actually be located in the text
+// (the model occasionally paraphrases despite instructions — hide dead links).
+const normQuote = (s) =>
+  String(s).replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/\s+/g, " ").trim().toLowerCase();
+function jumpableQuote(book, quote) {
+  const q = normQuote(quote);
+  if (!q) return false;
+  return (book.turns || []).some((t) => normQuote(t.text).includes(q));
+}
+
+/* ---- notes-panel mini charts (single series — the card heading names it, so
+   no legend). Mark color #ba8c3c is the brand brass snapped into the validated
+   dark-surface band; text wears ink tokens, never the series color. ---- */
+
+function ScoreChart({ history }) {
+  const W = 260,
+    H = 88,
+    padL = 22,
+    padR = 30,
+    padT = 8,
+    padB = 10;
+  const iw = W - padL - padR,
+    ih = H - padT - padB;
+  const n = history.length;
+  const x = (i) => padL + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
+  const y = (s) => padT + (1 - Math.max(0, Math.min(100, s)) / 100) * ih;
+  const pts = history.map((h, i) => [x(i), y(h.score)]);
+  const path = pts.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
+  const last = history[n - 1];
+  return (
+    <svg
+      className="mini-chart"
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label={`Quality score over time: currently ${last.score} of 100, across ${n} readings.`}
+    >
+      {[50, 75, 90].map((g) => (
+        <g key={g}>
+          <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} className="mc-grid" />
+          <text x={padL - 4} y={y(g) + 2.5} className="mc-tick" textAnchor="end">
+            {g}
+          </text>
+        </g>
+      ))}
+      <path d={path} className="mc-line" />
+      {pts.map(([px, py], i) => (
+        <g key={i}>
+          {(n <= 28 || i === n - 1) && (
+            <circle cx={px} cy={py} r={i === n - 1 ? 3.5 : 2.2} className="mc-dot" />
+          )}
+          {/* oversized invisible hit target so hover works on a 2px line */}
+          <circle cx={px} cy={py} r={9} fill="transparent">
+            <title>
+              {`After ${history[i].sections} section${history[i].sections === 1 ? "" : "s"} · score ${history[i].score}/100 · ${(history[i].words || 0).toLocaleString()} words`}
+            </title>
+          </circle>
+        </g>
+      ))}
+      <text x={Math.min(pts[n - 1][0] + 6, W - 2)} y={pts[n - 1][1] + 3.5} className="mc-value">
+        {last.score}
+      </text>
+    </svg>
+  );
+}
+
+/* bars with a rounded data-end, flat at the baseline */
+function roundedTopBar(x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h);
+  return `M${x},${y + h} L${x},${y + rr} Q${x},${y} ${x + rr},${y} L${x + w - rr},${y} Q${x + w},${y} ${x + w},${y + rr} L${x + w},${y + h} Z`;
+}
+
+function PacingBars({ rows }) {
+  const W = 260,
+    H = 72,
+    padL = 6,
+    padR = 6,
+    padT = 6,
+    padB = 13;
+  const iw = W - padL - padR,
+    ih = H - padT - padB;
+  const n = rows.length;
+  const gap = 2;
+  const bw = Math.max(3, (iw - gap * (n - 1)) / n);
+  const max = Math.max(1, ...rows.map((r) => r.words));
+  return (
+    <svg
+      className="mini-chart"
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label={`Words per chapter across ${n} chapters; the longest has ${max.toLocaleString()} words.`}
+    >
+      {rows.map((r, i) => {
+        const h = Math.max(1.5, (r.words / max) * ih);
+        const bx = padL + i * (bw + gap);
+        const by = padT + (ih - h);
+        return (
+          <g key={i}>
+            <path d={roundedTopBar(bx, by, bw, h, 2)} className="mc-bar" />
+            <rect x={bx - gap / 2} y={0} width={bw + gap} height={H - padB} fill="transparent">
+              <title>{`Chapter ${i + 1}${r.title ? ` — ${r.title}` : ""} · ${r.words.toLocaleString()} words`}</title>
+            </rect>
+            {(n <= 12 || i === 0 || i === n - 1) && (
+              <text x={bx + bw / 2} y={H - 3} className="mc-tick" textAnchor="middle">
+                {i + 1}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
 }
 
 /* word-reveal for the freshly-written animation */
@@ -92,6 +207,11 @@ export default function BookStudio() {
   const [arcOpen, setArcOpen] = useState(false);
   const [rewriteFor, setRewriteFor] = useState(null); // { id, text } — passage awaiting a rewrite instruction
   const [rewriteText, setRewriteText] = useState(""); // the instruction being typed
+  const [castOpen, setCastOpen] = useState(false);
+  const [audiobookOpen, setAudiobookOpen] = useState(false);
+  const [auditBusy, setAuditBusy] = useState(false);
+  const [audit, setAudit] = useState(null); // { findings, at } from the last consistency check
+  const [auditErr, setAuditErr] = useState("");
   const [bibleEditing, setBibleEditing] = useState(false); // author's canon editor open
   const [bibleDraft, setBibleDraft] = useState("");
   const [bibleSaving, setBibleSaving] = useState(false);
@@ -585,6 +705,19 @@ export default function BookStudio() {
   }, [book]);
   const proseTells = useMemo(() => (lastAiText ? lintProse(lastAiText) : []), [lastAiText]);
 
+  // Words per chapter, for the pacing bars.
+  const chapterRows = useMemo(() => {
+    if (!book) return [];
+    const turns = book.turns || [];
+    const chapters = (book.chapters || []).length ? book.chapters : [{ title: "", startTurn: 0 }];
+    return chapters.map((c, i) => {
+      const start = c.startTurn;
+      const end = chapters[i + 1] ? chapters[i + 1].startTurn : turns.length;
+      const words = turns.slice(start, end).reduce((n, t) => n + (t.words || 0), 0);
+      return { title: c.title || "", words };
+    });
+  }, [book]);
+
   const currentRuns = !onWritingPage && pages[currentPage] ? pages[currentPage] : [];
   const pageWords = useMemo(
     () =>
@@ -850,6 +983,39 @@ export default function BookStudio() {
     },
     [book, save, guideMode]
   );
+
+  // On-demand consistency audit (read-only — nothing on the book changes).
+  async function runAudit() {
+    if (auditBusy) return;
+    setAuditBusy(true);
+    setAuditErr("");
+    try {
+      const res = await fetch(`/api/books/${id}/audit`, { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAuditErr(d.error || "The consistency check failed — try again.");
+        return;
+      }
+      setAudit(d);
+    } catch {
+      setAuditErr("Network error — try again.");
+    } finally {
+      setAuditBusy(false);
+    }
+  }
+
+  // Jump to the passage containing an audit finding's verbatim quote.
+  function jumpToQuote(quote) {
+    if (!book || !quote) return;
+    const q = normQuote(quote);
+    if (!q) return;
+    const turn = (book.turns || []).find((t) => normQuote(t.text).includes(q));
+    if (!turn) return;
+    const page = turnStart[turn.id];
+    if (page == null) return;
+    if (isMobile) setNotesOpen(false);
+    turnTo(page);
+  }
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
   function copyShare() {
@@ -1553,6 +1719,9 @@ export default function BookStudio() {
             <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
               Chapters
             </button>
+            <button className="btn btn-ghost" onClick={() => setCastOpen(true)}>
+              Cast{book.characters && book.characters.length ? ` (${book.characters.length})` : ""}
+            </button>
             <button className="btn btn-ghost" onClick={() => setArcOpen(true)}>
               Heading{book.arc && book.arc.length ? ` (${book.arc.length})` : ""}
             </button>
@@ -1571,6 +1740,9 @@ export default function BookStudio() {
             <a className="btn btn-ghost" href={`/api/books/${id}/epub`} download>
               EPUB
             </a>
+            <button className="btn btn-ghost" onClick={() => setAudiobookOpen(true)}>
+              Audiobook
+            </button>
             <button className="btn" onClick={() => setSettingsOpen(true)}>
               Settings
             </button>
@@ -2117,6 +2289,55 @@ export default function BookStudio() {
               </div>
             )}
           </div>
+          {(book.scoreHistory || []).length >= 2 && (
+            <div className="note-card">
+              <div className="k">Score over time</div>
+              <ScoreChart history={book.scoreHistory} />
+              {chapterRows.length >= 2 && (
+                <>
+                  <div className="k" style={{ marginTop: 14 }}>
+                    Words per chapter
+                  </div>
+                  <PacingBars rows={chapterRows} />
+                </>
+              )}
+            </div>
+          )}
+          {book.turns.length > 0 && (
+            <div className="note-card">
+              <div className="k">Consistency</div>
+              {audit && audit.findings.length > 0 && (
+                <div className="audit-findings">
+                  {audit.findings.map((f, fi) => (
+                    <div className="audit-finding" key={fi}>
+                      <span className="audit-sev" data-sev={f.severity}>
+                        {f.severity}
+                      </span>
+                      {f.issue}
+                      {f.quote && jumpableQuote(book, f.quote) && (
+                        <button className="audit-jump" onClick={() => jumpToQuote(f.quote)}>
+                          find →
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {audit && audit.findings.length === 0 && (
+                <div className="v tells-clean">✓ No contradictions found.</div>
+              )}
+              {!audit && (
+                <div className="v muted">
+                  Scan the whole book for contradictions — names, timelines, facts — checked against
+                  your canon and cast sheet.
+                </div>
+              )}
+              <button className="bible-edit-btn" onClick={runAudit} disabled={auditBusy}>
+                {auditBusy ? "Reading the whole book…" : audit ? "↻ Check again" : "✦ Check the book"}
+              </button>
+              {auditErr && <div className="pw-err" style={{ marginTop: 8 }}>{auditErr}</div>}
+            </div>
+          )}
           {lastAiText && !ended && (
             <div className="note-card">
               <div className="k">Prose tells — latest section</div>
@@ -2427,6 +2648,14 @@ export default function BookStudio() {
           }}
         />
       )}
+      {castOpen && (
+        <CastDrawer
+          book={book}
+          onSave={(characters) => save({ characters })}
+          onClose={() => setCastOpen(false)}
+        />
+      )}
+      {audiobookOpen && <AudiobookDrawer book={book} onClose={() => setAudiobookOpen(false)} />}
       {shareOpen && (
         <ShareDrawer
           book={book}

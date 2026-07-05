@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { applyPatch, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, sectionCount } from "@/lib/book";
+import { applyPatch, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, sectionCount } from "@/lib/book";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
@@ -74,6 +74,7 @@ export async function PUT(request, { params }) {
         if (analysis) {
           merged.analysis = analysis;
           resolveDoneSuggestions(merged, analysis);
+          recordScore(merged);
         }
       } catch {
         // keep the prior analysis if the re-read fails (e.g. no API key)
@@ -129,6 +130,7 @@ export async function PUT(request, { params }) {
       if (analysis) {
         next.analysis = analysis;
         if (!body.ended) resolveDoneSuggestions(next, analysis);
+        recordScore(next);
       }
     } catch {
       // keep the prior analysis if the evaluation fails (e.g. no API key)

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook, saveSnapshot, acquireLock, releaseLock } from "@/lib/store";
-import { countWords, publicBook } from "@/lib/book";
+import { castText, countWords, publicBook } from "@/lib/book";
 import { rewritePassage } from "@/lib/claude";
 import { refreshAnalysis, ndjsonResponse } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
@@ -84,6 +84,7 @@ export async function POST(request, { params }) {
         after: after ? headOf(after, CONTEXT_WORDS) : "",
         memory: priorAnalysis,
         bible: (book.bible || "").trim(),
+        cast: castText(book),
         onDelta,
       });
 
@@ -102,6 +103,7 @@ export async function POST(request, { params }) {
       await refreshAnalysis(book, priorAnalysis);
       const latest = (await getBook(id)) || book;
       latest.analysis = book.analysis;
+      latest.scoreHistory = book.scoreHistory;
       await saveBook(latest);
       send({ t: "analysis", analysis: latest.analysis });
     } finally {

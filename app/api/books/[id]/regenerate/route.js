@@ -80,6 +80,7 @@ export async function POST(request, { params }) {
         await refreshAnalysis(book, priorAnalysis);
         const latest = (await getBook(id)) || book;
         latest.analysis = book.analysis;
+        latest.scoreHistory = book.scoreHistory;
         await saveBook(latest);
         send({ t: "analysis", analysis: latest.analysis });
         return;
@@ -116,6 +117,7 @@ export async function POST(request, { params }) {
       await refreshAnalysis(book, priorAnalysis);
       const latest = (await getBook(id)) || book;
       latest.analysis = book.analysis;
+      latest.scoreHistory = book.scoreHistory;
       await saveBook(latest);
       send({ t: "analysis", analysis: latest.analysis });
     } finally {
