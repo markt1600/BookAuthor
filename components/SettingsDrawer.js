@@ -10,6 +10,7 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
   const [settings, setSettings] = useState(book.settings);
+  const [voiceSample, setVoiceSample] = useState(book.voiceSample || "");
   const [guide, setGuide] = useState({ ...DEFAULT_GUIDE, ...(book.guide || {}) });
   const [saving, setSaving] = useState(false);
   const [pw, setPw] = useState("");
@@ -40,7 +41,7 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
   async function save() {
     setSaving(true);
     const base = guideMode ? { title, author, settings, guide } : { title, author, settings };
-    await onSave({ ...base, ended });
+    await onSave({ ...base, voiceSample, ended });
     setSaving(false);
     onClose();
   }
@@ -102,6 +103,40 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
         )}
 
         <DesignControls settings={settings} onChange={change} />
+
+        <div className="setup-row">
+          <div className="setup-label">Voice sample</div>
+          <textarea
+            className="text-input voice-sample"
+            rows={5}
+            maxLength={3000}
+            value={voiceSample}
+            onChange={(e) => setVoiceSample(e.target.value)}
+            placeholder="Optional — paste a short passage whose voice the AI should match (your own writing, or a public-domain excerpt). It anchors rhythm and diction far better than a style label. Style only: its content is never reused."
+          />
+        </div>
+
+        <div className="setup-row">
+          <div className="setup-label">Polish pass</div>
+          <label className="drawer-toggle">
+            <input
+              type="checkbox"
+              checked={!!settings.selfEdit}
+              onChange={(e) => change("selfEdit", e.target.checked)}
+            />
+            <span className="toggle-track" aria-hidden="true">
+              <span className="toggle-knob" />
+            </span>
+            <span className="toggle-text">
+              <strong>Line-edit each new section before it lands</strong>
+              <em>
+                After drafting a section, the AI gives it one careful polishing pass — tighter
+                sentences, varied rhythm, no recycled imagery. Roughly doubles each section’s
+                time and cost, so it’s off by default.
+              </em>
+            </span>
+          </label>
+        </div>
 
         <div className="setup-row">
           <div className="setup-label">Continuity</div>

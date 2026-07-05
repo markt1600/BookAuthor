@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getBook, saveBook, saveSnapshot } from "@/lib/store";
+import { getBook, saveBook, saveSnapshot, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, publicBook, sectionCount } from "@/lib/book";
-import { continueStory, guideStory } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse } from "@/lib/generate";
+import { continueStory, guideStory, selfEditSection } from "@/lib/claude";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -33,67 +33,101 @@ export async function POST(request, { params }) {
     );
   }
 
+  const lock = await acquireLock(id);
+  if (!lock) {
+    return NextResponse.json(
+      { error: "The AI author is already writing — wait for the current section to finish." },
+      { status: 409 }
+    );
+  }
+
   const priorAnalysis = book.analysis && book.analysis.updatedAt ? book.analysis : null;
+  const selfEdit = Boolean(book.settings && book.settings.selfEdit);
   await saveSnapshot(book, "Before regenerating a section");
 
   // Drop the AI passage; regenerate from exactly the same point.
   const removed = turns.pop();
   const directionPrompt = removed.prompt || "";
 
-  return ndjsonResponse(async (send) => {
-    const onDelta = (d) => send({ t: "delta", d });
+  const polish = async (draft, send, onDelta) => {
+    if (!selfEdit) return draft;
+    try {
+      send({ t: "polish" });
+      return await selfEditSection({
+        title: book.title,
+        mode: book.mode,
+        guide: book.guide,
+        draft,
+        memory: priorAnalysis,
+        onDelta,
+      });
+    } catch {
+      return draft;
+    }
+  };
 
-    if (guideMode) {
-      const prose = await guideStory(
+  return ndjsonResponse(async (send) => {
+    try {
+      const onDelta = (d) => send({ t: "delta", d });
+
+      if (guideMode) {
+        let prose = await guideStory(
+          withContext(book, {
+            title: book.title,
+            author: book.author,
+            guide: book.guide,
+            prompt: directionPrompt,
+            memory: priorAnalysis,
+            arc: book.arc,
+            sections: sectionCount(book),
+            targetWords: (book.guide && book.guide.sectionWords) || 275,
+            ...authorContext(book),
+            onDelta,
+          })
+        );
+        prose = await polish(prose, send, onDelta);
+        const section = makeTurn("claude", prose, directionPrompt);
+        book.turns.push(section);
+        await saveBook(book); // persist before the slower analysis call
+        send({ t: "generated" });
+        send({ t: "done", book: publicBook(book), addedTurnIds: [section.id] });
+        await refreshAnalysis(book, priorAnalysis);
+        const latest = (await getBook(id)) || book;
+        latest.analysis = book.analysis;
+        await saveBook(latest);
+        send({ t: "analysis", analysis: latest.analysis });
+        return;
+      }
+
+      // Participate: the preceding user turn (now last) is what we continue from.
+      const prevUser = book.turns[book.turns.length - 1];
+      const target = prevUser && prevUser.text ? countWords(prevUser.text) : 150;
+      let continuation = await continueStory(
         withContext(book, {
           title: book.title,
           author: book.author,
-          guide: book.guide,
-          prompt: directionPrompt,
+          settings: book.settings,
           memory: priorAnalysis,
+          targetWords: target,
           arc: book.arc,
           sections: sectionCount(book),
-          targetWords: (book.guide && book.guide.sectionWords) || 275,
+          ...authorContext(book),
           onDelta,
         })
       );
-      const section = makeTurn("claude", prose, directionPrompt);
-      book.turns.push(section);
+      continuation = await polish(continuation, send, onDelta);
+      const claudeTurn = makeTurn("claude", continuation);
+      book.turns.push(claudeTurn);
       await saveBook(book); // persist before the slower analysis call
       send({ t: "generated" });
-      send({ t: "done", book: publicBook(book), addedTurnIds: [section.id] });
+      send({ t: "done", book: publicBook(book), addedTurnIds: [claudeTurn.id] });
       await refreshAnalysis(book, priorAnalysis);
       const latest = (await getBook(id)) || book;
       latest.analysis = book.analysis;
       await saveBook(latest);
       send({ t: "analysis", analysis: latest.analysis });
-      return;
+    } finally {
+      await releaseLock(id, lock);
     }
-
-    // Participate: the preceding user turn (now last) is what we continue from.
-    const prevUser = book.turns[book.turns.length - 1];
-    const target = prevUser && prevUser.text ? countWords(prevUser.text) : 150;
-    const continuation = await continueStory(
-      withContext(book, {
-        title: book.title,
-        author: book.author,
-        settings: book.settings,
-        memory: priorAnalysis,
-        targetWords: target,
-        arc: book.arc,
-          sections: sectionCount(book),
-        onDelta,
-      })
-    );
-    const claudeTurn = makeTurn("claude", continuation);
-    book.turns.push(claudeTurn);
-    await saveBook(book); // persist before the slower analysis call
-    send({ t: "generated" });
-    send({ t: "done", book: publicBook(book), addedTurnIds: [claudeTurn.id] });
-    await refreshAnalysis(book, priorAnalysis);
-    const latest = (await getBook(id)) || book;
-    latest.analysis = book.analysis;
-    await saveBook(latest);
-    send({ t: "analysis", analysis: latest.analysis });
   });
 }

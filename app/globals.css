@@ -1924,3 +1924,29 @@ body {
 .revise-modal-foot .d-del { color: #b3402f; }
 .revise-modal-foot .d-ins { color: #1d4ed8; text-decoration: none; }
 .revised-from { margin-top: 6px; font-family: var(--data); font-size: 10.5px; letter-spacing: 0.04em; color: var(--brass); opacity: 0.85; }
+
+/* targeted passage rewrite */
+.rewrite-fab { right: auto; left: 18px; }
+.rewrite-fab:hover { border-color: var(--brass); color: var(--brass); }
+.rewrite-modal { width: min(560px, 100%); }
+.rewrite-excerpt {
+  margin: 14px 22px 0; padding: 12px 14px; max-height: 160px; overflow-y: auto;
+  font-family: "Spectral", Georgia, serif; font-size: 13.5px; line-height: 1.55;
+  color: var(--on-desk); opacity: 0.85; white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.14); border: 1px solid var(--desk-line); border-radius: 9px;
+}
+.rewrite-instruction { margin: 12px 22px 0; width: calc(100% - 44px); }
+
+/* author's canon (story bible) card */
+.bible-edit { margin-top: 4px; }
+.bible-actions { display: flex; gap: 8px; margin-top: 10px; }
+.bible-edit-btn {
+  margin-top: 10px; font-family: var(--data); font-size: 10.5px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--brass); background: none; cursor: pointer;
+  border: 1px solid rgba(192, 145, 63, 0.35); border-radius: 999px; padding: 5px 11px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.bible-edit-btn:hover { background: rgba(192, 145, 63, 0.1); border-color: rgba(192, 145, 63, 0.6); }
+
+/* settings: voice sample textarea */
+textarea.voice-sample { resize: vertical; min-height: 96px; line-height: 1.5; font-size: 13px; }

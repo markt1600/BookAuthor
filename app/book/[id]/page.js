@@ -89,6 +89,11 @@ export default function BookStudio() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [arcOpen, setArcOpen] = useState(false);
+  const [rewriteFor, setRewriteFor] = useState(null); // { id, text } — passage awaiting a rewrite instruction
+  const [rewriteText, setRewriteText] = useState(""); // the instruction being typed
+  const [bibleEditing, setBibleEditing] = useState(false); // author's canon editor open
+  const [bibleDraft, setBibleDraft] = useState("");
+  const [bibleSaving, setBibleSaving] = useState(false);
   const [newChapter, setNewChapter] = useState(false);
   const [composing, setComposing] = useState(false); // intent to be on the composer, robust to page-count shifts
   const [nav, setNav] = useState(null); // 'next' | 'prev' | null — page-turn direction
@@ -654,6 +659,11 @@ export default function BookStudio() {
             if (ev.t === "delta") {
               acc += ev.d;
               setStreamText(acc);
+            } else if (ev.t === "polish") {
+              // A second pass rewrites the draft from the top — restart the live view.
+              acc = "";
+              setStreamText("");
+              setStreamPhase("polishing");
             } else if (ev.t === "generated") {
               setStreamPhase("finalizing");
             } else if (ev.t === "error") {
@@ -750,6 +760,31 @@ export default function BookStudio() {
       },
     });
   }, [generating, book, id, consumeStream]);
+
+  // Targeted rewrite: revise one passage in place per an instruction. The rest
+  // of the book is untouched (unlike "edit from here", which forks).
+  const submitRewrite = useCallback(async () => {
+    if (generating || !rewriteFor || !rewriteText.trim()) return;
+    const turnId = rewriteFor.id;
+    const instruction = rewriteText.trim();
+    setRewriteFor(null);
+    setRewriteText("");
+    await consumeStream(`/api/books/${id}/rewrite`, { turnId, instruction }, {
+      onDone: (b) => {
+        pendingJump.current = turnId;
+        setAnimTurn(turnId);
+        setComposing(false);
+        setBook(b);
+      },
+    });
+  }, [generating, rewriteFor, rewriteText, id, consumeStream]);
+
+  const saveBible = useCallback(async () => {
+    setBibleSaving(true);
+    await save({ bible: bibleDraft });
+    setBibleSaving(false);
+    setBibleEditing(false);
+  }, [bibleDraft, save]);
 
   const editFromHere = useCallback(
     async (turnId) => {
@@ -1565,7 +1600,11 @@ export default function BookStudio() {
                       style={{ padding: `${geom.padY}px ${geom.padX}px` }}
                     >
                       <div className="run-tab" data-author="claude">
-                        {streamPhase === "finalizing" ? "Binding the page…" : "The AI author is writing…"}
+                        {streamPhase === "finalizing"
+                          ? "Binding the page…"
+                          : streamPhase === "polishing"
+                          ? "Polishing the prose…"
+                          : "The AI author is writing…"}
                       </div>
                       <div
                         ref={liveRef}
@@ -1754,6 +1793,17 @@ export default function BookStudio() {
                       >
                         Edit from here ↺
                       </button>
+                      <button
+                        className="edit-here-fab rewrite-fab"
+                        title="Rewrite just this passage with an instruction — the rest of the book stays put"
+                        onClick={() => {
+                          if (!currentTurn || generating) return;
+                          setRewriteText("");
+                          setRewriteFor({ id: currentTurn.id, text: currentTurn.text });
+                        }}
+                      >
+                        ✎ Rewrite this passage
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1765,7 +1815,9 @@ export default function BookStudio() {
                 <span className="pulse">
                   <i /><i /><i />
                 </span>
-                {guideMode
+                {streamPhase === "polishing"
+                  ? "The AI author is giving the section a polishing pass…"
+                  : guideMode
                   ? "The AI author is writing the next section…"
                   : `The AI author is writing about ${draftWords} words in your voice…`}
               </div>
@@ -2026,6 +2078,48 @@ export default function BookStudio() {
               <div className="v continuity-note">{a.continuity}</div>
             </div>
           )}
+          <div className="note-card">
+            <div className="k">Author’s canon</div>
+            {bibleEditing ? (
+              <>
+                <textarea
+                  className="arc-text bible-edit"
+                  rows={7}
+                  maxLength={4000}
+                  value={bibleDraft}
+                  onChange={(e) => setBibleDraft(e.target.value)}
+                  placeholder={
+                    "One fact per line — e.g.\nMara’s eyes are green.\nThe manor burned down in 1911.\nTomas doesn’t know Edda is his sister."
+                  }
+                  autoFocus
+                />
+                <div className="bible-actions">
+                  <button className="btn btn-primary" onClick={saveBible} disabled={bibleSaving}>
+                    {bibleSaving ? "Saving…" : "Save canon"}
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => setBibleEditing(false)} disabled={bibleSaving}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={`v continuity-note${book.bible ? "" : " muted"}`}>
+                  {book.bible ||
+                    "Pin the facts the AI must never get wrong — names, dates, who knows what. Your canon outranks the AI’s own story memory."}
+                </div>
+                <button
+                  className="bible-edit-btn"
+                  onClick={() => {
+                    setBibleDraft(book.bible || "");
+                    setBibleEditing(true);
+                  }}
+                >
+                  {book.bible ? "Edit canon" : "＋ Pin canon facts"}
+                </button>
+              </>
+            )}
+          </div>
           {book.arc && book.arc.length > 0 && (
             <div className="note-card">
               <div className="k">Where it’s heading</div>
@@ -2112,6 +2206,51 @@ export default function BookStudio() {
         </div>
       )}
 
+      {rewriteFor && (
+        <div className="fulledit-scrim" onClick={() => setRewriteFor(null)}>
+          <div className="fulledit-modal rewrite-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="fulledit-head">
+              <div>
+                <div className="fulledit-title">Rewrite this passage</div>
+                <div className="fulledit-sub">
+                  Say how it should change — tenser, slower, from her point of view, less dialogue…
+                  Only this passage is rewritten; everything before and after stays exactly as it is,
+                  and the old version is kept in History.
+                </div>
+              </div>
+              <button className="btn btn-ghost" onClick={() => setRewriteFor(null)}>
+                Cancel
+              </button>
+            </div>
+            <div className="rewrite-excerpt">
+              {rewriteFor.text.length > 420
+                ? `${rewriteFor.text.slice(0, 280)} […] ${rewriteFor.text.slice(-120)}`
+                : rewriteFor.text}
+            </div>
+            <textarea
+              className="arc-text rewrite-instruction"
+              rows={3}
+              maxLength={600}
+              value={rewriteText}
+              onChange={(e) => setRewriteText(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  submitRewrite();
+                }
+              }}
+              placeholder="e.g. Make this scene tenser — shorter sentences, and end on the knock at the door."
+              autoFocus
+            />
+            <div className="fulledit-foot">
+              <span className="fulledit-count">{countWords(rewriteFor.text).toLocaleString()} words</span>
+              <button className="btn btn-primary" onClick={submitRewrite} disabled={!rewriteText.trim() || generating}>
+                Rewrite it →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {settingsOpen && (
         <SettingsDrawer
           book={book}

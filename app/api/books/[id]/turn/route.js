@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getBook, saveBook } from "@/lib/store";
+import { getBook, saveBook, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, isUsersMove, publicBook, normalizeChapters, sectionCount } from "@/lib/book";
-import { continueStory, guideStory } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse } from "@/lib/generate";
+import { continueStory, guideStory, selfEditSection } from "@/lib/claude";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,18 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "It is not your move yet." }, { status: 409 });
   }
 
+  // One generation per book at a time. Two overlapping requests (double-tap,
+  // two tabs) would otherwise both pass the move check and both append.
+  const lock = await acquireLock(id);
+  if (!lock) {
+    return NextResponse.json(
+      { error: "The AI author is already writing — wait for the current section to finish." },
+      { status: 409 }
+    );
+  }
+
   const priorAnalysis = book.analysis && book.analysis.updatedAt ? book.analysis : null;
+  const selfEdit = Boolean(book.settings && book.settings.selfEdit);
 
   // Open a new chapter at the given turn index, if requested.
   const addChapter = (startTurn) => {
@@ -50,69 +61,96 @@ export async function POST(request, { params }) {
     );
   };
 
+  // Optional polish pass: one streamed line-edit of the fresh section. A
+  // failure here never loses the section — the raw draft stands.
+  const polish = async (draft, send, onDelta) => {
+    if (!selfEdit) return draft;
+    try {
+      send({ t: "polish" });
+      return await selfEditSection({
+        title: book.title,
+        mode: book.mode,
+        guide: book.guide,
+        draft,
+        memory: priorAnalysis,
+        onDelta,
+      });
+    } catch {
+      return draft;
+    }
+  };
+
   // Stream the prose, COMMIT + SAVE + deliver it, THEN refresh the notes as a
   // best-effort follow-up. Decoupling the analysis means a slow second call on a
   // long book can never drop the connection or lose the section that was written.
   return ndjsonResponse(async (send) => {
-    const onDelta = (d) => send({ t: "delta", d });
+    try {
+      const onDelta = (d) => send({ t: "delta", d });
 
-    let addedTurnIds;
-    if (guideMode) {
-      const prose = await guideStory(
-        withContext(book, {
-          title: book.title,
-          author: book.author,
-          guide: book.guide,
-          prompt: text,
-          memory: priorAnalysis,
-          arc: book.arc,
-          sections: sectionCount(book),
-          targetWords: (book.guide && book.guide.sectionWords) || 275,
-          onDelta,
-        })
-      );
-      const section = makeTurn("claude", prose, text); // store the originating direction
-      book.turns.push(section);
-      addChapter(book.turns.length - 1); // chapter opens on the new section
-      addedTurnIds = [section.id];
-    } else {
-      // Participate: commit the user's turn, then continue in one voice.
-      const userTurn = makeTurn("user", text);
-      book.turns.push(userTurn);
-      let claudeTurn = null;
-      try {
-        const continuation = await continueStory(
+      let addedTurnIds;
+      if (guideMode) {
+        let prose = await guideStory(
           withContext(book, {
             title: book.title,
             author: book.author,
-            settings: book.settings,
+            guide: book.guide,
+            prompt: text,
             memory: priorAnalysis,
-            targetWords: countWords(text),
             arc: book.arc,
-          sections: sectionCount(book),
+            sections: sectionCount(book),
+            targetWords: (book.guide && book.guide.sectionWords) || 275,
+            ...authorContext(book),
             onDelta,
           })
         );
-        claudeTurn = makeTurn("claude", continuation);
-        book.turns.push(claudeTurn);
-      } catch (err) {
-        book.turns.pop(); // roll back the user's turn
-        throw err;
+        prose = await polish(prose, send, onDelta);
+        const section = makeTurn("claude", prose, text); // store the originating direction
+        book.turns.push(section);
+        addChapter(book.turns.length - 1); // chapter opens on the new section
+        addedTurnIds = [section.id];
+      } else {
+        // Participate: commit the user's turn, then continue in one voice.
+        const userTurn = makeTurn("user", text);
+        book.turns.push(userTurn);
+        let claudeTurn = null;
+        try {
+          let continuation = await continueStory(
+            withContext(book, {
+              title: book.title,
+              author: book.author,
+              settings: book.settings,
+              memory: priorAnalysis,
+              targetWords: countWords(text),
+              arc: book.arc,
+              sections: sectionCount(book),
+              ...authorContext(book),
+              onDelta,
+            })
+          );
+          continuation = await polish(continuation, send, onDelta);
+          claudeTurn = makeTurn("claude", continuation);
+          book.turns.push(claudeTurn);
+        } catch (err) {
+          book.turns.pop(); // roll back the user's turn
+          throw err;
+        }
+        addChapter(book.turns.length - 2); // chapter opens on the user's turn
+        addedTurnIds = [userTurn.id, claudeTurn.id];
       }
-      addChapter(book.turns.length - 2); // chapter opens on the user's turn
-      addedTurnIds = [userTurn.id, claudeTurn.id];
+
+      await saveBook(book); // persist the section before the (slower) analysis
+      send({ t: "generated" });
+      send({ t: "done", book: publicBook(book), addedTurnIds });
+
+      // Best-effort notes refresh. refreshAnalysis never throws; re-read the latest
+      // book first so we don't clobber any concurrent edit, then merge the notes in.
+      await refreshAnalysis(book, priorAnalysis);
+      const latest = (await getBook(id)) || book;
+      latest.analysis = book.analysis;
+      await saveBook(latest);
+      send({ t: "analysis", analysis: latest.analysis });
+    } finally {
+      await releaseLock(id, lock);
     }
-
-    await saveBook(book); // persist the section before the (slower) analysis
-    send({ t: "generated" });
-    send({ t: "done", book: publicBook(book), addedTurnIds });
-
-    // Best-effort notes refresh. refreshAnalysis never throws; re-read the latest
-    // book first so we don't clobber any concurrent edit, then merge the notes in.
-    await refreshAnalysis(book, priorAnalysis);
-    const latest = (await getBook(id)) || book;
-    latest.analysis = book.analysis;
-    await saveBook(latest);
-    send({ t: "analysis", analysis: latest.analysis });
   });
 }
