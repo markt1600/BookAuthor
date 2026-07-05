@@ -40,8 +40,15 @@ export async function POST(request, { params }) {
   }
   const turnId = String(body.turnId || "");
   const instruction = String(body.instruction || "").trim();
-  if (!instruction) {
-    return NextResponse.json({ error: "Say how the passage should change first." }, { status: 400 });
+  const length = ["shorter", "same", "longer"].includes(body.length) ? body.length : "same";
+  const scope = ["light", "free"].includes(body.scope) ? body.scope : "light";
+  // An instruction is required only when every control is at its default —
+  // "make it shorter" or "free hand" is a complete request on its own.
+  if (!instruction && length === "same" && scope === "light") {
+    return NextResponse.json(
+      { error: "Say how the passage should change — or pick a length/scope option." },
+      { status: 400 }
+    );
   }
   const turns = book.turns || [];
   const idx = turns.findIndex((t) => t && t.id === turnId);
@@ -79,6 +86,8 @@ export async function POST(request, { params }) {
         mode: book.mode,
         guide: book.guide,
         instruction,
+        length,
+        scope,
         before: before ? tailOf(before, CONTEXT_WORDS) : "",
         passage: turns[idx].text,
         after: after ? headOf(after, CONTEXT_WORDS) : "",

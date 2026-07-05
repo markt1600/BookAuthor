@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { applyPatch, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, sectionCount } from "@/lib/book";
+import { applyPatch, countWords, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, sectionCount } from "@/lib/book";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
-import { resolveDoneSuggestions } from "@/lib/generate";
+import { refreshAnalysis, resolveDoneSuggestions } from "@/lib/generate";
 
 export const dynamic = "force-dynamic";
 // The full-text edit and the one-time "mark ended" final evaluation both run an
@@ -98,6 +98,29 @@ export async function PUT(request, { params }) {
     }
     await saveBook(merged);
     return NextResponse.json({ book: publicBook(merged) });
+  }
+
+  // Hand edit of a single passage: replace one turn's text in place. Snapshotted
+  // first, then a best-effort notes refresh (prior carried — unlike a full-text
+  // edit, a tweak rarely invalidates the whole record).
+  if (body.editTurn && typeof body.editTurn === "object") {
+    const turnId = String(body.editTurn.turnId || "");
+    const text = String(body.editTurn.text || "").replace(/\s+$/g, "");
+    const idx = (book.turns || []).findIndex((t) => t && t.id === turnId);
+    if (idx < 0) {
+      return NextResponse.json({ error: "That passage no longer exists." }, { status: 404 });
+    }
+    if (!text.trim()) {
+      return NextResponse.json(
+        { error: "The passage can't be saved empty — use “Edit from here” to remove it instead." },
+        { status: 400 }
+      );
+    }
+    await saveSnapshot(book, "Before hand-editing a passage");
+    book.turns[idx] = { ...book.turns[idx], text, words: countWords(text), editedAt: Date.now() };
+    await refreshAnalysis(book, book.analysis && book.analysis.updatedAt ? book.analysis : null);
+    await saveBook(book);
+    return NextResponse.json({ book: publicBook(book) });
   }
 
   let next = applyPatch(book, body);

@@ -205,8 +205,13 @@ export default function BookStudio() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [arcOpen, setArcOpen] = useState(false);
-  const [rewriteFor, setRewriteFor] = useState(null); // { id, text } — passage awaiting a rewrite instruction
+  const [rewriteFor, setRewriteFor] = useState(null); // { id, text } — passage open in the workbench
   const [rewriteText, setRewriteText] = useState(""); // the instruction being typed
+  const [rewriteMode, setRewriteMode] = useState("ai"); // 'ai' | 'manual'
+  const [rewriteLen, setRewriteLen] = useState("same"); // 'shorter' | 'same' | 'longer'
+  const [rewriteScope, setRewriteScope] = useState("light"); // 'light' | 'free'
+  const [rewriteManual, setRewriteManual] = useState(""); // hand-edited passage text
+  const [manualSaving, setManualSaving] = useState(false);
   const [castOpen, setCastOpen] = useState(false);
   const [audiobookOpen, setAudiobookOpen] = useState(false);
   const [auditBusy, setAuditBusy] = useState(false);
@@ -750,6 +755,7 @@ export default function BookStudio() {
         if (jumpTurnId != null) pendingJump.current = jumpTurnId;
         setBook(book);
       }
+      return res.ok;
     },
     [id]
   );
@@ -911,15 +917,23 @@ export default function BookStudio() {
     });
   }, [generating, book, id, consumeStream]);
 
-  // Targeted rewrite: revise one passage in place per an instruction. The rest
-  // of the book is untouched (unlike "edit from here", which forks).
+  // Targeted rewrite: revise one passage in place per an instruction and/or the
+  // length & scope controls. The rest of the book is untouched (unlike "edit
+  // from here", which forks).
+  const rewriteReady = !!rewriteText.trim() || rewriteLen !== "same" || rewriteScope !== "light";
   const submitRewrite = useCallback(async () => {
-    if (generating || !rewriteFor || !rewriteText.trim()) return;
+    if (generating || !rewriteFor) return;
+    if (!rewriteText.trim() && rewriteLen === "same" && rewriteScope === "light") return;
     const turnId = rewriteFor.id;
-    const instruction = rewriteText.trim();
+    const payload = {
+      turnId,
+      instruction: rewriteText.trim(),
+      length: rewriteLen,
+      scope: rewriteScope,
+    };
     setRewriteFor(null);
     setRewriteText("");
-    await consumeStream(`/api/books/${id}/rewrite`, { turnId, instruction }, {
+    await consumeStream(`/api/books/${id}/rewrite`, payload, {
       onDone: (b) => {
         pendingJump.current = turnId;
         setAnimTurn(turnId);
@@ -927,7 +941,23 @@ export default function BookStudio() {
         setBook(b);
       },
     });
-  }, [generating, rewriteFor, rewriteText, id, consumeStream]);
+  }, [generating, rewriteFor, rewriteText, rewriteLen, rewriteScope, id, consumeStream]);
+
+  // Hand edit: replace the passage's text exactly as typed (snapshotted server-side).
+  const saveManualEdit = useCallback(async () => {
+    if (!rewriteFor || manualSaving || !rewriteManual.trim()) return;
+    const turnId = rewriteFor.id;
+    setManualSaving(true);
+    const ok = await save({ editTurn: { turnId, text: rewriteManual } }, turnId);
+    setManualSaving(false);
+    if (!ok) {
+      setBanner("Could not save the edit — try again.");
+      return;
+    }
+    setRewriteFor(null);
+    setAnimTurn(turnId);
+    setBanner("");
+  }, [rewriteFor, manualSaving, rewriteManual, save]);
 
   // One-tap tell fixing: line-edit the latest AI section with the linter's
   // findings as the repair list. In-place; the prior version goes to History.
@@ -2014,6 +2044,10 @@ export default function BookStudio() {
                         onClick={() => {
                           if (!currentTurn || generating) return;
                           setRewriteText("");
+                          setRewriteMode("ai");
+                          setRewriteLen("same");
+                          setRewriteScope("light");
+                          setRewriteManual(currentTurn.text);
                           setRewriteFor({ id: currentTurn.id, text: currentTurn.text });
                         }}
                       >
@@ -2497,47 +2531,128 @@ export default function BookStudio() {
       )}
 
       {rewriteFor && (
-        <div className="fulledit-scrim" onClick={() => setRewriteFor(null)}>
+        <div className="fulledit-scrim" onClick={() => !manualSaving && setRewriteFor(null)}>
           <div className="fulledit-modal rewrite-modal" onClick={(e) => e.stopPropagation()}>
             <div className="fulledit-head">
               <div>
-                <div className="fulledit-title">Rewrite this passage</div>
+                <div className="fulledit-title">Rework this passage</div>
                 <div className="fulledit-sub">
-                  Say how it should change — tenser, slower, from her point of view, less dialogue…
-                  Only this passage is rewritten; everything before and after stays exactly as it is,
-                  and the old version is kept in History.
+                  Only this passage changes; everything before and after stays exactly as it is, and
+                  the old version is kept in History.
                 </div>
               </div>
-              <button className="btn btn-ghost" onClick={() => setRewriteFor(null)}>
+              <button className="btn btn-ghost" onClick={() => setRewriteFor(null)} disabled={manualSaving}>
                 Cancel
               </button>
             </div>
-            <div className="rewrite-excerpt">
-              {rewriteFor.text.length > 420
-                ? `${rewriteFor.text.slice(0, 280)} […] ${rewriteFor.text.slice(-120)}`
-                : rewriteFor.text}
-            </div>
-            <textarea
-              className="arc-text rewrite-instruction"
-              rows={3}
-              maxLength={600}
-              value={rewriteText}
-              onChange={(e) => setRewriteText(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                  e.preventDefault();
-                  submitRewrite();
-                }
-              }}
-              placeholder="e.g. Make this scene tenser — shorter sentences, and end on the knock at the door."
-              autoFocus
-            />
-            <div className="fulledit-foot">
-              <span className="fulledit-count">{countWords(rewriteFor.text).toLocaleString()} words</span>
-              <button className="btn btn-primary" onClick={submitRewrite} disabled={!rewriteText.trim() || generating}>
-                Rewrite it →
+
+            <div className="rw-tabs" role="tablist">
+              <button
+                className={`rw-tab${rewriteMode === "ai" ? " is-on" : ""}`}
+                role="tab"
+                aria-selected={rewriteMode === "ai"}
+                onClick={() => setRewriteMode("ai")}
+              >
+                ✎ AI rewrite
+              </button>
+              <button
+                className={`rw-tab${rewriteMode === "manual" ? " is-on" : ""}`}
+                role="tab"
+                aria-selected={rewriteMode === "manual"}
+                onClick={() => setRewriteMode("manual")}
+              >
+                ✍ Edit by hand
               </button>
             </div>
+
+            {rewriteMode === "ai" ? (
+              <>
+                <div className="rewrite-excerpt">
+                  {rewriteFor.text.length > 420
+                    ? `${rewriteFor.text.slice(0, 280)} […] ${rewriteFor.text.slice(-120)}`
+                    : rewriteFor.text}
+                </div>
+                <textarea
+                  className="arc-text rewrite-instruction"
+                  rows={3}
+                  maxLength={600}
+                  value={rewriteText}
+                  onChange={(e) => setRewriteText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                      e.preventDefault();
+                      submitRewrite();
+                    }
+                  }}
+                  placeholder="Optional with the controls below — e.g. Make this scene tenser, and end on the knock at the door."
+                  autoFocus
+                />
+                <div className="rw-controls">
+                  <div className="rw-control">
+                    <span className="rw-control-k">Length</span>
+                    {[
+                      ["shorter", "Shorter"],
+                      ["same", "About the same"],
+                      ["longer", "Longer"],
+                    ].map(([v, label]) => (
+                      <button
+                        key={v}
+                        className={`rw-chip${rewriteLen === v ? " is-on" : ""}`}
+                        onClick={() => setRewriteLen(v)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="rw-control">
+                    <span className="rw-control-k">Scope</span>
+                    <button
+                      className={`rw-chip${rewriteScope === "light" ? " is-on" : ""}`}
+                      onClick={() => setRewriteScope("light")}
+                      title="Keep every event and the passage's structure — improve the telling"
+                    >
+                      Light touch
+                    </button>
+                    <button
+                      className={`rw-chip${rewriteScope === "free" ? " is-on" : ""}`}
+                      onClick={() => setRewriteScope("free")}
+                      title="The AI may restructure the passage and change how its events unfold"
+                    >
+                      Free hand
+                    </button>
+                  </div>
+                </div>
+                <div className="fulledit-foot">
+                  <span className="fulledit-count">{countWords(rewriteFor.text).toLocaleString()} words</span>
+                  <button className="btn btn-primary" onClick={submitRewrite} disabled={!rewriteReady || generating}>
+                    Rewrite it →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <textarea
+                  className="rw-manual"
+                  value={rewriteManual}
+                  onChange={(e) => setRewriteManual(e.target.value)}
+                  spellCheck
+                  autoFocus
+                />
+                <div className="fulledit-foot">
+                  <span className="fulledit-count">
+                    {countWords(rewriteManual).toLocaleString()} words
+                    {rewriteManual !== rewriteFor.text ? " · edited" : ""}
+                  </span>
+                  <button
+                    className="btn btn-primary"
+                    onClick={saveManualEdit}
+                    disabled={manualSaving || !rewriteManual.trim() || rewriteManual === rewriteFor.text}
+                  >
+                    {manualSaving ? "Saving…" : "Save the passage"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
