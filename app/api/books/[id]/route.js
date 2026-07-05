@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { applyPatch, countWords, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, sectionCount } from "@/lib/book";
+import { applyPatch, countWords, splitChapterAt, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, sectionCount } from "@/lib/book";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
@@ -121,6 +121,21 @@ export async function PUT(request, { params }) {
     await refreshAnalysis(book, book.analysis && book.analysis.updatedAt ? book.analysis : null);
     await saveBook(book);
     return NextResponse.json({ book: publicBook(book) });
+  }
+
+  // Retroactive chapter split: begin a new chapter at a paragraph inside an
+  // existing passage (splitting the passage when needed). Text is unchanged,
+  // so no analysis refresh — just a snapshot for reversibility.
+  if (body.splitChapter && typeof body.splitChapter === "object") {
+    const { turnId, paraIndex, title } = body.splitChapter;
+    const result = splitChapterAt(book, String(turnId || ""), paraIndex, title);
+    if (typeof result === "string") {
+      const status = /no longer exists/.test(result) ? 404 : 400;
+      return NextResponse.json({ error: result }, { status });
+    }
+    await saveSnapshot(book, "Before splitting a chapter");
+    await saveBook(result);
+    return NextResponse.json({ book: publicBook(result) });
   }
 
   let next = applyPatch(book, body);

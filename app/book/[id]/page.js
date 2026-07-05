@@ -214,6 +214,13 @@ export default function BookStudio() {
   const [manualSaving, setManualSaving] = useState(false);
   const [castOpen, setCastOpen] = useState(false);
   const [audiobookOpen, setAudiobookOpen] = useState(false);
+  const [findOpen, setFindOpen] = useState(false); // search & bookmarks drawer
+  const [findQuery, setFindQuery] = useState("");
+  const [bookmarks, setBookmarks] = useState([]); // { id, turnId, snippet, at } — this device only
+  const [splitFor, setSplitFor] = useState(null); // { id, paras } — passage awaiting a chapter split
+  const [splitPara, setSplitPara] = useState(0);
+  const [splitTitle, setSplitTitle] = useState("");
+  const [splitSaving, setSplitSaving] = useState(false);
   const [auditBusy, setAuditBusy] = useState(false);
   const [audit, setAudit] = useState(null); // { findings, at } from the last consistency check
   const [auditErr, setAuditErr] = useState("");
@@ -324,6 +331,19 @@ export default function BookStudio() {
   useEffect(() => {
     if (book && book.ended && composing) setComposing(false);
   }, [book, composing]);
+
+  // Escape closes the inline overlays (find drawer, chapter-split dialog).
+  useEffect(() => {
+    if (!findOpen && !splitFor) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setFindOpen(false);
+        setSplitFor(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [findOpen, splitFor]);
   const prefilledRef = useRef(null); // guide mode: the last-turn id we've pre-filled a suggestion for
 
   // ---- load ----
@@ -710,6 +730,54 @@ export default function BookStudio() {
   }, [book]);
   const proseTells = useMemo(() => (lastAiText ? lintProse(lastAiText) : []), [lastAiText]);
 
+  // ---- bookmarks: device-local, anchored to turn ids (stable across edits) ----
+  const bmKey = `loom-bookmarks-${id}`;
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(bmKey);
+      if (raw) setBookmarks(JSON.parse(raw));
+    } catch {}
+  }, [bmKey]);
+  useEffect(() => {
+    try {
+      if (bookmarks.length) window.localStorage.setItem(bmKey, JSON.stringify(bookmarks));
+      else window.localStorage.removeItem(bmKey);
+    } catch {}
+  }, [bookmarks, bmKey]);
+  // Drop bookmarks whose passage no longer exists (forks, restores).
+  useEffect(() => {
+    if (!book) return;
+    const ids = new Set((book.turns || []).map((t) => t.id));
+    setBookmarks((prev) => (prev.some((b) => !ids.has(b.turnId)) ? prev.filter((b) => ids.has(b.turnId)) : prev));
+  }, [book]);
+
+  // Full-book search over the PAGINATED text, so results jump to exact pages.
+  const searchResults = useMemo(() => {
+    const q = findQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const out = [];
+    for (let pi = 0; pi < pages.length; pi++) {
+      for (const run of pages[pi]) {
+        if (!run.paras) continue;
+        for (const p of run.paras) {
+          const at = p.text.toLowerCase().indexOf(q);
+          if (at < 0) continue;
+          const start = Math.max(0, at - 40);
+          out.push({
+            page: pi,
+            before: (start > 0 ? "…" : "") + p.text.slice(start, at),
+            match: p.text.slice(at, at + q.length),
+            after:
+              p.text.slice(at + q.length, at + q.length + 60) +
+              (at + q.length + 60 < p.text.length ? "…" : ""),
+          });
+          if (out.length >= 80) return out;
+        }
+      }
+    }
+    return out;
+  }, [findQuery, pages]);
+
   // Words per chapter, for the pacing bars.
   const chapterRows = useMemo(() => {
     if (!book) return [];
@@ -1013,6 +1081,63 @@ export default function BookStudio() {
     },
     [book, save, guideMode]
   );
+
+  // Bookmark the passage the current page belongs to (toggle).
+  const pageMarked = !!currentTurn && bookmarks.some((b) => b.turnId === currentTurn.id);
+  function toggleBookmark() {
+    if (!currentTurn) return;
+    if (pageMarked) {
+      setBookmarks((prev) => prev.filter((b) => b.turnId !== currentTurn.id));
+      return;
+    }
+    const firstPara = currentRuns.find((r) => r.paras && r.paras.length);
+    const snippet = ((firstPara && firstPara.paras[0].text) || currentTurn.text).slice(0, 90);
+    setBookmarks((prev) => [
+      ...prev,
+      { id: `b${Date.now().toString(36)}`, turnId: currentTurn.id, snippet, at: Date.now() },
+    ]);
+  }
+
+  // Retroactive chapter split: pick the paragraph a new chapter opens with.
+  function openSplit() {
+    if (!currentTurn || generating) return;
+    const paras = String(currentTurn.text)
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    setSplitPara(paras.length > 1 ? 1 : 0);
+    setSplitTitle("");
+    setSplitFor({ id: currentTurn.id, paras });
+  }
+  async function submitSplit() {
+    if (!splitFor || splitSaving) return;
+    setSplitSaving(true);
+    try {
+      const res = await fetch(`/api/books/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          splitChapter: { turnId: splitFor.id, paraIndex: splitPara, title: splitTitle },
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBanner(d.error || "Could not start the chapter here.");
+        return;
+      }
+      const b = d.book;
+      const oi = b.turns.findIndex((t) => t.id === splitFor.id);
+      const target = splitPara > 0 && b.turns[oi + 1] ? b.turns[oi + 1].id : splitFor.id;
+      pendingJump.current = target;
+      setSplitFor(null);
+      setBanner("");
+      setBook(b);
+    } catch {
+      setBanner("Network error — try again.");
+    } finally {
+      setSplitSaving(false);
+    }
+  }
 
   // On-demand consistency audit (read-only — nothing on the book changes).
   async function runAudit() {
@@ -1746,6 +1871,9 @@ export default function BookStudio() {
                 Notes
               </button>
             )}
+            <button className="btn btn-ghost" onClick={() => setFindOpen(true)}>
+              Find{bookmarks.length ? ` (${bookmarks.length})` : ""}
+            </button>
             <button className="btn btn-ghost" onClick={() => setChaptersOpen(true)}>
               Chapters
             </button>
@@ -2037,6 +2165,19 @@ export default function BookStudio() {
                         onClick={() => currentTurn && editFromHere(currentTurn.id)}
                       >
                         Edit from here ↺
+                      </button>
+                      <button
+                        className={`bm-ribbon${pageMarked ? " is-on" : ""}`}
+                        title={pageMarked ? "Remove bookmark" : "Bookmark this passage (saved on this device)"}
+                        aria-label={pageMarked ? "Remove bookmark" : "Bookmark this passage"}
+                        onClick={toggleBookmark}
+                      />
+                      <button
+                        className="edit-here-fab chapter-fab"
+                        title="Begin a new chapter inside this passage — pick the paragraph it opens with"
+                        onClick={openSplit}
+                      >
+                        ❡ Chapter here
                       </button>
                       <button
                         className="edit-here-fab rewrite-fab"
@@ -2762,6 +2903,130 @@ export default function BookStudio() {
             setBook(b);
           }}
         />
+      )}
+      {findOpen && (
+        <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && setFindOpen(false)}>
+          <div className="drawer" role="dialog" aria-modal="true" aria-label="Find and bookmarks">
+            <div className="drawer-head">
+              <h3>Find</h3>
+              <button className="btn btn-ghost x" onClick={() => setFindOpen(false)} aria-label="Close">
+                Close
+              </button>
+            </div>
+            <input
+              className="text-input find-input"
+              value={findQuery}
+              onChange={(e) => setFindQuery(e.target.value)}
+              placeholder="Search the whole book…"
+              autoFocus
+            />
+            {findQuery.trim().length >= 2 && (
+              <div className="find-results">
+                <div className="find-count">
+                  {searchResults.length === 0
+                    ? "No matches."
+                    : `${searchResults.length}${searchResults.length >= 80 ? "+" : ""} match${
+                        searchResults.length === 1 ? "" : "es"
+                      }`}
+                </div>
+                {searchResults.map((r, ri) => (
+                  <button
+                    key={ri}
+                    className="find-result"
+                    onClick={() => {
+                      turnTo(r.page);
+                      setFindOpen(false);
+                    }}
+                  >
+                    <span className="fr-page">p.{r.page + 1}</span>
+                    <span className="fr-snip">
+                      {r.before}
+                      <mark>{r.match}</mark>
+                      {r.after}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="find-bm-head">Bookmarks</div>
+            {bookmarks.length === 0 ? (
+              <div className="find-bm-empty">
+                None yet — use the ribbon in the top corner of any page. Bookmarks are saved on this
+                device.
+              </div>
+            ) : (
+              <div className="find-bm-list">
+                {bookmarks.map((b) => (
+                  <div className="find-bm" key={b.id}>
+                    <button
+                      className="find-result"
+                      onClick={() => {
+                        const p = turnStart[b.turnId];
+                        if (p != null) turnTo(p);
+                        setFindOpen(false);
+                      }}
+                    >
+                      <span className="fr-page">p.{(turnStart[b.turnId] ?? 0) + 1}</span>
+                      <span className="fr-snip">{b.snippet}…</span>
+                    </button>
+                    <button
+                      className="arc-remove"
+                      onClick={() => setBookmarks((prev) => prev.filter((x) => x.id !== b.id))}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {splitFor && (
+        <div className="fulledit-scrim" onClick={() => !splitSaving && setSplitFor(null)}>
+          <div className="fulledit-modal rewrite-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="fulledit-head">
+              <div>
+                <div className="fulledit-title">New chapter inside this passage</div>
+                <div className="fulledit-sub">
+                  Pick the paragraph the chapter should open with — the passage is split at that
+                  point and the chapter begins on a fresh page. Reversible from History.
+                </div>
+              </div>
+              <button className="btn btn-ghost" onClick={() => setSplitFor(null)} disabled={splitSaving}>
+                Cancel
+              </button>
+            </div>
+            <div className="split-list">
+              {splitFor.paras.map((p, pi) => (
+                <button
+                  key={pi}
+                  className={`split-para${splitPara === pi ? " is-on" : ""}`}
+                  onClick={() => setSplitPara(pi)}
+                >
+                  <span className="split-mark">{splitPara === pi ? "❡" : String(pi + 1)}</span>
+                  <span className="split-text">{p.length > 180 ? `${p.slice(0, 180)}…` : p}</span>
+                </button>
+              ))}
+            </div>
+            <input
+              className="text-input split-title"
+              value={splitTitle}
+              maxLength={120}
+              onChange={(e) => setSplitTitle(e.target.value)}
+              placeholder="Chapter title (optional)"
+            />
+            <div className="fulledit-foot">
+              <span className="fulledit-count">
+                opens with paragraph {splitPara + 1} of {splitFor.paras.length}
+              </span>
+              <button className="btn btn-primary" onClick={submitSplit} disabled={splitSaving}>
+                {splitSaving ? "Splitting…" : "Begin chapter here →"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {castOpen && (
         <CastDrawer
