@@ -1955,3 +1955,4 @@ textarea.voice-sample { resize: vertical; min-height: 96px; line-height: 1.5; fo
 .tells-list li { color: var(--on-desk); }
 .tells-clean { color: #7fae7f; font-size: 13px; }
 .tells-hint { margin-top: 10px; font-size: 11px; line-height: 1.5; opacity: 0.55; }
+.bible-edit-btn:disabled { opacity: 0.45; cursor: default; }

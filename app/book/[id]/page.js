@@ -796,6 +796,30 @@ export default function BookStudio() {
     });
   }, [generating, rewriteFor, rewriteText, id, consumeStream]);
 
+  // One-tap tell fixing: line-edit the latest AI section with the linter's
+  // findings as the repair list. In-place; the prior version goes to History.
+  const fixTells = useCallback(async () => {
+    if (generating || !proseTells.length) return;
+    const turns = (book && book.turns) || [];
+    let turnId = null;
+    for (let i = turns.length - 1; i >= 0; i--) {
+      if (turns[i].author === "claude" && turns[i].text) {
+        turnId = turns[i].id;
+        break;
+      }
+    }
+    if (!turnId) return;
+    if (isMobile) setNotesOpen(false);
+    await consumeStream(`/api/books/${id}/fix-tells`, {}, {
+      onDone: (b) => {
+        pendingJump.current = turnId;
+        setAnimTurn(turnId);
+        setComposing(false);
+        setBook(b);
+      },
+    });
+  }, [generating, proseTells, book, id, isMobile, consumeStream]);
+
   const saveBible = useCallback(async () => {
     setBibleSaving(true);
     await save({ bible: bibleDraft });
@@ -2097,18 +2121,23 @@ export default function BookStudio() {
             <div className="note-card">
               <div className="k">Prose tells — latest section</div>
               {proseTells.length ? (
-                <ul className="critique-list tells-list">
-                  {proseTells.map((f, ti) => (
-                    <li key={ti}>{f}</li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="critique-list tells-list">
+                    {proseTells.map((f, ti) => (
+                      <li key={ti}>{f}</li>
+                    ))}
+                  </ul>
+                  <button className="bible-edit-btn" onClick={fixTells} disabled={generating}>
+                    {generating ? "Working…" : "✦ Fix these — line-edit the section"}
+                  </button>
+                </>
               ) : (
                 <div className="v tells-clean">✓ Reads clean — no mechanical tells detected.</div>
               )}
               <div className="tells-hint">
                 A deterministic scan for machine-writing patterns (uniform rhythm, “not X, but Y”,
-                stock phrases…). With the polish pass on, these are fed to the line edit automatically;
-                otherwise, Regenerate or a targeted rewrite clears them.
+                stock phrases…). Fixing repairs exactly these findings in place — story events and
+                length stay put, and the prior version is kept in History.
               </div>
             </div>
           )}
