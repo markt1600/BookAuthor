@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes, LARGE_PAGE_SCALE } from "@/lib/book";
+import { lintProse } from "@/lib/craft";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
 import HistoryDrawer from "@/components/HistoryDrawer";
@@ -574,6 +575,16 @@ export default function BookStudio() {
   const draftWords = useMemo(() => countWords(draft), [draft]);
   const committedWords = book ? totalWords(book) : 0;
 
+  // Mechanical tell-scan of the latest AI section, for the notes readout.
+  const lastAiText = useMemo(() => {
+    const turns = (book && book.turns) || [];
+    for (let i = turns.length - 1; i >= 0; i--) {
+      if (turns[i].author === "claude" && turns[i].text) return turns[i].text;
+    }
+    return "";
+  }, [book]);
+  const proseTells = useMemo(() => (lastAiText ? lintProse(lastAiText) : []), [lastAiText]);
+
   const currentRuns = !onWritingPage && pages[currentPage] ? pages[currentPage] : [];
   const pageWords = useMemo(
     () =>
@@ -659,6 +670,12 @@ export default function BookStudio() {
             if (ev.t === "delta") {
               acc += ev.d;
               setStreamText(acc);
+            } else if (ev.t === "take") {
+              // A second, independent take streams from the top; a judge keeps
+              // the more human-sounding of the two.
+              acc = "";
+              setStreamText("");
+              setStreamPhase("second-take");
             } else if (ev.t === "polish") {
               // A second pass rewrites the draft from the top — restart the live view.
               acc = "";
@@ -1604,6 +1621,8 @@ export default function BookStudio() {
                           ? "Binding the page…"
                           : streamPhase === "polishing"
                           ? "Polishing the prose…"
+                          : streamPhase === "second-take"
+                          ? "Writing a second take…"
                           : "The AI author is writing…"}
                       </div>
                       <div
@@ -1817,6 +1836,8 @@ export default function BookStudio() {
                 </span>
                 {streamPhase === "polishing"
                   ? "The AI author is giving the section a polishing pass…"
+                  : streamPhase === "second-take"
+                  ? "The AI author is writing a second take — the more human one will be kept…"
                   : guideMode
                   ? "The AI author is writing the next section…"
                   : `The AI author is writing about ${draftWords} words in your voice…`}
@@ -2072,6 +2093,25 @@ export default function BookStudio() {
               </div>
             )}
           </div>
+          {lastAiText && !ended && (
+            <div className="note-card">
+              <div className="k">Prose tells — latest section</div>
+              {proseTells.length ? (
+                <ul className="critique-list tells-list">
+                  {proseTells.map((f, ti) => (
+                    <li key={ti}>{f}</li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="v tells-clean">✓ Reads clean — no mechanical tells detected.</div>
+              )}
+              <div className="tells-hint">
+                A deterministic scan for machine-writing patterns (uniform rhythm, “not X, but Y”,
+                stock phrases…). With the polish pass on, these are fed to the line edit automatically;
+                otherwise, Regenerate or a targeted rewrite clears them.
+              </div>
+            </div>
+          )}
           {a.continuity && (
             <div className="note-card">
               <div className="k">Story memory</div>

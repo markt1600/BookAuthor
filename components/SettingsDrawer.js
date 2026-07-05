@@ -117,6 +117,28 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
         </div>
 
         <div className="setup-row">
+          <div className="setup-label">Second take</div>
+          <label className="drawer-toggle">
+            <input
+              type="checkbox"
+              checked={!!settings.bestOfTwo}
+              onChange={(e) => change("bestOfTwo", e.target.checked)}
+            />
+            <span className="toggle-track" aria-hidden="true">
+              <span className="toggle-knob" />
+            </span>
+            <span className="toggle-text">
+              <strong>Draft each section twice, keep the better take</strong>
+              <em>
+                The AI writes the section a second time from a different angle, and an editor
+                model keeps whichever take reads more human. Doubles drafting time and cost,
+                so it’s off by default.
+              </em>
+            </span>
+          </label>
+        </div>
+
+        <div className="setup-row">
           <div className="setup-label">Polish pass</div>
           <label className="drawer-toggle">
             <input

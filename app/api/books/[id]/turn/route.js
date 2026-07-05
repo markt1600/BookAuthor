@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, isUsersMove, publicBook, normalizeChapters, sectionCount } from "@/lib/book";
-import { continueStory, guideStory, selfEditSection } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse, authorContext } from "@/lib/generate";
+import { continueStory, guideStory } from "@/lib/claude";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +50,6 @@ export async function POST(request, { params }) {
   }
 
   const priorAnalysis = book.analysis && book.analysis.updatedAt ? book.analysis : null;
-  const selfEdit = Boolean(book.settings && book.settings.selfEdit);
 
   // Open a new chapter at the given turn index, if requested.
   const addChapter = (startTurn) => {
@@ -61,49 +60,34 @@ export async function POST(request, { params }) {
     );
   };
 
-  // Optional polish pass: one streamed line-edit of the fresh section. A
-  // failure here never loses the section — the raw draft stands.
-  const polish = async (draft, send, onDelta) => {
-    if (!selfEdit) return draft;
-    try {
-      send({ t: "polish" });
-      return await selfEditSection({
-        title: book.title,
-        mode: book.mode,
-        guide: book.guide,
-        draft,
-        memory: priorAnalysis,
-        onDelta,
-      });
-    } catch {
-      return draft;
-    }
-  };
-
   // Stream the prose, COMMIT + SAVE + deliver it, THEN refresh the notes as a
   // best-effort follow-up. Decoupling the analysis means a slow second call on a
   // long book can never drop the connection or lose the section that was written.
   return ndjsonResponse(async (send) => {
     try {
-      const onDelta = (d) => send({ t: "delta", d });
-
       let addedTurnIds;
       if (guideMode) {
-        let prose = await guideStory(
-          withContext(book, {
-            title: book.title,
-            author: book.author,
-            guide: book.guide,
-            prompt: text,
-            memory: priorAnalysis,
-            arc: book.arc,
-            sections: sectionCount(book),
-            targetWords: (book.guide && book.guide.sectionWords) || 275,
-            ...authorContext(book),
-            onDelta,
-          })
-        );
-        prose = await polish(prose, send, onDelta);
+        const prose = await produceSection({
+          book,
+          priorAnalysis,
+          send,
+          makeDraft: (onDelta, variant) =>
+            guideStory(
+              withContext(book, {
+                title: book.title,
+                author: book.author,
+                guide: book.guide,
+                prompt: text,
+                memory: priorAnalysis,
+                arc: book.arc,
+                sections: sectionCount(book),
+                targetWords: (book.guide && book.guide.sectionWords) || 275,
+                ...authorContext(book),
+                variant,
+                onDelta,
+              })
+            ),
+        });
         const section = makeTurn("claude", prose, text); // store the originating direction
         book.turns.push(section);
         addChapter(book.turns.length - 1); // chapter opens on the new section
@@ -114,20 +98,26 @@ export async function POST(request, { params }) {
         book.turns.push(userTurn);
         let claudeTurn = null;
         try {
-          let continuation = await continueStory(
-            withContext(book, {
-              title: book.title,
-              author: book.author,
-              settings: book.settings,
-              memory: priorAnalysis,
-              targetWords: countWords(text),
-              arc: book.arc,
-              sections: sectionCount(book),
-              ...authorContext(book),
-              onDelta,
-            })
-          );
-          continuation = await polish(continuation, send, onDelta);
+          const continuation = await produceSection({
+            book,
+            priorAnalysis,
+            send,
+            makeDraft: (onDelta, variant) =>
+              continueStory(
+                withContext(book, {
+                  title: book.title,
+                  author: book.author,
+                  settings: book.settings,
+                  memory: priorAnalysis,
+                  targetWords: countWords(text),
+                  arc: book.arc,
+                  sections: sectionCount(book),
+                  ...authorContext(book),
+                  variant,
+                  onDelta,
+                })
+              ),
+          });
           claudeTurn = makeTurn("claude", continuation);
           book.turns.push(claudeTurn);
         } catch (err) {
