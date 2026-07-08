@@ -1400,6 +1400,29 @@ body {
 }
 .book-page[data-material="midnight"] .suggest-hint { color: var(--brass); }
 
+/* --- the AI is working in the background (opening suggestion being generated,
+   or an autopilot run in progress): pulse the page edge so there's a live
+   graphical signal. Outline (not box-shadow) so the page's own paper shadow
+   is untouched. --- */
+.book-page.is-working {
+  outline: 2px solid rgba(186, 140, 60, 0.25);
+  outline-offset: 3px;
+  animation: working-pulse 1.5s ease-in-out infinite;
+}
+@keyframes working-pulse {
+  0%, 100% { outline-color: rgba(186, 140, 60, 0.18); }
+  50% { outline-color: rgba(186, 140, 60, 0.85); }
+}
+.suggest-hint.suggest-loading { animation: working-text 1.5s ease-in-out infinite; }
+@keyframes working-text {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .book-page.is-working { animation: none; outline-color: rgba(186, 140, 60, 0.6); }
+  .suggest-hint.suggest-loading { animation: none; }
+}
+
 /* let horizontal swipes drive page turns while vertical scroll still works */
 .page-viewport { touch-action: pan-y; }
 

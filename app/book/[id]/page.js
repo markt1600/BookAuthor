@@ -356,6 +356,7 @@ export default function BookStudio() {
   // style/maturity change on a still-blank book fetches a fresh idea, which
   // replaces the old suggestion only if the director hasn't edited it.
   const [openingSuggestion, setOpeningSuggestion] = useState("");
+  const [openingLoading, setOpeningLoading] = useState(false); // fetch in flight — pulse the page edge
   const openingKeyRef = useRef(""); // the guide settings the current fetch was made for
   const openingPrevRef = useRef("");
   useEffect(() => {
@@ -365,21 +366,25 @@ export default function BookStudio() {
     const key = [g.style, g.adult, g.violence, g.sexual, g.language, g.erotica].join("|");
     if (openingKeyRef.current === key) return;
     openingKeyRef.current = key;
+    setOpeningLoading(true);
     (async () => {
+      let ok = false;
       try {
         const res = await fetch(`/api/books/${id}/suggest-opening`, { method: "POST" });
         const d = await res.json().catch(() => ({}));
         if (!res.ok || !d.suggestion) throw new Error("no suggestion");
         if (openingKeyRef.current !== key) return; // settings changed again mid-flight
+        ok = true;
         const prev = openingPrevRef.current;
         openingPrevRef.current = d.suggestion;
         setOpeningSuggestion(d.suggestion);
         // Fill an empty composer, or replace a prior suggestion left untouched —
         // never clobber words the director typed themselves.
         setDraft((cur) => (!cur.trim() || cur.trim() === prev.trim() ? d.suggestion : cur));
-      } catch {
-        if (openingKeyRef.current === key) openingKeyRef.current = ""; // allow a retry
-      }
+      } catch {}
+      if (openingKeyRef.current !== key) return; // a newer fetch owns the loading state
+      setOpeningLoading(false);
+      if (!ok) openingKeyRef.current = ""; // allow a retry on the next book update
     })();
   }, [book, id]);
 
@@ -2047,7 +2052,9 @@ export default function BookStudio() {
                   {generating ? (
                     <div
                       key="live"
-                      className={`book-page paper is-writing is-live${guideMode ? " is-direction" : ""}`}
+                      className={`book-page paper is-writing is-live${guideMode ? " is-direction" : ""}${
+                        autoLeft > 0 ? " is-working" : ""
+                      }`}
                       data-material={s.material}
                       style={{ padding: `${geom.padY}px ${geom.padX}px` }}
                     >
@@ -2086,7 +2093,7 @@ export default function BookStudio() {
                       key="writing"
                       className={`book-page paper is-writing ${flipClass}${generating ? " is-busy" : ""}${
                         guideMode ? " is-direction" : ""
-                      }`}
+                      }${openingLoading || autoLeft > 0 ? " is-working" : ""}`}
                       data-material={s.material}
                       style={{ padding: `${geom.padY}px ${geom.padX}px` }}
                     >
@@ -2138,6 +2145,12 @@ export default function BookStudio() {
                               </span>
                             </div>
                           )}
+                        </div>
+                      )}
+                      {guideMode && openingLoading && !draftIsSuggestion && (
+                        <div className="suggest-hint suggest-loading">
+                          ✦ The AI is sketching a suggested opening in your chosen author's style — or just start
+                          writing your own.
                         </div>
                       )}
                       {guideMode && draftIsSuggestion && (
@@ -2209,7 +2222,7 @@ export default function BookStudio() {
                   ) : (
                     <div
                       key={`p${currentPage}`}
-                      className={`book-page paper ${flipClass}`}
+                      className={`book-page paper ${flipClass}${autoLeft > 0 ? " is-working" : ""}`}
                       data-material={s.material}
                       style={{ padding: `${geom.padY}px ${geom.padX}px` }}
                     >
