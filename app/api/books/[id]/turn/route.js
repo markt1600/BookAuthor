@@ -81,7 +81,7 @@ export async function POST(request, { params }) {
                 memory: priorAnalysis,
                 arc: book.arc,
                 sections: sectionCount(book),
-                targetWords: (book.guide && book.guide.sectionWords) || 275,
+                targetWords: (book.guide && book.guide.sectionWords) || 500,
                 ...authorContext(book),
                 variant,
                 onDelta,

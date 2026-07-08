@@ -177,7 +177,7 @@ export default function Home() {
             </div>
             <p className="landing-foot">
               {guideMode
-                ? "You'll describe each section; the AI writes ~275 words at a time. Every choice here is editable later."
+                ? "You'll describe each section; the AI writes ~500 words at a time. Every choice here is editable later."
                 : "Defaults are ready — you can change the title and every design choice later, on any page."}
             </p>
           </div>

@@ -2062,8 +2062,8 @@ export default function BookStudio() {
                         placeholder={
                           guideMode
                             ? book.turns.length === 0
-                              ? "Describe how the story opens — the character, the place, the moment. A line or a paragraph is plenty; the AI will write ~275 words from it."
-                              : "Describe what happens next in this section. Steer the characters, the turn, the tone — the AI writes ~275 words from your direction."
+                              ? "Describe how the story opens — the character, the place, the moment. A line or a paragraph is plenty; the AI will write ~500 words from it."
+                              : "Describe what happens next in this section. Steer the characters, the turn, the tone — the AI writes ~500 words from your direction."
                             : book.turns.length === 0
                             ? "Begin your story. Write as much or as little as you like — the AI author will answer with about the same length, in your voice."
                             : "Write the next passage…"
