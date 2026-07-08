@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes, LARGE_PAGE_SCALE } from "@/lib/book";
+import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE } from "@/lib/book";
 import { lintProse } from "@/lib/craft";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
@@ -345,6 +345,39 @@ export default function BookStudio() {
     return () => window.removeEventListener("keydown", onKey);
   }, [findOpen, splitFor]);
   const prefilledRef = useRef(null); // guide mode: the last-turn id we've pre-filled a suggestion for
+
+  // Blank guide book with an author style (Hemingway / Murakami / Burdett):
+  // ask the model for a suggested opening idea in that author's territory
+  // (honoring the maturity settings) and pre-fill the composer with it. A
+  // style/maturity change on a still-blank book fetches a fresh idea, which
+  // replaces the old suggestion only if the director hasn't edited it.
+  const [openingSuggestion, setOpeningSuggestion] = useState("");
+  const openingKeyRef = useRef(""); // the guide settings the current fetch was made for
+  const openingPrevRef = useRef("");
+  useEffect(() => {
+    if (!book || book.mode !== "guide" || (book.turns || []).length || book.ended) return;
+    const g = book.guide || {};
+    if (!STYLE_PROFILE[g.style]) return;
+    const key = [g.style, g.adult, g.violence, g.sexual, g.language, g.erotica].join("|");
+    if (openingKeyRef.current === key) return;
+    openingKeyRef.current = key;
+    (async () => {
+      try {
+        const res = await fetch(`/api/books/${id}/suggest-opening`, { method: "POST" });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.suggestion) throw new Error("no suggestion");
+        if (openingKeyRef.current !== key) return; // settings changed again mid-flight
+        const prev = openingPrevRef.current;
+        openingPrevRef.current = d.suggestion;
+        setOpeningSuggestion(d.suggestion);
+        // Fill an empty composer, or replace a prior suggestion left untouched —
+        // never clobber words the director typed themselves.
+        setDraft((cur) => (!cur.trim() || cur.trim() === prev.trim() ? d.suggestion : cur));
+      } catch {
+        if (openingKeyRef.current === key) openingKeyRef.current = ""; // allow a retry
+      }
+    })();
+  }, [book, id]);
 
   // ---- load ----
   useEffect(() => {
@@ -1765,7 +1798,11 @@ export default function BookStudio() {
   const perWord = 26;
   const flipClass = nav === "next" ? "flip-next" : nav === "prev" ? "flip-prev" : "";
   const turnLabel = guideMode ? "Section" : "Turn";
-  const suggestion = guideMode && book.analysis ? book.analysis.nextDirection || "" : "";
+  const suggestion = guideMode
+    ? book.turns.length === 0
+      ? openingSuggestion
+      : (book.analysis && book.analysis.nextDirection) || ""
+    : "";
   const draftIsSuggestion = !!suggestion && draft.trim() === suggestion.trim();
 
   const proseStyle = {
@@ -2028,7 +2065,9 @@ export default function BookStudio() {
                       )}
                       {guideMode && draftIsSuggestion && (
                         <div className="suggest-hint">
-                          ✎ Suggested next direction — accept it as is, or rewrite it to steer your own way.
+                          {book.turns.length === 0
+                            ? "✎ A suggested opening in your chosen author's style — accept it as is, or rewrite it to steer your own way."
+                            : "✎ Suggested next direction — accept it as is, or rewrite it to steer your own way."}
                         </div>
                       )}
                       <button
