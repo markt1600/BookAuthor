@@ -187,6 +187,10 @@ export default function BookStudio() {
   const [currentPage, setCurrentPage] = useState(0);
   const [draft, setDraft] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [autoPilot, setAutoPilot] = useState(false); // guide: keep writing after this direction
+  const [autoCount, setAutoCount] = useState(3); // 1..5 sections per autopilot run
+  const [autoLeft, setAutoLeft] = useState(0); // sections still to write in the running batch
+  const autoStopRef = useRef(false); // set to finish the current section and stop
   const [streamText, setStreamText] = useState(""); // live prose as it's written
   const [streamPhase, setStreamPhase] = useState("idle"); // 'idle' | 'writing' | 'finalizing'
   const [notesRefreshing, setNotesRefreshing] = useState(false); // notes re-reading after a section lands
@@ -985,23 +989,63 @@ export default function BookStudio() {
     [id]
   );
 
+  // The freshest suggested next direction, persisted server-side after each
+  // section's analysis refresh — what autopilot feeds back in as the next prompt.
+  const fetchNextDirection = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/books/${id}`);
+      if (!r.ok) return "";
+      const d = await r.json();
+      return (d.book && d.book.analysis && d.book.analysis.nextDirection) || "";
+    } catch {
+      return "";
+    }
+  }, [id]);
+
   const submitTurn = useCallback(async () => {
     if (!draft.trim() || generating) return;
     const wasNewChapter = newChapter;
     if (wasNewChapter) setNewChapter(false);
-    await consumeStream(`/api/books/${id}/turn`, { text: draft, newChapter: wasNewChapter }, {
-      onDone: (b) => {
-        // The book already includes the new chapter (added server-side), so a
-        // single update paginates once and the jump lands on the right page.
-        const aiTurn = b.turns[b.turns.length - 1];
-        pendingJump.current = aiTurn ? aiTurn.id : null;
-        setAnimTurn(aiTurn ? aiTurn.id : null);
-        setComposing(false);
-        setDraft("");
-        setBook(b);
-      },
-    });
-  }, [draft, generating, id, newChapter, consumeStream]);
+    const sendSection = (text, chapter) =>
+      consumeStream(`/api/books/${id}/turn`, { text, newChapter: chapter }, {
+        onDone: (b) => {
+          // The book already includes the new chapter (added server-side), so a
+          // single update paginates once and the jump lands on the right page.
+          const aiTurn = b.turns[b.turns.length - 1];
+          pendingJump.current = aiTurn ? aiTurn.id : null;
+          setAnimTurn(aiTurn ? aiTurn.id : null);
+          setComposing(false);
+          setDraft("");
+          setBook(b);
+        },
+      });
+    // Autopilot (guide mode): after the directed section, keep going — one
+    // section at a time, each driven by the AI's own suggested next direction.
+    const total = guideMode && autoPilot ? Math.min(5, Math.max(1, autoCount)) : 1;
+    autoStopRef.current = false;
+    if (total > 1) setAutoLeft(total);
+    try {
+      if (!(await sendSection(draft, wasNewChapter))) return;
+      for (let i = 1; i < total && !autoStopRef.current; i++) {
+        setAutoLeft(total - i);
+        const direction = await fetchNextDirection();
+        if (!direction) {
+          setBanner("Autopilot stopped — no suggested direction was available for the next section.");
+          return;
+        }
+        if (autoStopRef.current) return;
+        if (!(await sendSection(direction, false))) return;
+      }
+    } finally {
+      setAutoLeft(0);
+    }
+  }, [draft, generating, id, newChapter, guideMode, autoPilot, autoCount, consumeStream, fetchNextDirection]);
+
+  // Let the section being written finish, then stop the autopilot batch.
+  const stopAutopilot = useCallback(() => {
+    autoStopRef.current = true;
+    setAutoLeft(0);
+  }, []);
 
   const regenerate = useCallback(async () => {
     if (generating || !book) return;
@@ -2015,6 +2059,8 @@ export default function BookStudio() {
                           : streamPhase === "second-take"
                           ? "Writing a second take…"
                           : "The AI author is writing…"}
+                        {autoLeft > 0 &&
+                          ` · Autopilot — ${autoLeft} section${autoLeft > 1 ? "s" : ""} to go`}
                       </div>
                       <div
                         ref={liveRef}
@@ -2062,6 +2108,37 @@ export default function BookStudio() {
                           />
                           <span>Begin a new chapter here</span>
                         </label>
+                      )}
+                      {guideMode && (
+                        <div className="autopilot-row">
+                          <label
+                            className="chapter-toggle"
+                            title="After this section, the AI keeps going on its own — each new section directed by its own suggested next direction, written one section at a time"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={autoPilot}
+                              onChange={(e) => setAutoPilot(e.target.checked)}
+                            />
+                            <span>Autopilot</span>
+                          </label>
+                          {autoPilot && (
+                            <div className="autopilot-count">
+                              <input
+                                type="range"
+                                min="1"
+                                max="5"
+                                step="1"
+                                value={autoCount}
+                                onChange={(e) => setAutoCount(Number(e.target.value))}
+                                aria-label="How many sections autopilot writes"
+                              />
+                              <span className="range-val">
+                                {autoCount} section{autoCount > 1 ? "s" : ""}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       )}
                       {guideMode && draftIsSuggestion && (
                         <div className="suggest-hint">
@@ -2346,7 +2423,15 @@ export default function BookStudio() {
                   </>
                 )}
               </div>
-              {onWritingPage ? (
+              {autoLeft > 0 ? (
+                <button
+                  className="btn btn-ghost"
+                  onClick={stopAutopilot}
+                  title="Finish the section being written, then stop"
+                >
+                  ⏸ Stop autopilot · {autoLeft} to go
+                </button>
+              ) : onWritingPage ? (
                 <button className="btn btn-primary" onClick={submitTurn} disabled={generating || !draft.trim()}>
                   {generating ? "Weaving…" : guideMode ? "Write this section →" : "Hand to the AI author →"}
                 </button>

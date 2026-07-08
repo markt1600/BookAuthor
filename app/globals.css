@@ -1110,6 +1110,14 @@ a { color: inherit; }
 .book-page[data-material="midnight"] .chapter-toggle { color: rgba(255,255,255,0.55); }
 .chapter-toggle input { accent-color: var(--brass); width: 14px; height: 14px; }
 
+/* --- autopilot (guide mode): keep writing for the next few sections --- */
+.autopilot-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.autopilot-row .chapter-toggle { margin-bottom: 16px; }
+.autopilot-count { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.autopilot-count input[type="range"] { width: 120px; accent-color: var(--brass); }
+.autopilot-count .range-val { min-width: 0; color: rgba(0,0,0,0.5); }
+.book-page[data-material="midnight"] .autopilot-count .range-val { color: rgba(255,255,255,0.55); }
+
 /* --- ink color swatches --- */
 .ink-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ink-swatch {
