@@ -237,6 +237,11 @@ export default function BookStudio() {
   const [copied, setCopied] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [rmSending, setRmSending] = useState(false); // send-to-reMarkable in flight
+  const [rmPairOpen, setRmPairOpen] = useState(false); // one-time pairing dialog
+  const [rmCode, setRmCode] = useState("");
+  const [rmPairBusy, setRmPairBusy] = useState(false);
+  const [rmPairErr, setRmPairErr] = useState("");
 
   const [pages, setPages] = useState([]); // [[run,...], ...]
   const [turnStart, setTurnStart] = useState({}); // turnId -> page index
@@ -1265,6 +1270,61 @@ export default function BookStudio() {
   function exportPdf() {
     window.open(`/book/${id}/print`, "_blank", "noopener");
   }
+
+  // ---- send to reMarkable ----
+  // The server builds a fresh EPUB of the book's CURRENT text and pushes it to
+  // the paired tablet. First use (or a dead pairing) opens the pair dialog.
+  async function sendToRemarkable() {
+    if (rmSending) return;
+    setMoreOpen(false);
+    setRmSending(true);
+    setBanner("");
+    try {
+      const res = await fetch(`/api/books/${id}/remarkable`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 428 || (data && data.code === "not_paired")) {
+        setRmPairErr(data && data.error && res.status !== 428 ? data.error : "");
+        setRmPairOpen(true);
+        return;
+      }
+      if (!res.ok) {
+        setBanner((data && data.error) || "Could not send to reMarkable.");
+        return;
+      }
+      setBanner("Sent to your reMarkable — it will appear on the tablet in a moment.");
+      setTimeout(() => setBanner((b) => (b.startsWith("Sent to your reMarkable") ? "" : b)), 6000);
+    } catch {
+      setBanner("Could not send to reMarkable — network error.");
+    } finally {
+      setRmSending(false);
+    }
+  }
+
+  async function pairRemarkable() {
+    const code = rmCode.trim();
+    if (!code || rmPairBusy) return;
+    setRmPairBusy(true);
+    setRmPairErr("");
+    try {
+      const res = await fetch("/api/remarkable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRmPairErr((data && data.error) || "Pairing failed — try a fresh code.");
+        return;
+      }
+      setRmPairOpen(false);
+      setRmCode("");
+      sendToRemarkable(); // finish what the original click started
+    } catch {
+      setRmPairErr("Network error — try again.");
+    } finally {
+      setRmPairBusy(false);
+    }
+  }
   function onKeyDown(e) {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
@@ -1981,9 +2041,9 @@ export default function BookStudio() {
             <button className="btn btn-ghost" onClick={exportPdf}>
               Export PDF
             </button>
-            <a className="btn btn-ghost" href={`/api/books/${id}/epub`} download>
-              EPUB
-            </a>
+            <button className="btn btn-ghost" onClick={sendToRemarkable} disabled={rmSending}>
+              {rmSending ? "Sending…" : "reMarkable"}
+            </button>
             <button className="btn btn-ghost" onClick={() => setAudiobookOpen(true)}>
               Audiobook
             </button>
@@ -3181,6 +3241,66 @@ export default function BookStudio() {
             await save({ shared: next });
           }}
         />
+      )}
+
+      {rmPairOpen && (
+        <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && setRmPairOpen(false)}>
+          <div className="drawer" role="dialog" aria-modal="true" aria-label="Pair with reMarkable">
+            <div className="drawer-head">
+              <h2>Pair with reMarkable</h2>
+              <button className="btn btn-ghost x" onClick={() => setRmPairOpen(false)} aria-label="Close">
+                Close
+              </button>
+            </div>
+            <div className="setup-row">
+              <div className="pw-section">
+                <div className="pw-status">
+                  One-time setup: connect Loom to your reMarkable account, and this button will send
+                  the book straight to your tablet from then on.
+                </div>
+                <ol style={{ margin: "10px 0 14px", paddingLeft: 20, fontSize: 13.5, lineHeight: 1.7 }}>
+                  <li>
+                    Visit{" "}
+                    <a href="https://my.remarkable.com/device/browser/connect" target="_blank" rel="noreferrer">
+                      my.remarkable.com/device/browser/connect
+                    </a>{" "}
+                    and sign in.
+                  </li>
+                  <li>Copy the one-time code it shows (it expires after a few minutes).</li>
+                  <li>Paste it here and pair.</li>
+                </ol>
+                <input
+                  className="text-input"
+                  value={rmCode}
+                  onChange={(e) => {
+                    setRmCode(e.target.value);
+                    setRmPairErr("");
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && pairRemarkable()}
+                  placeholder="One-time code (e.g. gliuqtne)"
+                  autoFocus
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <div className="pw-actions">
+                  <button
+                    className="btn btn-primary"
+                    onClick={pairRemarkable}
+                    disabled={rmPairBusy || !rmCode.trim()}
+                  >
+                    {rmPairBusy ? "Pairing…" : "Pair & send book"}
+                  </button>
+                </div>
+                {rmPairErr && <div className="pw-err">{rmPairErr}</div>}
+                <div className="pw-hint">
+                  The pairing is stored on the Loom server, so you only do this once. Sending pushes
+                  the book’s current text as an EPUB to your reMarkable cloud, which syncs it to the
+                  tablet.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
