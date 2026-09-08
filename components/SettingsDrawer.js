@@ -117,6 +117,30 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
         </div>
 
         <div className="setup-row">
+          <div className="setup-label">Plan first</div>
+          <label className="drawer-toggle">
+            <input
+              type="checkbox"
+              checked={settings.planFirst !== false}
+              onChange={(e) => change("planFirst", e.target.checked)}
+            />
+            <span className="toggle-track" aria-hidden="true">
+              <span className="toggle-knob" />
+            </span>
+            <span className="toggle-text">
+              <strong>Sketch the beats before writing each section</strong>
+              <em>
+                Before drafting, the AI privately plans the section — what the character wants,
+                what’s in the way, what changes by the end, what’s withheld, and where it ends —
+                then writes from that plan. Keeps sections from being pretty but static. A quick,
+                cheap step, so it’s on by default; the plan is shown under each section’s
+                direction.
+              </em>
+            </span>
+          </label>
+        </div>
+
+        <div className="setup-row">
           <div className="setup-label">Second take</div>
           <label className="drawer-toggle">
             <input

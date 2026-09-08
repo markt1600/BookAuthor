@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { applyPatch, countWords, splitChapterAt, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, sectionCount } from "@/lib/book";
+import { applyPatch, chapterDigest, countWords, currentChapterNum, latestColdRead, splitChapterAt, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, sectionCount } from "@/lib/book";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
-import { refreshAnalysis, resolveDoneSuggestions } from "@/lib/generate";
+import { refreshAnalysis, refreshChapterNotes, resolveDoneSuggestions } from "@/lib/generate";
 
 export const dynamic = "force-dynamic";
 // The full-text edit and the one-time "mark ended" final evaluation both run an
@@ -57,6 +57,9 @@ export async function PUT(request, { params }) {
       // the suggested next direction. Passing prior:null prevents the old analysis
       // (which could keep characters or facts the edit removed) from carrying over.
       try {
+        // The edit re-cuts every chapter, so the chapter notes rebuild too
+        // (bounded per call; the rest catch up on later refreshes).
+        await refreshChapterNotes(merged);
         const analysis = await analyzeStory({
           title: merged.title,
           fullText: manuscriptText(merged),
@@ -64,6 +67,9 @@ export async function PUT(request, { params }) {
           guide: merged.mode === "guide",
           arc: merged.arc,
           sections: sectionCount(merged),
+          digest: chapterDigest(merged),
+          coldRead: latestColdRead(merged),
+          chapterNum: currentChapterNum(merged),
           eroticaLean:
             merged.mode === "guide" &&
             merged.guide &&
@@ -156,6 +162,9 @@ export async function PUT(request, { params }) {
   // full-context setting); un-marking restores normal forward-looking notes.
   if (typeof body.ended === "boolean" && body.ended !== Boolean(book.ended) && next.turns.length) {
     try {
+      // Ending the book closes its last chapter (summary + cold read); reopening
+      // leaves the notes as they are. Either way the digest is passed along.
+      if (body.ended) await refreshChapterNotes(next);
       const analysis = await analyzeStory({
         title: next.title,
         fullText: body.ended ? fullManuscript(next) : manuscriptText(next),
@@ -164,6 +173,9 @@ export async function PUT(request, { params }) {
         arc: next.arc,
         sections: sectionCount(next),
         final: body.ended,
+        digest: chapterDigest(next),
+        coldRead: latestColdRead(next),
+        chapterNum: currentChapterNum(next),
       });
       if (analysis) {
         next.analysis = analysis;

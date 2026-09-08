@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, isUsersMove, publicBook, normalizeChapters, sectionCount } from "@/lib/book";
-import { continueStory, guideStory } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection } from "@/lib/generate";
+import { continueStory, guideStory, planSection } from "@/lib/claude";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -67,11 +67,28 @@ export async function POST(request, { params }) {
     try {
       let addedTurnIds;
       if (guideMode) {
+        const ctx = authorContext(book);
+        const targetWords = (book.guide && book.guide.sectionWords) || 500;
+        const meta = {};
         const prose = await produceSection({
           book,
           priorAnalysis,
           send,
-          makeDraft: (onDelta, variant) =>
+          meta,
+          makePlan: () =>
+            planSection({
+              title: book.title,
+              mode: "guide",
+              guide: book.guide,
+              prompt: text,
+              memory: priorAnalysis,
+              recent: withContext(book, {}).recent || "",
+              arc: book.arc,
+              sections: sectionCount(book),
+              targetWords,
+              ...ctx,
+            }),
+          makeDraft: (onDelta, variant, plan) =>
             guideStory(
               withContext(book, {
                 title: book.title,
@@ -81,14 +98,16 @@ export async function POST(request, { params }) {
                 memory: priorAnalysis,
                 arc: book.arc,
                 sections: sectionCount(book),
-                targetWords: (book.guide && book.guide.sectionWords) || 500,
-                ...authorContext(book),
+                targetWords,
+                ...ctx,
                 variant,
+                plan,
                 onDelta,
               })
             ),
         });
         const section = makeTurn("claude", prose, text); // store the originating direction
+        if (meta.plan) section.plan = meta.plan; // the beat plan that shaped it
         book.turns.push(section);
         addChapter(book.turns.length - 1); // chapter opens on the new section
         addedTurnIds = [section.id];
@@ -98,27 +117,44 @@ export async function POST(request, { params }) {
         book.turns.push(userTurn);
         let claudeTurn = null;
         try {
+          const ctx = authorContext(book);
+          const targetWords = countWords(text);
+          const meta = {};
           const continuation = await produceSection({
             book,
             priorAnalysis,
             send,
-            makeDraft: (onDelta, variant) =>
+            meta,
+            makePlan: () =>
+              planSection({
+                title: book.title,
+                mode: "participate",
+                memory: priorAnalysis,
+                recent: withContext(book, {}).recent || "",
+                arc: book.arc,
+                sections: sectionCount(book),
+                targetWords,
+                ...ctx,
+              }),
+            makeDraft: (onDelta, variant, plan) =>
               continueStory(
                 withContext(book, {
                   title: book.title,
                   author: book.author,
                   settings: book.settings,
                   memory: priorAnalysis,
-                  targetWords: countWords(text),
+                  targetWords,
                   arc: book.arc,
                   sections: sectionCount(book),
-                  ...authorContext(book),
+                  ...ctx,
                   variant,
+                  plan,
                   onDelta,
                 })
               ),
           });
           claudeTurn = makeTurn("claude", continuation);
+          if (meta.plan) claudeTurn.plan = meta.plan;
           book.turns.push(claudeTurn);
         } catch (err) {
           book.turns.pop(); // roll back the user's turn
@@ -135,11 +171,9 @@ export async function POST(request, { params }) {
       // Best-effort notes refresh. refreshAnalysis never throws; re-read the latest
       // book first so we don't clobber any concurrent edit, then merge the notes in.
       await refreshAnalysis(book, priorAnalysis);
-      const latest = (await getBook(id)) || book;
-      latest.analysis = book.analysis;
-      latest.scoreHistory = book.scoreHistory;
+      const latest = carryNotes((await getBook(id)) || book, book);
       await saveBook(latest);
-      send({ t: "analysis", analysis: latest.analysis });
+      send({ t: "analysis", analysis: latest.analysis, chapterNotes: latest.chapterNotes });
     } finally {
       await releaseLock(id, lock);
     }

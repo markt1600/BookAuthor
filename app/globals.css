@@ -1385,6 +1385,51 @@ body {
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--brass); margin-bottom: 5px;
 }
 
+/* the private beat plan a section was written from, folded under its direction */
+.sd-plan { margin-top: 8px; font-style: normal; }
+.sd-plan summary {
+  cursor: pointer; font-family: var(--data); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--brass); opacity: 0.85; list-style: none;
+}
+.sd-plan summary::-webkit-details-marker { display: none; }
+.sd-plan summary::before { content: "▸ "; }
+.sd-plan[open] summary::before { content: "▾ "; }
+.sd-plan-body {
+  margin-top: 6px; padding: 8px 10px; white-space: pre-line; font-size: 12.5px; line-height: 1.5;
+  color: var(--on-desk); opacity: 0.85; background: rgba(0,0,0,0.12); border-radius: 6px;
+}
+
+/* setups-and-payoffs ledger */
+.ledger-list { display: grid; gap: 6px; }
+.ledger-row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: baseline;
+  font-size: 12.5px; line-height: 1.45; color: var(--on-desk);
+}
+.ledger-ch, .ledger-status {
+  font-family: var(--data); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  white-space: nowrap; opacity: 0.7;
+}
+.ledger-row[data-kind="paid"] .ledger-text { opacity: 0.45; text-decoration: line-through; }
+.ledger-row[data-kind="paid"] .ledger-status { color: #7fae7f; }
+.ledger-row[data-kind="stale"] .ledger-status { color: #d9a441; opacity: 1; }
+.ledger-row[data-kind="open"] .ledger-status { color: var(--brass); }
+
+/* fresh-eyes cold read */
+.grip-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.grip-label, .grip-val { font-family: var(--data); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; }
+.grip-meter { flex: 1; }
+.cold-read { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12.5px; line-height: 1.5; }
+.cold-read dt { font-family: var(--data); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); padding-top: 3px; }
+.cold-read dd { margin: 0; color: var(--on-desk); }
+.grip-strip { display: flex; gap: 4px; align-items: flex-end; height: 34px; margin-top: 12px; }
+.grip-chip {
+  position: relative; flex: 1; max-width: 26px; height: 100%; display: flex; align-items: flex-end; justify-content: center;
+  font-family: var(--data); font-size: 9px; color: var(--on-desk-dim); background: var(--desk-3); border-radius: 3px; overflow: hidden;
+}
+.grip-chip i { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, var(--claude-desk), var(--user-desk)); opacity: 0.45; }
+.grip-chip { z-index: 0; }
+.grip-chip::after { content: ""; }
+
 /* the direction composer reads as a note, not a manuscript page */
 .book-page.is-direction .run-tab[data-author="user"] { color: var(--brass); }
 .book-page.is-direction .write-area::placeholder { font-style: italic; }

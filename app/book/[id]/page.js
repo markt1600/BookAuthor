@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE } from "@/lib/book";
+import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE, latestColdRead, closedChapterNotes } from "@/lib/book";
 import { lintProse } from "@/lib/craft";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
@@ -924,6 +924,9 @@ export default function BookStudio() {
             if (ev.t === "delta") {
               acc += ev.d;
               setStreamText(acc);
+            } else if (ev.t === "plan") {
+              // A private beat plan is sketched before the prose starts.
+              setStreamPhase("planning");
             } else if (ev.t === "take") {
               // A second, independent take streams from the top; a judge keeps
               // the more human-sounding of the two.
@@ -952,7 +955,11 @@ export default function BookStudio() {
               setGenerating(false);
               setNotesRefreshing(true);
             } else if (ev.t === "analysis") {
-              setBook((prev) => (prev ? { ...prev, analysis: ev.analysis } : prev));
+              setBook((prev) =>
+                prev
+                  ? { ...prev, analysis: ev.analysis, ...(ev.chapterNotes ? { chapterNotes: ev.chapterNotes } : {}) }
+                  : prev
+              );
               setNotesRefreshing(false);
             }
           }
@@ -1903,6 +1910,12 @@ export default function BookStudio() {
     );
 
   const a = book.analysis || {};
+  // Fresh-eyes notes: the cold read of the most recently closed chapter, and
+  // every closed chapter's grip score for the small strip under it.
+  const coldRead = latestColdRead(book);
+  const gripRows = closedChapterNotes(book)
+    .filter((n) => n.cold && n.cold.grip != null)
+    .map((n) => ({ num: n.num, grip: n.cold.grip }));
   const ended = Boolean(book.ended);
   const perWord = 26;
   const flipClass = nav === "next" ? "flip-next" : nav === "prev" ? "flip-prev" : "";
@@ -2087,6 +2100,12 @@ export default function BookStudio() {
                   <>
                     <span className="sd-mark">▸ your direction</span>
                     {currentTurn.prompt}
+                    {currentTurn.plan && (
+                      <details className="sd-plan" onClick={(e) => e.stopPropagation()}>
+                        <summary>the beat plan it wrote from</summary>
+                        <div className="sd-plan-body">{currentTurn.plan}</div>
+                      </details>
+                    )}
                   </>
                 ) : null}
               </div>
@@ -2125,6 +2144,8 @@ export default function BookStudio() {
                           ? "Polishing the prose…"
                           : streamPhase === "second-take"
                           ? "Writing a second take…"
+                          : streamPhase === "planning"
+                          ? "Sketching the beats…"
                           : "The AI author is writing…"}
                         {autoLeft > 0 &&
                           ` · Autopilot — ${autoLeft} section${autoLeft > 1 ? "s" : ""} to go`}
@@ -2398,6 +2419,8 @@ export default function BookStudio() {
                   ? "The AI author is giving the section a polishing pass…"
                   : streamPhase === "second-take"
                   ? "The AI author is writing a second take — the more human one will be kept…"
+                  : streamPhase === "planning"
+                  ? "The AI author is sketching the section's beats before writing…"
                   : guideMode
                   ? "The AI author is writing the next section…"
                   : `The AI author is writing about ${draftWords} words in your voice…`}
@@ -2731,6 +2754,88 @@ export default function BookStudio() {
                 A deterministic scan for machine-writing patterns (uniform rhythm, “not X, but Y”,
                 stock phrases…). Fixing repairs exactly these findings in place — story events and
                 length stay put, and the prior version is kept in History.
+              </div>
+            </div>
+          )}
+          {!ended && a.ledger && (
+            <div className="note-card">
+              <div className="k">Setups &amp; payoffs</div>
+              <div className="ledger-list">
+                {a.ledger
+                  .split(/\n+/)
+                  .map((line) => line.replace(/^[\s•\-–*]+/, "").trim())
+                  .filter(Boolean)
+                  .map((line, li) => {
+                    // "ch N · the setup · status" — fall back to the raw line.
+                    const parts = line.split(/\s+·\s+/);
+                    const ch = parts.length >= 3 ? parts[0] : "";
+                    const body = parts.length >= 3 ? parts.slice(1, -1).join(" · ") : line;
+                    const status = parts.length >= 3 ? parts[parts.length - 1] : "";
+                    const kind = /paid|resolved/i.test(status) ? "paid" : /stale/i.test(status) ? "stale" : "open";
+                    return (
+                      <div className="ledger-row" data-kind={kind} key={li}>
+                        {ch && <span className="ledger-ch">{ch}</span>}
+                        <span className="ledger-text">{body}</span>
+                        {status && <span className="ledger-status">{status}</span>}
+                      </div>
+                    );
+                  })}
+              </div>
+              <div className="tells-hint">
+                What the book has planted and not yet paid off. The AI author sees this list while writing
+                and is told to pay setups off deliberately — stale ones have waited five chapters or more.
+              </div>
+            </div>
+          )}
+          {coldRead && (
+            <div className="note-card">
+              <div className="k">
+                Fresh eyes — chapter {coldRead.num}
+                {coldRead.title ? ` · ${coldRead.title}` : ""}
+              </div>
+              {coldRead.cold.grip != null && (
+                <div className="grip-row">
+                  <span className="grip-label">Grip</span>
+                  <span className="meter grip-meter">
+                    <i style={{ width: `${coldRead.cold.grip * 10}%` }} />
+                  </span>
+                  <span className="grip-val">{coldRead.cold.grip}/10</span>
+                </div>
+              )}
+              <dl className="cold-read">
+                {coldRead.cold.confused && (
+                  <>
+                    <dt>Confused</dt>
+                    <dd>{coldRead.cold.confused}</dd>
+                  </>
+                )}
+                {coldRead.cold.skimmed && (
+                  <>
+                    <dt>Skimmed</dt>
+                    <dd>{coldRead.cold.skimmed}</dd>
+                  </>
+                )}
+                {coldRead.cold.wanted && (
+                  <>
+                    <dt>Wanted</dt>
+                    <dd>{coldRead.cold.wanted}</dd>
+                  </>
+                )}
+              </dl>
+              {gripRows.length >= 2 && (
+                <div className="grip-strip" title="Grip by chapter, from a reader given each chapter alone">
+                  {gripRows.map((r) => (
+                    <span className="grip-chip" key={r.num} data-grip={r.grip} title={`Chapter ${r.num}: ${r.grip}/10`}>
+                      {r.num}
+                      <i style={{ height: `${Math.max(12, r.grip * 10)}%` }} />
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="tells-hint">
+                A reader handed only this chapter — no memory of the rest of the book — reports where they
+                lost the thread, where they skimmed, and what they wanted next. Runs once each time a chapter
+                closes.
               </div>
             </div>
           )}
