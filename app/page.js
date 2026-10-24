@@ -63,6 +63,7 @@ export default function Home() {
       <main className="landing">
         <div className="landing-inner landing-wide">
           {Mark}
+          <p><Link href='/local-settings'>Local writing models</Link> · <Link href='/admin'>Your library</Link></p>
           <div className="landing-lede">
             <h1 className="lede-title">A book written in two hands, read as one voice.</h1>
             <p className="lede-body">

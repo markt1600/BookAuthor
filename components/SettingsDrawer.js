@@ -200,7 +200,7 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
               <em>
                 Highest fidelity to earlier chapters, but costs more per turn and is
                 best for shorter books. Off by default — Loom otherwise sends a running
-                story-memory plus the opening and recent pages.
+                story-memory plus the opening and recent pages. Local models have a finite context window; requests that exceed it report an error. Layered context is recommended for long books.
               </em>
             </span>
           </label>

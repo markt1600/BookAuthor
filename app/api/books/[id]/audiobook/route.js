@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { offline } from '@/lib/local-config';
 import { getBook } from "@/lib/store";
 import { chapterText } from "@/lib/book";
 import { bookUnlocked } from "@/lib/admin";
@@ -37,6 +38,7 @@ function chunkText(text) {
 
 // GET /api/books/[id]/audiobook?chapter=N — one chapter as a downloadable MP3.
 export async function GET(request, { params }) {
+  if (offline) return NextResponse.json({error:'Audiobook synthesis is not enabled in this offline installation.'},{status:503});
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });

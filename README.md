@@ -1,5 +1,8 @@
 # Loom — a co-writing studio
 
+> **GPD offline branch:** see [OFFLINE.md](OFFLINE.md) for local models,
+> persistent SQLite storage, installation, backups, and offline limitations.
+
 Loom is a studio for writing a novel with an AI author, two ways. **Write together** and you trade passages — you write, and the AI answers in your voice, at about the same length, matching the genre and tone you've established. Or **guide the story** and you direct while the AI writes every line, section by section, from your instructions. Either way the book is woven into one voice and read as a real, page-turning manuscript.
 
 ## Two ways to write

@@ -1564,7 +1564,12 @@ export default function BookStudio() {
     } catch {}
     const u = new SpeechSynthesisUtterance(text);
     u.rate = Math.min(2, Math.max(0.5, speedRef.current));
-    if (deviceVoiceRef.current) u.voice = deviceVoiceRef.current;
+    if (!deviceVoiceRef.current) {
+      setBanner('No offline speech voice is installed in this browser.');
+      stopReading();
+      return;
+    }
+    u.voice = deviceVoiceRef.current;
     u.onend = () => {
       if (!readingRef.current || readIdxRef.current !== index) return;
       const next = index + 1;
@@ -1743,7 +1748,7 @@ export default function BookStudio() {
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     const pick = () => {
-      const vs = window.speechSynthesis.getVoices();
+      const vs = window.speechSynthesis.getVoices().filter(v => v.localService);
       if (!vs || !vs.length) return;
       const en =
         vs.find((v) => /^en[-_]/i.test(v.lang) && v.default) ||

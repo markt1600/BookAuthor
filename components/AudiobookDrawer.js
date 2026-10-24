@@ -81,8 +81,8 @@ export default function AudiobookDrawer({ book, onClose }) {
 
         {ttsOk === false && (
           <div className="pw-err" style={{ marginBottom: 14 }}>
-            The natural voice isn't configured on this server (ELEVENLABS_API_KEY) — audiobook
-            export needs it. Read-aloud's on-device voice can't produce files.
+            Audiobook synthesis is not enabled in this offline installation. EPUB and PDF
+            exports remain available. Device read-aloud depends on an installed local voice.
           </div>
         )}
         {err && (

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { secureCookies } from '@/lib/admin';
 import { adminConfigured, checkPassword, adminToken, ADMIN_COOKIE } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export async function POST(request) {
   res.cookies.set(ADMIN_COOKIE, adminToken(), {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies,
     path: "/",
     maxAge: 60 * 60 * 12, // 12 hours
   });

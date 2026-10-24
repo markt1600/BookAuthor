@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { offline } from '@/lib/local-config';
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -6,6 +7,7 @@ export const maxDuration = 60;
 // Server-side proxy to ElevenLabs so the API key is never exposed to the browser.
 // POST { text } -> audio/mpeg bytes.
 export async function POST(request) {
+  if (offline) return NextResponse.json({error:'Cloud narration is unavailable offline. Use the device voice if installed.'},{status:503});
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) {
     return NextResponse.json(

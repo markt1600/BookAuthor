@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { secureCookies } from '@/lib/admin';
 import { getBook, saveBook } from "@/lib/store";
 import { bookUnlocked, hashBookPassword, bookUnlockToken, bookCookieName } from "@/lib/admin";
 
@@ -36,7 +37,7 @@ export async function PUT(request, { params }) {
     res.cookies.set(bookCookieName(id), bookUnlockToken(book), {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookies,
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
     });
