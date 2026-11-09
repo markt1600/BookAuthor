@@ -1,7 +1,7 @@
 {
   "version": 2,
   "updatedAt": "2026-11-09",
-  "source": "UCSD Book Graph (Goodreads) — PROVISIONAL first pass, 190 reviews per genre",
+  "source": "UCSD Book Graph (Goodreads reviews, Wan & McAuley) — 1,190 reviews per genre (4×250 mapped by Claude agents + a 190-review first pass), balanced across star ratings, weighted by helpful votes, ≤2 per book; reduced per genre",
   "lenses": {
     "erotica": {
       "label": "Erotica & erotic romance",
@@ -17,297 +17,404 @@
         "smut",
         "dark romance"
       ],
-      "reviews": 190,
+      "reviews": 1190,
       "reward": [
         {
-          "t": "Readers rate sexual tension separately from sex scenes and usually above them; the slow build before consummation is the prize",
-          "n": 26
+          "t": "Humor and quick banter woven through the heat is the most-cited reason a steamy book becomes a favourite",
+          "n": 92
         },
         {
-          "t": "A real plot (mystery, revenge, suspense, business stakes) braided through the romance turns steam into a book readers rave about",
-          "n": 22
+          "t": "A suspense, mystery or revenge thread with twists readers don't see coming keeps pages turning between intimate scenes",
+          "n": 85
         },
         {
-          "t": "Humor and quick banter alongside the heat are praised again and again; funny plus filthy is the winning combination",
-          "n": 20
+          "t": "Sexual tension and anticipation before consummation is rated as highly as the sex itself, often higher",
+          "n": 82
         },
         {
-          "t": "The commanding or dirty-mouthed hero wins when layers peel back to reveal a good man underneath; readers want to understand him",
-          "n": 17
+          "t": "A possessive or commanding hero lands when tenderness, humor or visible care shows beneath the dominance",
+          "n": 81
         },
         {
-          "t": "Readers prize books that gut them: raw vulnerability, heartbreak, tears; emotion evoked is worth stars on its own",
-          "n": 17
+          "t": "A heroine with backbone who challenges, outwits or calls out the hero is praised nearly as often as he is",
+          "n": 74
         },
         {
-          "t": "A heroine who drives the story, pushes back, keeps self-respect and matches the hero's wit is singled out for praise",
-          "n": 13
+          "t": "Emotional stakes that leave readers wrecked or in tears earn five stars even when the sex is secondary",
+          "n": 72
         },
         {
-          "t": "Dark or predatory heroes work when readers are let inside his head and the heroine keeps her spirit intact under pressure",
-          "n": 9
+          "t": "A damaged or dark hero readers empathize with against their judgment, his humanity glimpsed in layers, is treasured",
+          "n": 66
         },
         {
-          "t": "Dual POV, especially a convincing male voice, is repeatedly named as the best part even of otherwise weak books",
-          "n": 7
+          "t": "Vivid secondary characters and friend groups enrich the world and sell the next book",
+          "n": 42
         }
       ],
       "punish": [
         {
-          "t": "A doormat heroine who obeys, excuses abuse, or gives up all agency is the single most common 1-star complaint",
-          "n": 18
+          "t": "A doormat, whining or too-stupid-to-live heroine is the single most common reason for one- and two-star reviews",
+          "n": 124
         },
         {
-          "t": "Alpha that tips into misogyny, stalking, cruelty after sex or unrepentant abuse is called out; 'this is not an alpha, this is an abuser'",
-          "n": 16
+          "t": "Sex standing in for plot: when every beat ends in bed, readers skim even the scenes they came for and call it plotless",
+          "n": 97
         },
         {
-          "t": "Recognizable templates (billionaire, virgin, instalove, FSoG clone) read as derivative unless something new is on the table",
-          "n": 15
+          "t": "A hero who lies, stalks, degrades or controls without tenderness or consequence reads as abuser, not alpha",
+          "n": 97
         },
         {
-          "t": "When sex replaces plot, scenes blur together and readers openly admit skimming or skipping them",
-          "n": 13
+          "t": "Billionaire-dominant setups echoing famous titles are dismissed as knock-offs unless something new is on the table",
+          "n": 75
         },
         {
-          "t": "Serial splitting, padded page counts and under-150-page novellas are read as cash grabs that leave characters undeveloped",
-          "n": 13
+          "t": "Mechanical, checklist intimate scenes with no felt chemistry are the most damning complaint however explicit they are",
+          "n": 67
         },
         {
-          "t": "Leads with no felt connection beyond lust leave readers 'disconnected'; chemistry cannot be asserted, it must be shown",
-          "n": 11
+          "t": "Love declared after one encounter or a couple together by chapter three robs readers of watching them fall",
+          "n": 62
         },
         {
-          "t": "Contrived angst that one honest conversation would resolve, repeated in cycles, is called out as filler",
-          "n": 9
+          "t": "A hero touching another woman after meeting her, or on-page other-woman/other-man content, reads as cheating whatever the rules",
+          "n": 51
         },
         {
-          "t": "Characters who contradict their premise (abductor turns whiny, Dom turns timid, smart woman acts like a teen) break belief",
-          "n": 8
+          "t": "One story stretched over serial installments or crammed into a thin novella reads as a cash grab with undeveloped leads",
+          "n": 51
         }
       ],
       "expectations": [
         {
-          "t": "Readers grant fantasy license to possessive, over-the-top heroes, but the story must still make internal sense",
-          "n": 10
+          "t": "Readers grade heat and story on separate axes; hot scenes alone earn about three stars and cannot rescue a weak plot",
+          "n": 114
         },
         {
-          "t": "A HEA or HFN is assumed; a cliffhanger is tolerated only when the book is clearly flagged as part of a duet or serial",
-          "n": 10
+          "t": "Dark, taboo or non-con content is accepted when the blurb warns for it and the author owns it; surprise or softened darkness costs stars",
+          "n": 60
         },
         {
-          "t": "Readers track 'safety' (other partners, cheating, condoms, virginity, triggers) and feel ambushed by anything unflagged",
-          "n": 9
+          "t": "An HEA or HFN is assumed even in dark romance; cliffhangers are tolerated only when flagged and the next part is near",
+          "n": 56
         },
         {
-          "t": "Dominance and kink are welcome when the submissive negotiates and keeps a voice; coercion dressed as D/s is rejected",
-          "n": 9
+          "t": "Readers audit 'safety' (other-woman/other-man scenes, cheating, condoms, virginity, abuse) and report it to each other",
+          "n": 54
         },
         {
-          "t": "The hero sleeping with others once the leads have met is close to unforgivable, even when the plot explains it",
-          "n": 8
+          "t": "Over-the-top possessive heroes get a fantasy pass as long as the tone signals fantasy and the story makes internal sense",
+          "n": 22
         }
       ],
       "prose": [
         {
-          "t": "Dirty talk is prized when it is specific and confident in the hero's voice; generic porn-script lines get laughed at",
-          "n": 19
+          "t": "Dirty talk specific to the character and moment is the most quoted pleasure; porn-script or sex-ed lines break the mood",
+          "n": 98
         },
         {
-          "t": "Repeated heat-scene vocabulary ('mine', 'wet', 'whimper', clenching, throbbing) is counted and mocked; vary the language",
-          "n": 10
+          "t": "Repeated heat-scene words ('mine', 'whimper', 'throbbing') and stock euphemisms get counted and mocked; vary the language",
+          "n": 98
         },
         {
-          "t": "Lyrical, quotable lines get highlighted and quoted in reviews; readers notice when a writer is a writer",
-          "n": 9
+          "t": "Witty banter and lyrical, declarative lines get highlighted and quoted; readers notice when a writer can write",
+          "n": 63
         },
         {
-          "t": "Tense slips, missing contractions, unmarked POV switches and typos are named explicitly as reasons for low ratings",
-          "n": 6
+          "t": "Dual POV with a distinct, convincing male voice is a named draw; identical voices or a hero who sounds feminine get flagged",
+          "n": 42
         },
         {
-          "t": "A male POV that sounds like the heroine, or like a 14-year-old, pulls readers out; make his voice distinct",
-          "n": 4
+          "t": "Typos, tense slips, run-ons and unmarked POV switches get the book labeled a rough draft, even in free reads",
+          "n": 38
         }
       ],
       "phases": {
         "opening": [
           {
-            "t": "The most common 2-star arc is a strong first third that collapses; an opening full of banter and tension creates a debt",
-            "n": 8
+            "t": "A sharp voice or a specific, slightly absurd hook situation buys patience; readers name the premise as why they kept going",
+            "n": 41
           },
           {
-            "t": "A sharp premise or meet-cute hooks readers from page one; they name the concept as the reason they kept going",
-            "n": 7
+            "t": "A strong, funny first quarter that collapses midway is the most common two-star arc; the hook writes a check the middle must cash",
+            "n": 35
           },
           {
-            "t": "Sex within the first few pages before character is established earns the 'no plot' verdict for the whole book",
-            "n": 4
+            "t": "Early DNFs come from the heroine's bad first impression, a juvenile voice or the hero's first cruel act before trust exists",
+            "n": 28
           },
           {
-            "t": "The heroine's first impression (self-pity, body stats, a drunken mess) sticks; readers rarely forgive a bad first glimpse",
-            "n": 3
+            "t": "Sex in the opening pages before any character grounding earns the 'no plot' verdict for the whole book",
+            "n": 15
           }
         ],
         "middle": [
           {
-            "t": "A sagging middle where sex substitutes for forward motion makes readers skim, nap or DNF around 40-60%",
-            "n": 8
+            "t": "Momentum lost once the couple is together, with only sex and bickering between 40-70%, is the most common structural complaint",
+            "n": 86
           },
           {
-            "t": "The fight-sex-fight loop and recycled jealousy as midbook filler are called out by name",
-            "n": 5
+            "t": "The fight-makeup-sex loop as midbook structure reads as padding and is skimmed",
+            "n": 41
           },
           {
-            "t": "Heroes who lose their edge midway or in a sequel (less alpha, more moping) disappoint readers who fell for the earlier version",
-            "n": 5
+            "t": "Conflict built on a misunderstanding one conversation would fix, or a secret withheld to the last pages, exhausts readers",
+            "n": 38
           },
           {
-            "t": "Push-pull must stay authentic; readers do not want the couple to 'fuck it out' or the hero magically healed by sex",
-            "n": 3
+            "t": "A suspense subplot carries the middle once romance settles, but the threat must develop; one that never arrives is filler",
+            "n": 34
           }
         ],
         "ending": [
           {
-            "t": "An epilogue or glimpse years into the future is the most requested and most praised closing move",
-            "n": 15
+            "t": "An epilogue glimpsing the couple years ahead is expected; its absence is among the most frequent ending complaints",
+            "n": 56
           },
           {
-            "t": "A duet ending at a natural turn is accepted; an unflagged cliffhanger or a story chopped to sell parts infuriates",
-            "n": 10
+            "t": "Cliffhangers are accepted when signposted and the installment resolves its own arc; a book that feels cut in half is resented",
+            "n": 52
           },
           {
-            "t": "Reveals from left field and resolutions rushed into the last quarter undercut otherwise liked books",
-            "n": 6
+            "t": "Abrupt or rushed endings, with villains dispatched easily or issues swept aside, cost a star after a long build",
+            "n": 34
           },
           {
-            "t": "Without groveling or visible redemption the hero stays unforgiven and the HEA reads as the heroine settling",
-            "n": 4
+            "t": "Bittersweet or devastating endings are rewarded when earned and true to the characters; a conveniently safe one disappoints dark readers",
+            "n": 24
           },
           {
-            "t": "A sugary, predictable HEA with a bonus miracle baby produces 'no feels' rather than satisfaction",
-            "n": 3
+            "t": "The hero's redemption and groveling must match the offense across the book; a last-chapter apology leaves the HEA reading as settling",
+            "n": 21
           }
         ]
       },
       "scenes": {
-        "dialogue": {
-          "label": "dialogue",
+        "slow_burn_tease": {
+          "label": "Slow-burn tease, flirtation and pursuit",
           "items": [
             {
-              "t": "Banter earns its place when each line reveals character or moves the story; characters calling themselves funny is not funny",
-              "n": 7
+              "t": "Prolonged circling with escalating banter, texts and talk-first flirtation is what readers rate highest and quote most",
+              "n": 61
             },
             {
-              "t": "Register must fit the world: bikers who speak too properly, priests who curse constantly, or dialect that needs rereading all jar",
-              "n": 4
-            }
-          ]
-        },
-        "action": {
-          "label": "action",
-          "items": [
-            {
-              "t": "Danger and suspense interwoven with the romance keep non-sex scenes from feeling like filler and raise the heat",
-              "n": 8
-            },
-            {
-              "t": "Stacked violence and gore without consequence or aftermath numbs readers rather than thrilling them",
-              "n": 3
-            }
-          ]
-        },
-        "intimacy": {
-          "label": "intimacy",
-          "items": [
-            {
-              "t": "Anticipation outranks consummation; readers remember the charged scenes before the first time more than the sex itself",
+              "t": "A hostile, mortifying or specific, slightly absurd first meeting is remembered; a generic bar or office intro is not",
               "n": 26
             },
             {
-              "t": "Dirty talk in a distinct, confident voice is a highlight; cheesy or generic lines break the scene into laughter",
+              "t": "Forbidden setups (boss, clergy, teacher) supply sought-after heat, but the pursued must resist for believable reasons with visible guilt",
               "n": 19
             },
             {
-              "t": "Scenes that repeat with no change in stakes or emotion blur together and get skipped; each one must shift something",
-              "n": 13
+              "t": "Each exchange must move them closer; flirtation that loops without escalating is repetitive, and pursuit past repeated refusals reads as stalking",
+              "n": 12
+            }
+          ]
+        },
+        "first_consummation": {
+          "label": "The first time together",
+          "items": [
+            {
+              "t": "Inexperienced partners who perform like veterans break belief; realistic awkwardness and care from the experienced partner is praised",
+              "n": 33
             },
             {
-              "t": "Hot scenes carry a weak book to about 3 stars and no further; readers say 'the sex was great' in 2-star reviews",
+              "t": "The first consummation pays off only when the build earned it; sex within pages of meeting reads as plotless",
+              "n": 30
+            },
+            {
+              "t": "Virginity or a first-time deadline (wedding night, auction, contract) is a recurring engine readers enjoy when her behavior matches inexperience",
+              "n": 15
+            },
+            {
+              "t": "Fading to black on the promised scene, or holding the first time until the final pages, reads as a cheat in erotic romance",
+              "n": 10
+            },
+            {
+              "t": "A first time the heroine has not clearly chosen poisons the couple for many readers even if later scenes are tender",
+              "n": 9
+            }
+          ]
+        },
+        "kink_power_play": {
+          "label": "Dominance, submission and kink play",
+          "items": [
+            {
+              "t": "Kink convinces when trust, negotiation, rules and aftercare are visible and about this couple; readers who know the lifestyle spot their absence",
+              "n": 52
+            },
+            {
+              "t": "Pitch the kink honestly and keep the standard: 'BDSM lite' oversold as hardcore, or a Dom who hesitates and chases, deflates the scene",
+              "n": 23
+            },
+            {
+              "t": "Dominance without negotiation, a removed safe word, or control extending to her job, phone and friends reads as assault or abuse",
+              "n": 20
+            },
+            {
+              "t": "A checklist of practices performed without passion reads clinical; harshness with no visible care for the partner loses heat",
+              "n": 10
+            },
+            {
+              "t": "Kink framed as therapy for trauma or grief draws derision",
+              "n": 8
+            }
+          ]
+        },
+        "captive_claiming": {
+          "label": "Captivity, non-consent and the 'mine' claim",
+          "items": [
+            {
+              "t": "Readers accept a monstrous captor when they are inside his head, his motive holds up and a sliver of humanity shows; pure cruelty loses them",
+              "n": 32
+            },
+            {
+              "t": "Captivity stays credible only while her fear and fight do; quick surrender, or repeatedly blaming her 'traitorous body', breaks it",
+              "n": 32
+            },
+            {
+              "t": "The 'mine' claim thrills when she visibly chooses it and he matches it with his own fidelity; an unearned claim is laughed at",
+              "n": 22
+            },
+            {
+              "t": "Sex right after an assault, rescue or beating, especially framed as healing, is a hard line that reads as glorified abuse",
+              "n": 16
+            },
+            {
+              "t": "A captor whose menace evaporates early, or dark content that turns cartoonish or repeats degradation with no progression, disappoints dark readers",
+              "n": 14
+            }
+          ]
+        },
+        "menage_sharing": {
+          "label": "Menage and sharing",
+          "items": [
+            {
+              "t": "Menage works when bonds run among all partners with stakes beyond the bedroom; a partner with no POV or chemistry is furniture",
+              "n": 36
+            },
+            {
+              "t": "Sharing imposed by the hero (club, friends watching, 'with his blessing') reads as 'you're not enough' and hits a hard limit",
+              "n": 25
+            },
+            {
+              "t": "Consent and chemistry must precede the scene on the page; springing group sex on the heroine or an unwarned reader alienates",
               "n": 12
             },
             {
-              "t": "Sex must carry emotion and connection; choreography that feels mechanical or 'puppeteered' is named as the dealbreaker",
-              "n": 9
+              "t": "Set-piece group scenes are among a book's most remembered, and where over-the-top dirty talk most often tips into comedy",
+              "n": 7
             }
           ]
         },
-        "exposition": {
-          "label": "exposition",
+        "public_risky_setpiece": {
+          "label": "Set-piece and public or risky encounters",
           "items": [
             {
-              "t": "Alternating timelines work when each flashback answers a question; switching every other paragraph causes whiplash",
+              "t": "Location variety (library, office desk, elevator, car) is a named pleasure; readers single out 'the library scene' as a favourite",
+              "n": 36
+            },
+            {
+              "t": "Scenes repeating the same choreography blur and get skipped; each must shift setting, dynamic or stakes",
+              "n": 24
+            },
+            {
+              "t": "Set pieces that interrupt every plot beat stall the story; one long, detailed scene beats ten one-page quickies",
+              "n": 16
+            },
+            {
+              "t": "The heart-pounding risk must be on the page; exhibitionism with no sense of consequence reads as careless, not hot",
               "n": 7
             },
             {
-              "t": "Withholding basic facts (ages, motives, why he is 'bad') frustrates rather than intrigues; readers want them early",
-              "n": 5
-            },
-            {
-              "t": "Trauma backstory used as a shortcut to excuse behavior, without depth or research, is called out as lazy",
-              "n": 4
+              "t": "Being watched divides readers: thrilling as the couple's private risk, repellent when the hero invites others in",
+              "n": 6
             }
           ]
         },
-        "quiet": {
-          "label": "quiet",
+        "makeup_loop": {
+          "label": "Fight, run, chase and make-up",
           "items": [
             {
-              "t": "Pages of the heroine's looping inner lust and doubt invite skimming; readers count how often she wants him",
-              "n": 9
+              "t": "Make-up sex as the only resolution, repeated in a withdraw-run-chase loop, exhausts readers into skimming",
+              "n": 19
             },
             {
-              "t": "Aftermath must appear on the page; a wound or assault forgotten by the next scene breaks trust in the whole book",
-              "n": 3
+              "t": "A fight ended by sex before the issue is addressed reads as the hero getting away with it; show growth between rounds",
+              "n": 16
+            },
+            {
+              "t": "Groveling must match the offense before the take-back; an instant 180 or an off-page reconciliation does not count",
+              "n": 15
+            },
+            {
+              "t": "Second-chance reunions are beloved when the shared history is shown on the page rather than asserted",
+              "n": 5
+            }
+          ]
+        },
+        "aftermath_intimacy": {
+          "label": "Aftermath, between-scenes intimacy and epilogue",
+          "items": [
+            {
+              "t": "Readers want time with the couple as a couple before the epilogue; a short settled glimpse is treasured, a sugary or domesticating one grates",
+              "n": 16
+            },
+            {
+              "t": "Couples who only connect during sex are not believed as in love; readers judge the romance by what happens between scenes",
+              "n": 13
+            },
+            {
+              "t": "Tenderness after rough sex sells the hero's care; going cold or walking out after intimacy reads as cruel unless the story owns it",
+              "n": 8
+            },
+            {
+              "t": "Readers notice protection, soreness and consequences; ignoring them is flagged as the fantasy slipping",
+              "n": 7
+            },
+            {
+              "t": "The hero finally opening up is the emotional payoff that justifies his earlier coldness",
+              "n": 6
             }
           ]
         }
       },
       "voices": [
         {
-          "t": "My most important sexual organ is my brain",
-          "n": 1
+          "t": "Turned on and afraid of him at the same time",
+          "n": 2
         },
         {
           "t": "Fine line between alpha male and creepy weirdo",
+          "n": 2
+        },
+        {
+          "t": "Hotness: four stars. Story: one star.",
           "n": 1
         },
         {
-          "t": "Imagine my surprise when this actually had a plot too",
+          "t": "Sex scenes strung together is not a plot",
           "n": 1
         },
         {
-          "t": "One conversation would have spared us half a book of angst",
+          "t": "Every time they should have talked, it ended in sex",
           "n": 1
         },
         {
-          "t": "I did not want them to just fuck it out",
+          "t": "Well written, and I hated every single character",
           "n": 1
         },
         {
-          "t": "Only so many f-bombs before I stop giving one",
+          "t": "A drink for every 'whimper' and I'd be dead",
           "n": 1
         },
         {
-          "t": "Zero nutritional value, yet I want the whole cabinet",
-          "n": 1
-        },
-        {
-          "t": "Turned on and afraid of him at once; a mindfuck",
+          "t": "Give me one ten-page love scene over ten quickies",
           "n": 1
         }
       ],
-      "notes": "Roughly a quarter of the sample, and most of the 5-star bucket, comes from one templated ARC reviewer who scores hero, heroine, sexual tension, sex scenes and plot separately, so high-end praise is skewed toward promotional register and toward contemporary billionaire, dark-captive and forbidden-office romance; literary erotica, m/m and menage are thin. The surprise is how consistently readers separate heat from quality: hot scenes coexist with 2-star ratings, tension is scored above the sex itself, and the dominant 1-star driver is not explicitness but a heroine stripped of agency or a hero w"
+      "notes": "The sample leans heavily toward contemporary billionaire/alpha, dark-captive and forbidden-workplace erotic romance sold in serials and duets, with a templated ARC reviewer inflating the small lens's five-star bucket; literary erotica, m/m, f/f, paranormal and menage-led books are thin, so those scene kinds rest on fewer reviews. The consistent surprise across all five inputs is that readers grade heat and story on separate axes and almost never fail a book for explicitness: the dominant one-star drivers are a heroine stripped of agency and a hero whose dominance reads as abuse, while sexual t"
     },
     "fantasy_paranormal": {
       "label": "Fantasy, paranormal & speculative",
@@ -332,277 +439,368 @@
         "grimdark",
         "sword and sorcery"
       ],
-      "reviews": 190,
+      "reviews": 1190,
       "reward": [
         {
-          "t": "Top praise is a cast readers feel bound to; even flawed or annoying characters pass if the reader cares what happens to them",
-          "n": 30
+          "t": "Attachment to a whole cast decides the rating; distinct people readers care about carry a book past flaws they still notice",
+          "n": 129
         },
         {
-          "t": "A world vivid enough to buy without effort, with a magic system readers can grasp, is named again and again as the reason to love",
-          "n": 22
+          "t": "An immersive, original world readers want to live in earns forgiveness for slow or confusing stretches",
+          "n": 105
         },
         {
-          "t": "Being made to ache, cry, or stay up till dawn is the five-star marker; readers reward books that hurt in a beautiful way",
-          "n": 22
+          "t": "Lyrical prose that still flows is quoted and savored; readers stay for the writing when the plot drags",
+          "n": 85
         },
         {
-          "t": "Prose that is beautiful yet plain-spoken wins; readers note when lines are quotable and when the voice goes straight to the feelings",
-          "n": 17
+          "t": "Humor and banter between companions, especially mid-danger, is quoted at length and lifts a middling plot",
+          "n": 74
         },
         {
-          "t": "Snark, banter and dark humor, especially amid grim events, are quoted in review after review as the thing that sold the book",
-          "n": 15
+          "t": "Found-family crews, sibling loyalty and fierce friendships are loved as much as, or more than, the romance",
+          "n": 69
         },
         {
-          "t": "Twists hinted at so readers can say 'I knew it' or 'ohhh' in hindsight; deliberate misdirection is admired when it plays fair",
-          "n": 15
+          "t": "Twists that blindside yet play fair are the high point; readers love kicking themselves in hindsight",
+          "n": 65
         },
         {
-          "t": "Found-family crews, sister-bonds and bromances are praised as 'epic as romance'; camaraderie makes readers feel part of the gang",
-          "n": 11
+          "t": "Relentless momentum ('read in one sitting', 'never a dull moment') earns five stars and forgives cliches",
+          "n": 63
         },
         {
-          "t": "Narrators who are cowards, liars, assassins or brutes on paper become favorites when their inner voice is honest and darkly funny",
-          "n": 9
+          "t": "Being made to cry or ache is a feature; books that hurt beautifully are rated highest and remembered",
+          "n": 62
         }
       ],
       "punish": [
         {
-          "t": "Nothing happening: long stretches where readers skim, force themselves on, or quit at 70% because 'surely it gets better' never pays",
-          "n": 28
+          "t": "'Nothing happens' is the fatal verdict: readers skim, DNF, and name exactly how many pages should have been cut",
+          "n": 161
         },
         {
-          "t": "Flat, interchangeable characters the reader can't describe or care about; 'I didn't care' is the death knell even with a cool premise",
-          "n": 21
+          "t": "'I didn't care who lived or died' sinks any premise; connection to characters must arrive early",
+          "n": 108
         },
         {
-          "t": "Predictability: readers call twists from page one, and a mystery solved by dumb luck or an unforeshadowed twist feels like cheating",
-          "n": 19
+          "t": "Unexplained or shifting world rules and magic breed confusion, not curiosity; readers want a system that clicks",
+          "n": 101
         },
         {
-          "t": "Insta-love: a romance that ignites in a day and halts the real story is the single most repeated gripe, in adult books as well as YA",
-          "n": 19
+          "t": "A whiny, passive, foolish or bratty-called-brave heroine is the top stated reason for abandoning a book",
+          "n": 81
         },
         {
-          "t": "Rushed, convenient endings tied in a bow, deus ex machina rescues, or a finale that spends ten pages on the book's stated goal",
-          "n": 18
+          "t": "Twists and plots readers call from page one kill investment and make characters who miss them look stupid",
+          "n": 80
         },
         {
-          "t": "Whiny, weepy, impulsive or flawless protagonists; readers lose patience with a lead who cries every chapter or never makes a smart choice",
-          "n": 18
+          "t": "Insta-love is named and rarely forgiven, in adult titles as well as YA; attraction must be earned",
+          "n": 75
         },
         {
-          "t": "Vague world or powers never explained; Capitalized Terms, unexplained rules and magic with no clear mechanics read as lazy",
-          "n": 17
+          "t": "Borrowed premises and clones of famous series are spotted instantly and rated below the original every time",
+          "n": 69
         },
         {
-          "t": "Close imitation of a famous series: readers map the plot beats one-to-one and rate the copy below the original every time",
-          "n": 11
+          "t": "Casual misogyny, racism, or rape and assault used as default peril draw one-star rants and DNFs",
+          "n": 44
         }
       ],
       "expectations": [
         {
-          "t": "Women reduced to wives, love objects or stereotypes draw explicit complaint; capable heroines are a stated reason to love a book",
-          "n": 11
+          "t": "Each installment is judged against the best book in the series; set-up-only or recycled sequels get 'second-book syndrome'",
+          "n": 83
         },
         {
-          "t": "A first book must satisfy on its own; withholding basic answers to sell the sequel is called a cheat, and 'no cliffhanger' is a bonus",
-          "n": 11
+          "t": "Readers expect a capable heroine who thinks and fights for herself yet stays human; women as prizes draw complaint",
+          "n": 74
         },
         {
-          "t": "Magic needs rules or a cost; readers praise systems they can follow and resent powers that shift to fit the plot",
-          "n": 7
+          "t": "Retellings and myth-based books are checked against the source; keep the bones, add a genuine new turn",
+          "n": 63
         },
         {
-          "t": "In dark fantasy deaths must cost something; a crisis dispensed with no sacrifice feels hollow, while real losses are praised as 'real'",
-          "n": 6
+          "t": "A first book must resolve its own arc; 'works as a standalone' is a selling point, withholding to sell a sequel a cheat",
+          "n": 53
         },
         {
-          "t": "Retellings are checked against the myth or tale; renaming gods or gutting their nature insults readers who came for that source",
-          "n": 5
+          "t": "Hype, title and blurb are a promise; a missing dragon, a not-scary horror or 'merely decent' after raves is punished",
+          "n": 47
         }
       ],
       "prose": [
         {
-          "t": "Quotability is a benchmark: readers hunt for a line to share and mark down books where nothing sparked",
-          "n": 6
+          "t": "Repeated pet phrases, tics, re-described outfits and overused words are counted and quoted back mockingly",
+          "n": 67
         },
         {
-          "t": "Verbal tics get counted: sentences all starting with the name, stacked lists, alliterative synonyms, random Capitalized Importance",
-          "n": 4
+          "t": "Dialogue makes or breaks: distinct, witty voices get quoted; cheesy, childish or soap-opera lines get mocked",
+          "n": 49
         },
         {
-          "t": "'Lifeless' prose, where the reader hears the scene but does not feel it, sinks otherwise bold plots",
-          "n": 4
+          "t": "Telling over showing (exposition in dialogue, events summarized offstage, psychology explained) distances readers",
+          "n": 48
         },
         {
-          "t": "Editing lapses show: grammar slips, continuity contradictions and dated pop-culture name-drops pull readers out",
-          "n": 4
+          "t": "Overwrought metaphors and purple prose read as 'trying too hard'; readers notice when a metaphor makes no sense",
+          "n": 33
         },
         {
-          "t": "Dense, challenging prose is accepted when rereading a sentence repays; unanchored invented terms and jargon lose readers instead",
-          "n": 3
+          "t": "Quotability is a benchmark; readers screenshot one memorable line and mark down books where nothing sparked",
+          "n": 30
         }
       ],
       "phases": {
         "opening": [
           {
-            "t": "An opening set piece or in-media-res hook that 'blows the doors off' earns goodwill readers spend for hundreds of pages",
-            "n": 14
+            "t": "Readers grant roughly 100-150 pages (20-35%) for a hook, then DNF; a slow start is forgiven only if the payoff comes",
+            "n": 63
           },
           {
-            "t": "Readers grant 100-150 slow pages if the world or voice promises payoff; many say 'give it time, it hooks you eventually'",
-            "n": 10
+            "t": "Front-loading names, POVs, invented terms and world-building before anyone is worth caring about drives early DNFs",
+            "n": 62
           },
           {
-            "t": "A strong first act that the plot then abandons reads as bait-and-switch and angers more than a weak start does",
-            "n": 7
+            "t": "A gripping first act that then fizzles or changes genre angers readers more than a slow start does",
+            "n": 49
           },
           {
-            "t": "A flood of unfamiliar names and terms is tolerated when context makes them clear within a few chapters; otherwise confusion sours",
-            "n": 5
+            "t": "Opening in motion (an attack, a kill, a rescue) is praised, but plunging in without grounding confuses",
+            "n": 40
           },
           {
-            "t": "One repugnant early moment, such as body-shaming or coercion played as sexy, can end the book at 10%",
-            "n": 3
+            "t": "A distinct narrator voice on the first page wins readers at once; an irritating one sinks the book by page ten",
+            "n": 11
           }
         ],
         "middle": [
           {
-            "t": "Travel, quest slogs and war-preparation stretches are where readers start skimming; the sagging middle is the most named weak spot",
-            "n": 8
+            "t": "The 30-80% stretch is where books die: travel, set-up and 'gathering the party' without present danger get skimmed",
+            "n": 52
           },
           {
-            "t": "Repeated cycles (same fight, same plan talk, same self-doubt) make readers feel they are rereading; vary the beats",
-            "n": 7
+            "t": "Repeated cycles (captured, rescued, scheme, repeat; the same self-doubt re-asked) make busy books feel static",
+            "n": 27
           },
           {
-            "t": "A second half that 'saves the book' is common praise, but readers rate the whole, so front-load some payoff",
-            "n": 5
+            "t": "Inner monologue and rhetorical self-questioning in place of events drag; readers skim for dialogue",
+            "n": 19
           },
           {
-            "t": "When sidekicks or background threads outshine the main plot, readers notice and call the main story thin",
-            "n": 3
+            "t": "Filler POVs, convenience subplots dropped later, and side characters who vanish are noticed and resented",
+            "n": 18
           },
           {
-            "t": "A mid-book set piece as gripping as a finale is loved, though it can make the actual ending feel flatter",
-            "n": 3
+            "t": "'It gets good in the last 20%' is no defense; readers who waited that long still rate the whole book low",
+            "n": 12
           }
         ],
         "ending": [
           {
-            "t": "Rushed, convenient wrap-ups, miracle rescues and bows on every subplot are the most frequent ending complaint",
-            "n": 18
+            "t": "Rushed, too-neat wrap-ups, deus ex machina rescues and loopholes after a long build are the top ending complaint",
+            "n": 72
           },
           {
-            "t": "Mysteries made a big deal of must pay off; leaving core questions unanswered leaves readers feeling cheated",
-            "n": 9
+            "t": "A cliffhanger is welcomed when the book's own arc resolved; when nothing resolves it reads as a sequel ploy",
+            "n": 51
           },
           {
-            "t": "A series finale must tie back to the first book and honor who the characters have been; betraying them 'rings false'",
-            "n": 7
+            "t": "A strong final act can lift a middling book; readers say 'the last 100 pages saved it' and rate up",
+            "n": 46
           },
           {
-            "t": "Cliffhangers are relished when the book delivered; when it didn't, a cliffhanger last line comes 'too late' to make readers care",
-            "n": 7
+            "t": "Core questions must be answered and every major arc honored; a few sentences for a big thread feels like betrayal",
+            "n": 43
           },
           {
-            "t": "A last 15-25% that is breathtaking redeems a slow build; readers stay up till dawn and forgive the drag",
-            "n": 6
+            "t": "Heartbreaking endings are loved when earned and inevitable; tragedy for its own sake is not",
+            "n": 30
           }
         ]
       },
       "scenes": {
-        "dialogue": {
-          "label": "dialogue",
+        "climactic_showdown": {
+          "label": "Final battle and the villain's comeuppance",
           "items": [
             {
-              "t": "Banter among a crew or between partners is the most quoted element in rave reviews; witty exchanges sell the book",
-              "n": 8
+              "t": "The villain must feel threatening beforehand and get theirs on the page; a fizzled or deferred reckoning drains stakes",
+              "n": 25
             },
             {
-              "t": "Profanity or modern slang dropped in to feel adult or edgy reads as unnecessary and breaks period continuity",
-              "n": 3
+              "t": "Combat is praised when choreography is crisp and easy to follow; hectic, confusing battles deflate the whole book",
+              "n": 25
             },
             {
-              "t": "Characters sitting down to discuss events the reader just witnessed is called 'talking it to death'",
-              "n": 2
+              "t": "After hundreds of pages of build-up readers expect a 'solid kaboom'; a small, offstage or summarized climax is the chief letdown",
+              "n": 20
             },
             {
-              "t": "Snark that is announced but doesn't land is mocked; forced zingers hurt more than no humor at all",
-              "n": 2
+              "t": "Deaths in battle land only when the fighter mattered; a pile of bodies evokes nothing",
+              "n": 12
+            },
+            {
+              "t": "Repeated battle beats (hurt, last reserves, turn the tide) blur; vary stakes and tactics and allow breathing room",
+              "n": 10
             }
           ]
         },
-        "action": {
-          "label": "action",
+        "magic_and_training": {
+          "label": "Learning the magic: training, trials and schools",
           "items": [
             {
-              "t": "Named set pieces (a heist, a fencing bout, a chase, a long con) are what readers remember and list by name",
+              "t": "Training, trials and tournaments are beloved stretches when shown as rigorous and lethal, not asserted",
+              "n": 25
+            },
+            {
+              "t": "Simple, consistent rules are praised; rules that bend to suit the plot or stay vague to the end sink the book",
+              "n": 21
+            },
+            {
+              "t": "Explain powers through use and stakes, not lecture; magic talked about but never displayed is a top complaint",
+              "n": 18
+            },
+            {
+              "t": "The school or academy section is often readers' favorite part, but it must feel like a school with vivid teachers",
+              "n": 14
+            },
+            {
+              "t": "Mentor-led training is a loved beat; a hero who masters everything without struggle reads as a cheat",
               "n": 11
-            },
-            {
-              "t": "Frantic sequences where readers can't tell what is happening are a stated flaw even in otherwise liked books",
-              "n": 3
-            },
-            {
-              "t": "Nonstop action with no emotional anchor leaves readers unattached to the hero until three-quarters in",
-              "n": 2
             }
           ]
         },
-        "intimacy": {
-          "label": "intimacy",
+        "romance_beat": {
+          "label": "Romance beats: first spark, kiss and sex",
           "items": [
             {
-              "t": "Love declared after a day of acquaintance, with the plot stopping for it, is condemned across YA and adult titles alike",
+              "t": "Slow-burn, love-hate sparring with banter and real resistance is the romance readers quote and crave",
+              "n": 50
+            },
+            {
+              "t": "Love triangles are smelled the moment a second male appears and called a wasted subplot when the choice is obvious",
+              "n": 42
+            },
+            {
+              "t": "A love interest who commands, watches her sleep or lies 'for her safety' reads as abuser, not alpha",
+              "n": 41
+            },
+            {
+              "t": "A special first encounter that slides straight into love breaks trust; confessions fall flat without prior tension",
+              "n": 39
+            },
+            {
+              "t": "Sex that replaces plot or repeats without development is skimmed even by readers who like steam",
+              "n": 36
+            }
+          ]
+        },
+        "big_reveal": {
+          "label": "The reveal: identity, heritage, betrayal",
+          "items": [
+            {
+              "t": "The best reveals let readers say 'I knew it' on some hints and 'ooh' on others; zero seeding feels like a cheat",
+              "n": 25
+            },
+            {
+              "t": "The 'who she really is' heritage reveal is a reliably loved beat and fuels series-long speculation when seeded",
               "n": 19
             },
             {
-              "t": "Slow-burn chemistry built on banter, opposites and resistance is praised; readers swoon at tension, not speed",
-              "n": 10
+              "t": "Reveals telegraphed from the villain's first scene insult readers and make characters who miss them look dumb",
+              "n": 13
             },
             {
-              "t": "Sex scene after sex scene in place of plot or world-building drops the rating even when readers call them scorching",
-              "n": 5
-            },
-            {
-              "t": "Coercion, possessiveness or sexual demands framed as romance trigger DNFs and outrage",
-              "n": 4
+              "t": "Reveals withheld too long, or backstory dumped at the wrap-up, frustrate rather than tantalize",
+              "n": 8
             }
           ]
         },
-        "exposition": {
-          "label": "exposition",
+        "beloved_character_death": {
+          "label": "Death of a beloved character",
           "items": [
             {
-              "t": "Every creature type and subplot in one book means none makes an impact; readers say 'take off the last three accessories'",
-              "n": 10
+              "t": "Killing beloved characters is accepted, even relished, when it serves the story; readers rage and keep reading",
+              "n": 31
             },
             {
-              "t": "Pages of history or science info-dump bury plot and character; readers skim and lose the thread",
-              "n": 5
+              "t": "A death lands only when readers had time to love the character; one dismissed in a few sentences breaks trust",
+              "n": 14
             },
             {
-              "t": "Interleaved flashback or origin chapters that feed the present storyline are praised for depth and payoff",
-              "n": 5
+              "t": "Resurrections, fake-out deaths and replacement love interests drain the fear from every later death",
+              "n": 11
             },
             {
-              "t": "Readers want the why behind a character's damage or a villain's drive, not just the fact of it 'tossed out there'",
-              "n": 4
+              "t": "Readers openly dread favorites dying and threaten to quit, then preorder the sequel",
+              "n": 11
             }
           ]
         },
-        "quiet": {
-          "label": "quiet",
+        "journey_quest": {
+          "label": "The road: quest travel and companions",
           "items": [
             {
-              "t": "Reflective passages earn their place when they deepen a character; repeated self-questioning on the same theme gets skimmed",
-              "n": 5
+              "t": "Animal and creature companions (demon horses, talking dogs, dragons) steal the show and become favorite characters",
+              "n": 36
             },
             {
-              "t": "Domestic routine narrated at length (cooking, cleaning, errands, hair) is the loudest 'nothing happens' complaint",
+              "t": "Travel needs incidents, close calls and banter; 'they traveled, and traveled' is the archetypal dull stretch",
+              "n": 30
+            },
+            {
+              "t": "Colorful companions met on the road are loved; those who vanish after serving their role are missed",
+              "n": 13
+            },
+            {
+              "t": "Journeys must stay tethered to the protagonist's goal; drifting between factions reads as 'no endgame'",
+              "n": 5
+            }
+          ]
+        },
+        "haunting_horror_beat": {
+          "label": "Hauntings, monsters and creepy set pieces",
+          "items": [
+            {
+              "t": "Slow-built, sustained dread beats gore; eerie atmosphere is prized as a pleasure in itself",
+              "n": 45
+            },
+            {
+              "t": "Grotesque, original monsters with distinct rules are remembered; a menagerie of every creature type dilutes them all",
+              "n": 28
+            },
+            {
+              "t": "A book sold as scary must escalate past its opening creep image; 'mysterious but never scary' is the common failure",
+              "n": 17
+            },
+            {
+              "t": "Characters who ignore obvious warnings exasperate, though stupid choices are tolerated when the creep factor delivers",
+              "n": 15
+            },
+            {
+              "t": "Ghost and possession scenes work when the entity's rules stay consistent and the heroine stays competent",
+              "n": 7
+            }
+          ]
+        },
+        "court_intrigue": {
+          "label": "Court politics and scheming",
+          "items": [
+            {
+              "t": "Schemes with personal stakes and real consequences are relished; war-prep and council talk with no payoff is filler",
+              "n": 21
+            },
+            {
+              "t": "Faction politics confuse when the sides are not established; court scenes need a strong voice or they read as dull",
+              "n": 11
+            },
+            {
+              "t": "Forced betrothal and arranged marriage are a staple engine; readers want the heroine to act, not wait",
+              "n": 6
+            },
+            {
+              "t": "A heroine who hides every plan from allies purely for reader shock is called frustrating",
               "n": 3
             }
           ]
@@ -610,7 +808,23 @@
       },
       "voices": [
         {
-          "t": "Snark for days; I laughed more than I have in ages",
+          "t": "Six hundred pages that read like two hundred and fifty",
+          "n": 1
+        },
+        {
+          "t": "Hide your daughters, the instalove has struck again",
+          "n": 1
+        },
+        {
+          "t": "Told she was capable; never once shown it",
+          "n": 1
+        },
+        {
+          "t": "Just don't love any characters too much; you've been warned",
+          "n": 1
+        },
+        {
+          "t": "Capture, rescue, scheme, capture, rescue, scheme, repeat",
           "n": 1
         },
         {
@@ -618,31 +832,15 @@
           "n": 1
         },
         {
-          "t": "I didn't realize how invested I was until that point",
+          "t": "Six hundred pages of build-up deserves a solid kaboom",
           "n": 1
         },
         {
-          "t": "I saw everything coming. Everything.",
-          "n": 1
-        },
-        {
-          "t": "If you make a huge deal of something, get to the point",
-          "n": 1
-        },
-        {
-          "t": "Hearing it, understanding it, but not really feeling it",
-          "n": 1
-        },
-        {
-          "t": "Lazy twists to speed up already inevitable outcomes",
-          "n": 1
-        },
-        {
-          "t": "It hurts because it's so damn beautiful",
+          "t": "Dude was introduced and I knew he was the bad guy",
           "n": 1
         }
       ],
-      "notes": "The sample skews heavily to YA fantasy, paranormal romance and urban fantasy as reviewed by Goodreads bloggers; about five prolific reviewers supply roughly a third of the reviews, so some patterns reflect their recurring tastes, and many gif-based reviews arrive with images stripped. Hard SF and literary speculative work are thin, and several entries are off-genre (a play script, a graphic-novel comparison, a folklore reference volume, monster erotica). Surprises: insta-love is the single most repeated complaint even in adult titles, readers explicitly forgive 100-150 slow pages when the char"
+      "notes": "The sample skews heavily to YA fantasy, paranormal romance and urban fantasy as reviewed by Goodreads bloggers, with a few prolific reviewers supplying a disproportionate share; hard SF, true horror and literary speculative work are thin, and some entries are off-genre. Surprising: animal and creature companions are named favorite characters about as often as human leads, insta-love is condemned as fiercely in adult titles as in YA, and 'no cliffhanger' or 'works as a standalone' is cited as a selling point as often as any twist. Hype is itself a liability: readers arriving via raves punish 'm"
     },
     "general": {
       "label": "General & literary fiction",
@@ -664,281 +862,424 @@
         "novel",
         "literary thriller"
       ],
-      "reviews": 190,
+      "reviews": 1190,
       "reward": [
         {
-          "t": "Characters who feel like real people, complex and flawed and understood from inside, are the single most-praised element",
-          "n": 24
+          "t": "Characters so real readers feel they lived with them and will miss them is the single most-praised quality",
+          "n": 99
         },
         {
-          "t": "Readers prize being made to feel: tears, heartbreak, a book that haunts them for weeks after the last page",
-          "n": 18
+          "t": "Books that linger for days and make readers see their own lives, marriages and regrets on the page win lasting loyalty",
+          "n": 80
         },
         {
-          "t": "Clean, restrained prose that only occasionally floors it beats constant flourish; 'nothing superfluous' is high praise",
-          "n": 17
+          "t": "Distinctive, controlled prose is quoted and praised on its own; restraint that occasionally flares beats constant flourish",
+          "n": 70
         },
         {
-          "t": "Forward pull matters even in literary fiction: short chapters, tightening connections, 'couldn't put it down'",
-          "n": 15
+          "t": "Forward pull matters even in quiet books: short chapters, tightening threads, 'couldn't put it down' forgives many flaws",
+          "n": 69
         },
         {
-          "t": "Humor and warmth threaded through serious material earn affection; 'laughed and cried' is the ideal reaction",
-          "n": 13
+          "t": "Earned tears over grief, illness or loss are rated up when the emotion is specific and honest, not engineered",
+          "n": 68
         },
         {
-          "t": "A setting rendered so specifically it becomes a character is remembered even after the plot fades",
-          "n": 13
+          "t": "A vivid, specific sense of place is praised even by readers who disliked the book overall",
+          "n": 59
         },
         {
-          "t": "An ending that feels inevitable yet unforeseen, paying off earlier setups, retroactively elevates the whole book",
-          "n": 13
+          "t": "Humor braided with heartbreak, funny and moving at once, is singled out as a signature pleasure",
+          "n": 47
         },
         {
-          "t": "Fiction that makes readers interrogate their own lives and choices is valued over fiction that answers for them",
-          "n": 11
+          "t": "Big ideas and moral questions are rewarded when carried by story and character and left open, not lectured",
+          "n": 36
         }
       ],
       "punish": [
         {
-          "t": "Flat, cardboard, or distant characters the reader 'feels nothing' for is the top complaint, worse than unlikeability",
-          "n": 24
+          "t": "Flat, cardboard characters nobody can care about, not even dislike, is the top complaint; it sinks even well-written books",
+          "n": 167
         },
         {
-          "t": "Endings that are rushed, tacked-on, cop-out ambiguous, or wrapped too neatly cost a book one to two stars",
-          "n": 17
+          "t": "Overlength and padding: readers name the page count a book deserved, say 'needed an editor', and ask 'what was the point?'",
+          "n": 147
         },
         {
-          "t": "Whiny, privileged protagonists with low real stakes exhaust patience; readers end up siding with minor characters",
-          "n": 16
+          "t": "Stock types, lazy stereotypes (women as trophies or shrews) and recycled or predictable plots are spotted instantly",
+          "n": 104
         },
         {
-          "t": "Heavy-handed messages, agendas, or lessons hammered home; readers resent being preached at or manipulated",
-          "n": 14
+          "t": "Too many characters, unmarked POV or time shifts and fragmented structure leave readers unable to track who's who",
+          "n": 84
         },
         {
-          "t": "Fragmented structure, sprawling casts, and constant time-jumps that cut scenes short dilute investment",
-          "n": 14
+          "t": "Pretension and overwriting (showing off, 25-cent words, stale postmodern devices) are mocked as a facade",
+          "n": 65
         },
         {
-          "t": "Overwritten prose (metaphor pileups, adjective overload, 25-cent words) reads as pretension or trying too hard",
-          "n": 13
+          "t": "Preaching, lectures and authors' opinions in characters' mouths read as amateurish; message must ride inside the story",
+          "n": 59
         },
         {
-          "t": "Implausible behavior: capable characters act stupidly or out of character because the plot requires it",
-          "n": 12
+          "t": "A whiny, self-pitying or passive protagonist loses sympathy unless readers are shown why they are that way",
+          "n": 58
         },
         {
-          "t": "Formula, retreads, and telegraphed reveals; readers spot a trademark device on its second use and call it",
-          "n": 11
+          "t": "Contrivance, coincidence and characters acting against their nature break trust; readers tally each implausibility",
+          "n": 57
         }
       ],
       "expectations": [
         {
-          "t": "Acclaim is a liability: readers measure prizewinners against the hype and punish 'emperor's new clothes' harshly",
-          "n": 15
+          "t": "Hype, prizes and 'classic' status raise the bar; 'everyone loved it but me' and 'admired, not enjoyed' reviews are harsh",
+          "n": 89
         },
         {
-          "t": "Beautiful sentences do not excuse plotlessness; 'great writer, no story' is the archetypal three-star verdict",
-          "n": 10
+          "t": "Unlikable leads and dark material are explicitly accepted when honestly drawn and serving truth rather than shock",
+          "n": 75
         },
         {
-          "t": "Ambiguity must be earned: an open ending after real convergence passes, one that dodges resolution is a cheat",
-          "n": 8
+          "t": "Cover, blurb and title set a contract; 'labeled hilarious, wasn't' or 'not the book promised' costs stars",
+          "n": 49
         },
         {
-          "t": "Melodrama, movie-of-the-week plotting, and soap-opera coincidence count as cheating in a book presented as literary",
-          "n": 8
+          "t": "New books are measured against the author's best; a retread or a changed beloved character feels like betrayal",
+          "n": 34
         },
         {
-          "t": "Dark or unlikeable is acceptable, readers say so explicitly, provided the darkness serves truth rather than shock",
-          "n": 7
+          "t": "Plotless, character-driven novels are accepted, but only if the people and the voice are worth the time",
+          "n": 29
         }
       ],
       "prose": [
         {
-          "t": "Readers hunt for quotable lines; a few true sentences redeem a mixed book but cannot carry a dead one",
-          "n": 11
+          "t": "Purple description, stacked metaphors, explained symbolism and repeated tics are counted line by line; restraint is the compliment",
+          "n": 87
         },
         {
-          "t": "Restraint is the compliment: describe just enough, remove one accessory, let five percent of pages carry the lyricism",
-          "n": 8
+          "t": "Aphoristic, quotable lines get copied into reviews; give readers sentences worth keeping",
+          "n": 53
         },
         {
-          "t": "Telling in summary ('this happened, then this') flattens voice; readers want scenes they can inhabit",
-          "n": 8
+          "t": "Dialogue and narrator voice must fit the speaker: kids like kids, no reciting shared facts, no precocious wisdom",
+          "n": 48
         },
         {
-          "t": "Repeating one point, verb tic, or physical detail is noticed by the third instance and resented by the tenth",
-          "n": 7
+          "t": "Beautiful prose alone does not rescue a book; 'great writing, but it needs more meat' is the archetypal three-star verdict",
+          "n": 39
         },
         {
-          "t": "Dialogue must sound like people: kids like kids, spouses not reciting facts they both already know",
-          "n": 6
+          "t": "Summary instead of scene, or a turning point merely reported, leaves readers outside and feeling the author skipped it",
+          "n": 34
         }
       ],
       "phases": {
         "opening": [
           {
-            "t": "A strong opening the book then squanders is the most frequent two-to-three-star story; the promise raises the bar",
-            "n": 9
+            "t": "A brilliant first 50-100 pages the rest cannot sustain is the most common disappointment; the promise raises the bar",
+            "n": 54
           },
           {
-            "t": "Readers judge the voice within a chapter; overwriting or manipulation on page one ends the book around page 55",
-            "n": 7
+            "t": "Readers grant roughly 50-100 pages; no hook or event by then, or a grating voice, means they quit",
+            "n": 42
           },
           {
-            "t": "Hooking fast works (an early tragedy, a vivid first-page premise), but readers grant patience if warned it pays off",
-            "n": 6
+            "t": "An immediately distinctive voice or vivid setting on page one 'reels them in' and buys patience for a slow middle",
+            "n": 31
           },
           {
-            "t": "Opening on a death then settling into family study frustrates readers primed for a mystery; signal the mode early",
-            "n": 3
+            "t": "Opening on a death or a flash-forward to the hinge event hooks, but the book must offer more than the reveal",
+            "n": 17
+          },
+          {
+            "t": "Front-loading backstory, exposition or the whole cast before the story starts costs goodwill rarely recovered",
+            "n": 17
           }
         ],
         "middle": [
           {
-            "t": "The middle sags: wheel-spinning, lagging, 'the second half went stagnant' recur; slack is forgiven only if it pays off",
-            "n": 9
+            "t": "The middle is where books drag, wander and get skimmed; the slack is forgiven only if the ending pays off",
+            "n": 41
           },
           {
-            "t": "Side characters' backstories and subplots introduced mid-book read as sidetracks from the story readers signed up for",
-            "n": 6
+            "t": "Subplots, side characters and interludes introduced mid-book with no bearing on the main arc are called padding",
+            "n": 27
           },
           {
-            "t": "Mid-book is where readers want connections to tighten and threads to start converging, not multiply",
-            "n": 4
+            "t": "Repeating the same beat (same scrape, same solution) kills momentum; each episode needs a twist or new pressure",
+            "n": 24
           },
           {
-            "t": "Hammering the same theme in incident after incident reads as repetition rather than development",
-            "n": 4
+            "t": "Mid-book is where parallel strands should visibly feed each other and threads start converging, not multiplying",
+            "n": 17
+          },
+          {
+            "t": "Flashback stretches and being 'kept in the dark' with teasers curdle into resentment by halfway",
+            "n": 11
           }
         ],
         "ending": [
           {
-            "t": "A landing stuck cleanly, inevitable yet surprising and earned, is the stated reason for five stars over four",
-            "n": 12
+            "t": "Rushed, tacked-on or random endings (deus ex machina, dream, 40-page wrap-up) retroactively cheapen everything before",
+            "n": 60
           },
           {
-            "t": "Last-20% collapse is a named phenomenon: rushed resolution, deus ex machina, the tide turning for the good guys",
-            "n": 8
+            "t": "A strong ending that recasts the book and feels inevitable in hindsight redeems a slog and lifts four stars to five",
+            "n": 55
           },
           {
-            "t": "Unresolved endings split readers; they pass only when the convergence has already happened on the page",
-            "n": 8
+            "t": "Ambiguous endings split readers; they pass only when convergence already happened on the page, not when dodging resolution",
+            "n": 43
           },
           {
-            "t": "Cheap late twists and plot-device reveals retroactively cheapen everything that came before",
-            "n": 4
+            "t": "A twist from nowhere or 'it was all in her head' is cheating; one readers saw a mile off deflates",
+            "n": 32
           },
           {
-            "t": "Too-neat happy endings for messy material read as a bow tied on a soap opera",
-            "n": 4
+            "t": "Everything tied neatly (unearned redemption, instant love, every lesson learned) reads as a bow on a soap opera",
+            "n": 19
           }
         ]
       },
       "scenes": {
-        "dialogue": {
-          "label": "dialogue",
+        "past_present_timeline": {
+          "label": "Flashbacks and alternating then/now timelines",
           "items": [
             {
-              "t": "Dialogue that rings true, children who talk like children and banter that lands, is singled out for praise",
-              "n": 4
+              "t": "Then/now alternation is the default structure; it works when each return to the past answers a question the present just raised",
+              "n": 22
             },
             {
-              "t": "Characters explaining what they both know, or a narrator interrupting speech to explain, break the scene",
-              "n": 3
+              "t": "A past strand weaker than the present, or flashbacks that pad and delay the hook, gets skimmed: 'just get to the point'",
+              "n": 19
+            },
+            {
+              "t": "Mark every time jump; unmarked shifts, or a past strand repeating what the present already told, lose readers",
+              "n": 17
+            },
+            {
+              "t": "Memory shown as fragments or as unreliable, and flashbacks building toward a revelation rather than explaining, are praised",
+              "n": 13
+            },
+            {
+              "t": "Looking-back novels go dry when the present-day narrator stays passive and the adult frame adds nothing",
+              "n": 7
             }
           ]
         },
-        "action": {
-          "label": "action",
+        "death_and_grief": {
+          "label": "Death, illness and the grief that follows",
           "items": [
             {
-              "t": "Suspense works when escalation feels like actual human behavior under pressure, not plot necessity",
-              "n": 3
+              "t": "Tragedy stacked on tragedy reads as manipulation, a 'parade of horribles'; relentless misery tips from tragic into silly",
+              "n": 26
             },
             {
-              "t": "Brisk pacing buys forgiveness for borrowed tropes and flat types; readers enjoy the ride if it never slows",
-              "n": 3
+              "t": "An early death or accident works when the whole book is its aftermath and survivors' secrets surface slowly",
+              "n": 15
+            },
+            {
+              "t": "Grief carried in objects and habits (wet towels, a held hand, ashes in the trunk) moves readers more than declared sorrow",
+              "n": 14
+            },
+            {
+              "t": "A death lands only if readers were made to love the person first; rushing past it to the next event denies catharsis",
+              "n": 12
+            },
+            {
+              "t": "A joke slipped into a grief scene, a family coping with humor, is where readers cry and smile at once",
+              "n": 11
             }
           ]
         },
-        "intimacy": {
-          "label": "intimacy",
+        "family_gathering": {
+          "label": "Family gathering, homecoming and the secret that surfaces",
           "items": [
             {
-              "t": "Explicit sex that reveals no character reads as porn or comedy; readers say the story was stronger without it",
-              "n": 4
+              "t": "The wake, wedding, holiday or dinner is where buried tensions surface; 'hilariously painful' when it is the hinge of the book",
+              "n": 15
             },
             {
-              "t": "The affair-as-self-discovery that circles back to the spouse is a tired device readers now call out",
-              "n": 3
+              "t": "Long-held secrets must have real consequences; ones that one honest conversation would dissolve frustrate readers",
+              "n": 14
+            },
+            {
+              "t": "Each family member's angle on the same event in their own voice is prized, provided the central loss is not diluted",
+              "n": 8
+            },
+            {
+              "t": "Estranged siblings summoned home by a parent's illness is a recognized template; it needs a twist, not petty feuds",
+              "n": 7
+            },
+            {
+              "t": "Comic set-pieces at family events are the lines readers quote back; a crowd of new faces there annoys them",
+              "n": 7
             }
           ]
         },
-        "exposition": {
-          "label": "exposition",
+        "domestic_routine": {
+          "label": "Everyday domestic life and the small quiet scene",
           "items": [
             {
-              "t": "Infodumps and characters lecturing bystanders about the world are called lazy even by readers who liked the book",
+              "t": "Everyday detail needs pressure beneath it or it is 'eating, talking, hugging, shopping'; catalogs of meals and brands are drivel",
+              "n": 22
+            },
+            {
+              "t": "Routine reveals character when a quirk has pain under it; patient accumulation of small disappointments can devastate",
+              "n": 14
+            },
+            {
+              "t": "Lavishing detail on trivia while the turning point passes in a sentence inverts what readers want detail on",
+              "n": 12
+            },
+            {
+              "t": "Recognizable era detail and immersive physical labor (haying, ranch work) bond readers; details placed like props do not",
+              "n": 9
+            },
+            {
+              "t": "Small scenes between parent and child (games, the beach, bedtime) are often named the best-written pages",
+              "n": 7
+            }
+          ]
+        },
+        "sex_and_violence": {
+          "label": "Sex, violence and abuse on the page",
+          "items": [
+            {
+              "t": "Sex that exists to shock or pad is called juvenile and skimmed; readers accept it when it reveals character or moves plot",
+              "n": 26
+            },
+            {
+              "t": "Graphic abuse and violence are stomached when crucial to the picture and true; readers warn others yet still rate highly",
+              "n": 15
+            },
+            {
+              "t": "Purple or clinical anatomy ('swollen crown', 'moist') is quoted to friends for laughs and undercuts a serious book",
+              "n": 11
+            },
+            {
+              "t": "Sex as self-destruction, or age-gap and trauma-rooted attachments framed as love, alienate without psychological grounding",
+              "n": 11
+            },
+            {
+              "t": "Violence through a child's or detached eyes hits hardest; gross-out fades after the first instance and serial villainy reads as melodrama",
+              "n": 9
+            }
+          ]
+        },
+        "secret_reveal": {
+          "label": "The buried secret or late twist",
+          "items": [
+            {
+              "t": "A telegraphed twist deflates; it survives only if the suspense-building was the fun, never as a rushed 'oh, by the way'",
+              "n": 18
+            },
+            {
+              "t": "The best reveals recontextualize everything, feel inevitable afterward and show the reader's early guess was half the truth",
+              "n": 17
+            },
+            {
+              "t": "A twist from nowhere, 'none of this happened' or a pointless identity reveal is called cheap, especially with no foreshadowing",
+              "n": 13
+            },
+            {
+              "t": "Setup scenes planted only to explain a later twist, or a reveal that turns out ordinary after a long tease, are resented",
               "n": 6
             },
             {
-              "t": "Readers like meeting a strange world halfway: told just enough to orient, never bewildered, never spoon-fed",
-              "n": 3
+              "t": "When the secret is already known or given away on page one, prose and character must carry the story",
+              "n": 5
             }
           ]
         },
-        "quiet": {
-          "label": "quiet",
+        "climactic_confrontation": {
+          "label": "The climactic confrontation or showdown",
           "items": [
             {
-              "t": "Patient accumulation of small disappointments in restrained prose can devastate more than catastrophe",
-              "n": 5
+              "t": "Readers wait all book for the character to finally act and say it aloud; stewing without confronting reads as gutless",
+              "n": 14
             },
             {
-              "t": "Interior stretches with no pressure behind them read as aimless and get skimmed",
-              "n": 4
+              "t": "Give the showdown room: resolutions in a few scant pages after long buildup are the loudest complaint, though brisk is welcome",
+              "n": 12
+            },
+            {
+              "t": "A promised standoff replaced by a shock, reminiscence or secondhand report is bait and switch",
+              "n": 10
+            },
+            {
+              "t": "Set-piece disaster or violence is the scene readers remember when escalation feels like human behavior under pressure",
+              "n": 10
+            },
+            {
+              "t": "A predictable or garbled climax wastes the setup; melodrama is tolerated only as the inevitable conclusion of what came before",
+              "n": 6
+            }
+          ]
+        },
+        "love_and_marriage": {
+          "label": "The marriage or romance thread inside a non-romance novel",
+          "items": [
+            {
+              "t": "Readers must see what held a marriage together, or why two people fall for each other; a kiss and two talks is not enough",
+              "n": 12
+            },
+            {
+              "t": "A spouse leaving, an affair or a 'break' is accepted readily as premise; readers judge whether the response is believable",
+              "n": 11
+            },
+            {
+              "t": "Restraint moves most: a romance that never quite happens, a dead spouse remembered, a long marriage's silent car rides",
+              "n": 8
+            },
+            {
+              "t": "The run-off, find-new-love, return-to-spouse arc and unexamined emotional cheating are called tired and demeaning",
+              "n": 7
+            },
+            {
+              "t": "Banter is why readers root for a pair; constant rows with no warmth make them ask why these two are together",
+              "n": 6
             }
           ]
         }
       },
       "voices": [
         {
-          "t": "I kept reading hoping someone would drown",
-          "n": 1
+          "t": "It felt like something I'd lived, not read",
+          "n": 2
         },
         {
           "t": "Critically acclaimed; don't get it",
+          "n": 2
+        },
+        {
+          "t": "Beautiful writing, but it needs more meat on its bones",
           "n": 1
         },
         {
-          "t": "It never felt like a book, it felt like something I lived",
+          "t": "I don't mind unsympathetic characters; I mind feeling nothing",
           "n": 1
         },
         {
-          "t": "Shadows with zero dimension, not even cardboard cutouts",
+          "t": "Skipped a hundred pages and hadn't missed a thing",
           "n": 1
         },
         {
-          "t": "Look in the mirror and remove one accessory",
+          "t": "Started with a bang and ended with a fizzle",
           "n": 1
         },
         {
-          "t": "Great writer, no plot: why people hate literary fiction",
+          "t": "Didn't he have an editor?",
           "n": 1
         },
         {
-          "t": "Too much work for too little reward",
-          "n": 1
-        },
-        {
-          "t": "I felt nothing, nada, zilch for these people",
+          "t": "Made me want to cry and smile at the same time",
           "n": 1
         }
       ],
-      "notes": "The sample leans on a few prolific bloggers (one gif-heavy reviewer supplies roughly 35 of 190 reviews, an SF-leaning blog another 15), so NetGalley ARCs, 'I probably read it wrong' hedging, and speculative titles are overrepresented despite the plain-fiction filter; several entries review short-story collections or the reviewer's own life more than the book. Surprising: low-star readers repeatedly insist they do not mind unlikeable characters or dark material, only feeling nothing, and critical acclaim is treated as a reason to grade harder rather than softer."
+      "notes": "The sample skews toward hyped, prize-listed and book-club literary titles and toward family drama, grief and marriage stories, with a handful of prolific bloggers and DNF reviews over-represented; humor, satire and magical realism are thin despite being aliases, and several reviews cover linked-story collections. Surprising: low-star readers insist repeatedly that they do not need likable characters or happy material, only to feel something, and critical acclaim is treated as a reason to grade harder. 'Couldn't put it down' is cited for quiet novels nearly as often as prose quality, so forward"
     },
     "historical": {
       "label": "Historical fiction",
@@ -960,313 +1301,412 @@
         "colonial",
         "dual timeline"
       ],
-      "reviews": 190,
+      "reviews": 1190,
       "reward": [
         {
-          "t": "Lived-in period detail (cold, food, squalor, work) earns trust; readers sense research woven into scene rather than displayed",
-          "n": 20
+          "t": "Immersive period detail (smells, food, cold, labour, slang) is the most praised quality; readers say 'I felt I was there'",
+          "n": 140
         },
         {
-          "t": "Characters who change and whom readers grow to love; crying over them is the most-cited reason for five stars",
-          "n": 19
+          "t": "Learning a neglected corner of history through story, not lecture; a fresh angle on a saturated period beats famous ground",
+          "n": 115
         },
         {
-          "t": "A distinctive narrative voice or device (odd narrator, dry wit, charm) carries readers through slow or grim stretches",
-          "n": 13
+          "t": "Characters loved like family who grow, flawed and morally complicated rather than saintly; closing the book feels like a loss",
+          "n": 96
         },
         {
-          "t": "Propulsive plotting: short chapters, a mission or mystery, cliffhangers; 'read it in one day' is top praise",
-          "n": 13
+          "t": "Humour and wit threaded through dark material; being made to laugh and cry beats unbroken grimness",
+          "n": 63
         },
         {
-          "t": "Teaching a forgotten corner of history (a ship, a trial, a colony) through story, not lecture, is a core pleasure",
-          "n": 11
+          "t": "Heroines who push against era constraints with competence and wit, where the pushing costs them something real",
+          "n": 53
         },
         {
-          "t": "Fierce, goal-driven protagonists, especially women with 'gumption', hold readers even when the plot sags",
-          "n": 11
+          "t": "Can't-put-it-down drive even in literary historicals: secrets slowly disclosed, short chapters, genuine suspense",
+          "n": 52
         },
         {
-          "t": "Multiple POVs or timelines are rewarded when the strands visibly converge or echo each other by the end",
-          "n": 10
+          "t": "Earned devastation: tears for a loss readers saw coming; knowing the historical outcome deepens dread rather than spoiling",
+          "n": 51
         },
         {
-          "t": "Dark material balanced by kindness, humor or hope: readers want to be moved, not traumatized",
-          "n": 9
+          "t": "Multi-POV or multi-timeline sagas where every strand is strong, voices are distinct and threads visibly converge",
+          "n": 49
         }
       ],
       "punish": [
         {
-          "t": "Flat or opaque characters: 'I never got to know her' is the top complaint and sinks even well-researched books",
-          "n": 27
+          "t": "Flat, static or interchangeable characters and casts too large to know: 'I never got to know her' sinks well-researched books",
+          "n": 194
         },
         {
-          "t": "Bloat: excess description, tangents, repeated scenes; readers say 'needed an editor' and estimate pages to cut",
-          "n": 24
+          "t": "Bloat is the top structural complaint: readers name the 100-200 pages to cut and say 'in sore need of an editor'",
+          "n": 94
         },
         {
-          "t": "Coincidences, nick-of-time rescues and piled-on misfortunes: melodrama replaces the empathy readers came for",
-          "n": 16
+          "t": "'Nothing happens': chapters without consequence or forward motion; 'boring' is the commonest one-star word",
+          "n": 93
         },
         {
-          "t": "Romance that romanticizes coercion, rape or controlling husbands; readers DNF in rage, even fans of the author",
-          "n": 14
+          "t": "Repetition of phrases, scenes, tics or a formula visible from previous books becomes a drinking game",
+          "n": 77
         },
         {
-          "t": "Plodding middles with no declared stakes; readers 'wait and wait' then quit between 40 and 65 percent",
-          "n": 14
+          "t": "Melodrama: coincidences, nick-of-time rescues, piled-on misery and characters bent out of shape to serve the plot",
+          "n": 76
         },
         {
-          "t": "Repetition of phrases, scenes or tics (dialect words, catchphrases, the same mistake) becomes a drinking game",
-          "n": 12
+          "t": "Modern attitudes or diction, factual errors and liberties with real people break the illusion; the era must constrain characters",
+          "n": 72
         },
         {
-          "t": "Flattening real historical figures into harpies or saints; readers are protective of maligned women and check the record",
-          "n": 11
+          "t": "Research dumped undigested and events told rather than shown read as a history lesson 'held at arm's length'",
+          "n": 70
         },
         {
-          "t": "Casts too large to track: dozens introduced early then dropped, or linked stories that never let you know anyone",
-          "n": 10
+          "t": "Coercive, controlling or abusive heroes framed as romantic trigger rage reviews and DNFs, however the era is invoked",
+          "n": 50
         }
       ],
       "expectations": [
         {
-          "t": "Readers assume the facts of real events are right and will look them up; errors in chronology or custom disqualify",
-          "n": 10
+          "t": "Accuracy is the contract: readers fact-check and police real people; invention is accepted where the record is blank and the author owns it",
+          "n": 62
         },
         {
-          "t": "The era must shape behavior; anachronistic language or uniformly modern, tolerant attitudes read as 'in costume'",
-          "n": 9
+          "t": "Romance must not swamp the history; insta-love bolted onto a war story is 'detail on a romance coat hanger'",
+          "n": 44
         },
         {
-          "t": "In dual-timeline books the contemporary strand must earn its place; it is usually the weaker one and gets skimmed",
-          "n": 9
+          "t": "An author's note separating fact from invention is expected, read closely and can lift a rating",
+          "n": 36
         },
         {
-          "t": "Holocaust, slavery and WWII are held to a higher bar: thrill-seeking or sentimental use of atrocity reads as exploitation",
-          "n": 8
+          "t": "Historical is a wrapper: the mystery, romance or gothic inside is judged by its own rules, and the blurb's promise must be kept",
+          "n": 33
         },
         {
-          "t": "An author's note on sources and departures from fact buys goodwill, even from critical readers",
-          "n": 5
+          "t": "WWII, Holocaust, Tudor and slavery fatigue is real; atrocity settings are held to a higher bar and need a visible fresh angle",
+          "n": 25
         }
       ],
       "prose": [
         {
-          "t": "Lyrical prose is prized, but 'showing off', purple metaphor and stock phrases ('scared to death') break immersion",
-          "n": 13
+          "t": "Readers quote standout lines, but lyrical prose alone never carries a book: 'I can't fault the writing, but I was bored'",
+          "n": 71
         },
         {
-          "t": "Characters who orate: speeches carrying the author's politics, or dialogue that explains history to the reader",
-          "n": 8
+          "t": "Overwrought, purple or show-off prose (piled adjectives, mixed metaphors, stock phrases) is quoted back as 'death by poetry'",
+          "n": 64
         },
         {
-          "t": "Stating emotions outright ('he felt jealous') or pages of 'thought passages' with no dialogue insult the reader",
-          "n": 6
+          "t": "Characters who orate two-page speeches carrying the author's agenda; readers feel lectured, not told a story",
+          "n": 40
         },
         {
-          "t": "Unmarked shifts of time, place or speaker (including ambiguous pronouns) force rereading and breed resentment",
-          "n": 6
+          "t": "Dialogue must ring true to era: modern banter and pseudo-archaic 'thee/thou' pastiche are equally deal-breaking",
+          "n": 33
         },
         {
-          "t": "Dialect and foreign words: a light touch adds authenticity; dense phonetic brogue or untranslated terms wear thin",
-          "n": 6
+          "t": "A light touch of dialect or glossed foreign words adds authenticity; dense phonetic brogue sustained for a book wears thin",
+          "n": 32
         }
       ],
       "phases": {
         "opening": [
           {
-            "t": "Strong openings that collapse: 'it started off engagingly' is the refrain of two-star reviews; keep the promise you make",
-            "n": 10
+            "t": "A strong opening that collapses is the commonest arc in critical reviews: 'the beginning was the best part'",
+            "n": 43
           },
           {
-            "t": "A slow start is forgiven if the book finds its rhythm by the one-third mark",
-            "n": 7
+            "t": "A slow start is forgiven if the book grips by the one-third mark and the back half clearly repays it",
+            "n": 34
           },
           {
-            "t": "Openings that introduce dozens of names, or jump time and place without transition, lose readers before chapter five",
-            "n": 7
+            "t": "A vivid first scene or distinctive voice hooks before page five; shock before readers know anyone lands only cerebrally",
+            "n": 34
           },
           {
-            "t": "A first paragraph with a striking voice or a fairy-tale hook is quoted back with love",
-            "n": 5
+            "t": "Seven or more characters introduced in the first pages make readers put the book down or reach for a cast list",
+            "n": 17
           },
           {
-            "t": "Shocking events before the reader knows the character land only cerebrally",
-            "n": 3
+            "t": "Front-loading birth, childhood or backstory for 200 pages before the real problem starts loses readers",
+            "n": 13
           }
         ],
         "middle": [
           {
-            "t": "Middles that repeat (same scene, same scrape, same meal) or stall are where most DNFs happen",
-            "n": 12
+            "t": "The sagging middle is where DNFs happen: readers name the exact page or percent (40-50%) they quit",
+            "n": 55
           },
           {
-            "t": "Readers quit mid-book when no arc has declared itself: 'at 40 percent they were still on the road'",
-            "n": 9
+            "t": "In dual timelines the historical strand is the one readers want; a weak modern strand is dreaded or skipped",
+            "n": 35
           },
           {
-            "t": "Switching protagonist or letting a vivid secondary character fade mid-book leaves readers disconnected",
-            "n": 6
+            "t": "Misunderstanding loops, secrets withheld and crisis-resolution cycles pad the middle; let the conversation happen",
+            "n": 26
           },
           {
-            "t": "Fitting in every research find (botany, battles, bowel movements) mid-book reads as self-indulgence",
-            "n": 5
+            "t": "Switching to a new cast mid-book, or letting a vivid secondary character fade, leaves readers disconnected",
+            "n": 19
+          },
+          {
+            "t": "Mid-book digressions (a 75-page side trip, every research find) read as self-indulgence",
+            "n": 14
           }
         ],
         "ending": [
           {
-            "t": "A moving ending redeems much: critics concede 'the ending is genuinely well managed'; strong last 50 pages lift ratings",
-            "n": 10
+            "t": "Bittersweet endings true to history are preferred to tidy wrap-ups; unearned HEAs and tacked-on epilogues are resented",
+            "n": 56
           },
           {
-            "t": "Rushed or abrupt endings after a long build ('thirty pages missing', 'felt cheated') are the top ending complaint",
-            "n": 9
+            "t": "Twists must be fair and grow from character: a reveal seen from chapter one or a late genre swerve wastes the journey",
+            "n": 54
           },
           {
-            "t": "Reveals already hinted at, or foreseeable from the first cough, make the whole journey feel wasted",
-            "n": 7
+            "t": "A moving final quarter can lift a flawed book a star or more; readers cite the last fifty pages as the best",
+            "n": 44
           },
           {
-            "t": "Late genre swerves (mystical bear, love saves the day, sudden bloodbath) after a realistic book feel like betrayal",
-            "n": 7
+            "t": "Rushed or abrupt endings after a long build are the top ending complaint: 'I checked I hadn't missed a page'",
+            "n": 37
           },
           {
-            "t": "Forgiveness granted too quickly to a hero who wronged the heroine sours the whole romance",
-            "n": 5
+            "t": "Confusing or unresolved endings are a cop-out, not realism; only ambiguity true to the period is accepted",
+            "n": 32
           }
         ]
       },
       "scenes": {
-        "dialogue": {
-          "label": "dialogue",
+        "atrocity_witness": {
+          "label": "Witnessing atrocity: camps, massacre, slavery, sexual violence",
           "items": [
             {
-              "t": "Witty sparring and name-calling between leads is quoted and savored",
-              "n": 4
+              "t": "Graphic rape or violence repeated without purpose is skimmed; a heroine romanticizing her rapist ends the book",
+              "n": 25
             },
             {
-              "t": "Two-page speeches voicing the author's agenda make characters 'orate, not talk'",
-              "n": 3
+              "t": "Atrocity lands through one precise particular felt in one body, not catalogues of gore",
+              "n": 19
             },
             {
-              "t": "Characters chatting while hiding from enemies, or rushing in with news bulletins, read as farce",
-              "n": 3
+              "t": "Sanitizing atrocity, cartoon perpetrators or using genocide as a thriller or romance backdrop draws anger",
+              "n": 15
+            },
+            {
+              "t": "Unflinching brutality is respected as honesty; readers expect to need breaks and do not hold it against the book",
+              "n": 13
+            },
+            {
+              "t": "Horror told at a remove leaves readers 'sad like in history class'; take them into the camp",
+              "n": 10
             }
           ]
         },
-        "action": {
-          "label": "action",
+        "battle_set_piece": {
+          "label": "Battle, siege or combat set piece",
           "items": [
             {
-              "t": "Blow-by-blow battle minutiae and gore are skimmed unless anchored to a character's stake",
-              "n": 4
+              "t": "Tactics, troop movements and blow-by-blow minutiae bore unless anchored to one character's stake",
+              "n": 18
             },
             {
-              "t": "Danger scenes where characters act stupidly (confide in soldiers, wander off alone) break trust",
-              "n": 4
+              "t": "Dramatized action with blood, clarity and characters who can plausibly die is praised even by otherwise bored readers",
+              "n": 17
             },
             {
-              "t": "A tight mission or escape (breaking into a camp, a race) is what 'edge of my seat' refers to",
-              "n": 4
+              "t": "Characters acting stupidly in danger, or violence erupting without cause, read as melodrama, not war",
+              "n": 7
             },
             {
-              "t": "Violence that erupts without cause is read as melodrama, not war",
-              "n": 3
+              "t": "The battle the book builds to must be staged, not summarized in two paragraphs or won by an invincible hero",
+              "n": 6
             }
           ]
         },
-        "intimacy": {
-          "label": "intimacy",
+        "court_intrigue": {
+          "label": "Court politics and royal intrigue",
           "items": [
             {
-              "t": "Rape or coercion framed as romance, or forgiven within pages, ends the book for readers",
+              "t": "Intrigue grips when heads can roll and stakes are personal; pure politics or theology debate bores",
+              "n": 14
+            },
+            {
+              "t": "Leaving a famous crime ambiguous, with evidence against everyone, keeps readers theorizing afterwards",
+              "n": 8
+            },
+            {
+              "t": "Squabbles over minor thrones, treason spelled out in letters or villainy by caricature break belief",
+              "n": 7
+            },
+            {
+              "t": "Feasts, dress and court minutiae are savoured; five pages on a tennis match serving nothing are not",
               "n": 6
             },
             {
-              "t": "Sex scenes that recur without changing the relationship get skimmed or mocked",
-              "n": 5
-            },
-            {
-              "t": "A romance bolted onto a war, mystery or adventure plot reads as forced",
-              "n": 4
-            },
-            {
-              "t": "Slow-burn tension is loved, but readers do want it to pay off",
+              "t": "The coup, trial or execution must be dramatized, not glossed in a chapter",
               "n": 3
             }
           ]
         },
-        "exposition": {
-          "label": "exposition",
+        "hostile_journey": {
+          "label": "Journey, flight or expedition through hostile country",
           "items": [
             {
-              "t": "Research dumped whole ('Wikipedia history', primers, tangents) is the most-named form of padding",
-              "n": 6
+              "t": "Cold, hunger, disease and whom to trust are antagonists readers never tire of; nature outdoes any villain",
+              "n": 13
             },
             {
-              "t": "Readers love being taught incidentally; 'never bewildered by what I didn't know' is high praise",
-              "n": 4
+              "t": "Journeys need escalating peril and a deepening bond; at 40% 'still on the road' readers quit",
+              "n": 13
             },
             {
-              "t": "Leaving out the background a scene needs (why the territory became a state) is also noticed",
-              "n": 2
+              "t": "Landscape rendered with awe is often the best prose in the book; landscape without event is a slog",
+              "n": 9
+            },
+            {
+              "t": "Companions must be allowed to die; escapes that succeed via convenient hiding places drain the stakes",
+              "n": 7
+            },
+            {
+              "t": "Readers prefer the expedition thread to the drawing-room subplot and forgive rigging detail as authenticity",
+              "n": 7
             }
           ]
         },
-        "quiet": {
-          "label": "quiet",
+        "romance_and_intimacy": {
+          "label": "Courtship, arranged marriage and love scenes under period rules",
           "items": [
             {
-              "t": "Routine rendered as a list (meals, tea, diapers) numbs; routine rendered as meaning (a prison day) devastates",
+              "t": "Sex repeated without changing the relationship, or inserted for shock in a grim literary book, is skimmed",
+              "n": 21
+            },
+            {
+              "t": "Girls married off for debt or alliance suffocate readers compellingly when both parties' reasons fit the period",
+              "n": 20
+            },
+            {
+              "t": "Love scenes work through the couple's emotional stakes and specific desire; explicitness without connection bores",
+              "n": 18
+            },
+            {
+              "t": "Love that history will sever is the genre's engine; forge it through shared danger, not a first glance or a misunderstanding",
+              "n": 17
+            },
+            {
+              "t": "A hero's coercion in courtship is never forgiven, and forgiveness granted within pages ends the book",
+              "n": 13
+            }
+          ]
+        },
+        "domestic_and_society": {
+          "label": "Household routine, meals, balls and social gatherings",
+          "items": [
+            {
+              "t": "Craft and labour (slaughter day, restoring a painting, raising a cathedral) delight when they are a character's passion",
+              "n": 21
+            },
+            {
+              "t": "Meals, gowns and errands listed without tension numb; routine rendered as meaning (a prison day) devastates",
+              "n": 18
+            },
+            {
+              "t": "Balls and dinners come alive when an outsider exposes class and prejudice, not when gowns are described",
+              "n": 10
+            },
+            {
+              "t": "A recurring ritual or comic set piece gives shape and gets quoted; wit can carry a whole domestic novel",
+              "n": 9
+            },
+            {
+              "t": "Below-stairs scenes engage once servants get inner lives; the governess with a candle is worn out unless parodied",
               "n": 5
+            }
+          ]
+        },
+        "investigation_and_trial": {
+          "label": "Investigation, interrogation and trial",
+          "items": [
+            {
+              "t": "Trials drag when procedural; they land as duels where one defiant human choice is at stake and mirror the present",
+              "n": 12
             },
             {
-              "t": "Pages of interior 'thought passages' with no dialogue or action get skimmed",
-              "n": 3
+              "t": "An obvious culprit collapses the investigation; readers finish only for the answer",
+              "n": 10
             },
             {
-              "t": "Sensory detail of food or wine delights when it reveals how the character lives",
-              "n": 3
+              "t": "Readers love assembling clues alongside the sleuth; many plausible suspects keep them questioning everyone",
+              "n": 9
+            },
+            {
+              "t": "Period forensics and documentary trial formats make the reader a juror; graphic autopsy gore divides",
+              "n": 9
+            },
+            {
+              "t": "The mystery is secondary: readers stay for the investigator's inner life; suspecting all on flimsy evidence looks silly",
+              "n": 7
+            }
+          ]
+        },
+        "dual_timeline_bridge": {
+          "label": "Found letter, diary or painting bridging past and present",
+          "items": [
+            {
+              "t": "The found diary or painting works when it changes the finder, not merely explains the past",
+              "n": 14
+            },
+            {
+              "t": "The past strand almost always outshines the present; keep the modern frame lean or readers skip it",
+              "n": 9
+            },
+            {
+              "t": "Crumbling house plus buried family secret is a reliable hook; cliffhangers excuse the formula",
+              "n": 8
             }
           ]
         }
       },
       "voices": [
         {
-          "t": "Why set it in the Victorian age at all? Just for the costumes?",
+          "t": "Why set it then at all, just for the costumes?",
+          "n": 2
+        },
+        {
+          "t": "I could taste every meal he ate",
+          "n": 2
+        },
+        {
+          "t": "I can't fault the writing, but I was bored",
           "n": 1
         },
         {
-          "t": "Wikipedia history stitched into a Harlequin",
+          "t": "Knowing the deaths were coming somehow made it harder",
           "n": 1
         },
         {
-          "t": "To enjoy this you must anaesthetize your critical faculties",
+          "t": "Did her research and really wants you to know it",
           "n": 1
         },
         {
-          "t": "I tasted almost every meal he ate",
+          "t": "Death by poetry",
           "n": 1
         },
         {
-          "t": "You could doze fifty pages and miss no landmark",
+          "t": "Historical detail hung on a romance coat hanger",
           "n": 1
         },
         {
-          "t": "The education felt incidental to the story, as it should",
-          "n": 1
-        },
-        {
-          "t": "How did I not learn about this in school?",
-          "n": 1
-        },
-        {
-          "t": "Some sentences made me think: now you're just showing off",
+          "t": "I was told a story, not transported into it",
           "n": 1
         }
       ],
-      "notes": "The sample skews toward Goodreads blogger-reviewers and over-represents historical romance (about 15 reviews, source of most abuse-as-romance complaints), YA historicals (about 12) and one time-travel saga (8 reviews); roughly seven non-fiction titles and five author self-promotion posts were excluded from counts. Dual-timeline and WWII books draw unusual fatigue: readers name the 'WWII YA genre' and 'burnt out on slavery narratives' explicitly. Most surprising is how often two-star reviews begin with praise for the opening and the prose; the failure is almost always character opacity or mid-b"
+      "notes": "The sample over-represents WWII/Holocaust and dual-timeline novels, historical romance (the source of nearly all coercion-as-romance complaints) and prize-winning literary titles read with raised expectations; it is thin on ancient-world, non-Western and series military fiction. Two-star reviews routinely open with praise for the research and the prose, then fail on character opacity or mid-book bloat, not the setting. Surprisingly, readers who knew the historical outcome consistently said foreknowledge deepened rather than spoiled the dread."
     },
     "mystery_thriller_crime": {
       "label": "Mystery, thriller & crime",
@@ -1287,301 +1727,420 @@
         "cozy mystery",
         "heist"
       ],
-      "reviews": 190,
+      "reviews": 1190,
       "reward": [
         {
-          "t": "A reveal readers didn't see coming that still makes sense when they rewind is the single most-praised element",
-          "n": 23
+          "t": "Propulsive momentum and short, hooky chapters earn 'couldn't put it down'; readability carries even predictable books",
+          "n": 127
         },
         {
-          "t": "Readers invest in a lead who is capable but visibly flawed; having someone to root for carries the dark material",
-          "n": 13
+          "t": "Layered, flawed characters (a capable lead with demons, a cast that walks off the page) earn praise even when the mystery is thin",
+          "n": 127
         },
         {
-          "t": "Setting that does suspense work (bleak landscape, closed town, sinister house) gets named as a strength in itself",
-          "n": 12
+          "t": "A vivid, menacing sense of place (closed town, island, drought, fog, period detail) is praised as a character in itself",
+          "n": 94
         },
         {
-          "t": "Factual 'payload' (history, forensics, procedure, newsroom craft) is a draw when it rides inside the chase",
-          "n": 12
+          "t": "A twist that genuinely blindsides yet recontextualizes everything before it is the most-cited reason for a top rating",
+          "n": 75
         },
         {
-          "t": "Sustained unease from the first pages, tension that 'never lets up', is what earns 'couldn't put it down'",
-          "n": 10
+          "t": "Dark humor and sharp partner banter lift grim material; a duo with real chemistry carries a series through weak plots",
+          "n": 55
         },
         {
-          "t": "Short chapters that each end on a turn make readers read 'one more' and forgive other weaknesses",
-          "n": 7
+          "t": "Dark, disturbing material is embraced when purposeful and handled with restraint; readers brag how far a good book went",
+          "n": 41
         },
         {
-          "t": "Sections inside the killer's head (diaries, POV chapters) are singled out as the most chilling parts",
-          "n": 7
+          "t": "Authentic grounding (procedure, forensics, period, newsroom, courtroom) adds weight when woven in lightly, never lectured",
+          "n": 41
         },
         {
-          "t": "Graphic violence is accepted, even praised, when it visibly serves the story rather than exists to shock",
-          "n": 6
+          "t": "Books that make readers feel (tears, fear for a child, moral discomfort) rate far above cleverly plotted but cold ones",
+          "n": 39
         }
       ],
       "punish": [
         {
-          "t": "A cast nobody cares about kills the stakes; readers stop caring who lives or dies and rate it 1-2 stars",
-          "n": 25
+          "t": "A flat or unlikable cast nobody connects with sinks the book; readers stop caring who lives or dies and twists land on nothing",
+          "n": 146
         },
         {
-          "t": "A killer guessable before the halfway mark sinks the rating no matter how readable the rest is",
-          "n": 20
+          "t": "Padding and a sagging middle are the top structural complaint: 'cut 100-200 pages', meals and routines counted, chapters skimmed",
+          "n": 108
         },
         {
-          "t": "Books that lose steam at 50-60% draw 'could have been 100-150 pages shorter'; filler is noticed and named",
-          "n": 19
+          "t": "Protagonists acting stupidly (go alone, never call police, trust strangers) and implausible police draw open mockery",
+          "n": 93
         },
         {
-          "t": "Romance, instalove or a love triangle crowding out the mystery is the most common 'ruined it for me' complaint",
-          "n": 17
+          "t": "Far-fetched plotting, coincidence and twists stacked for shock make readers feel cheated rather than surprised",
+          "n": 65
         },
         {
-          "t": "Protagonists who never call the police, trust strangers in a day, or ignore obvious tools read as stupid",
-          "n": 16
+          "t": "Romance, instalove or a love triangle swamping the mystery is a frequent 'ruined it for me' deduction",
+          "n": 63
         },
         {
-          "t": "Convenient memory lapses, tech-as-explanation and plot-serving coincidence read as the author stalling or cheating",
-          "n": 12
+          "t": "A culprit spotted early (sometimes by 5%) turns the rest of the book into waiting to be proved right",
+          "n": 62
         },
         {
-          "t": "Twists chosen to shock, that contradict character or logic, provoke anger rather than awe",
-          "n": 10
+          "t": "Long-running series recycling the formula with stagnant characters read as milking the fans",
+          "n": 52
         },
         {
-          "t": "Ambiguous endings, cliffhangers in standalones and 'no answers' feel like being cheated of the payoff",
-          "n": 8
+          "t": "Too many POVs, characters or late-added suspects leave readers confused about who is speaking and uninvested",
+          "n": 30
         }
       ],
       "expectations": [
         {
-          "t": "Series readers expect leads to grow; recycled gags and a repeated formula read as phoned in",
-          "n": 10
+          "t": "Blurbs likening the book to the genre's megahit, or promising a different book than delivered, set readers up to punish it",
+          "n": 66
         },
         {
-          "t": "If it is sold as a thriller, something thrilling must happen; a character study in a thriller jacket gets punished",
-          "n": 9
+          "t": "Labelled thriller means thrills: a quiet domestic drama or long stretches where nothing happens get 'this is not a thriller'",
+          "n": 55
         },
         {
-          "t": "Unlikeable leads are fine if compelling; an antihero works, an unlikeable AND dull cast does not",
-          "n": 6
+          "t": "Fair play: clues planted for hindsight and several credible suspects; one obvious candidate is suspense, not mystery",
+          "n": 33
         },
         {
-          "t": "Fair play matters: readers rewind to find the clues and feel cheated if they were never there",
-          "n": 6
+          "t": "Pulp, beach-read escapism is a contract readers accept happily as long as the book owns it and doesn't pretend to be more",
+          "n": 25
         },
         {
-          "t": "A proper mystery needs several plausible suspects; one obvious candidate makes it suspense, not mystery",
-          "n": 5
+          "t": "Readers prefer to go in blind and police spoilers fiercely; a blurb that gives away the first half drains the opening",
+          "n": 24
         }
       ],
       "prose": [
         {
-          "t": "Itemized driving routes, meals, jogging paths and daily routines are read as padding, not texture",
-          "n": 8
+          "t": "Lean, precise prose and short chapters ending on a turn are felt as pace; a few quotable lines lift a rating",
+          "n": 60
         },
         {
-          "t": "A few sharp, near-poetic lines in a thriller get quoted and praised; readers notice above-par prose",
-          "n": 7
+          "t": "Dialogue must sound like distinct people; witty, regionally flavored talk is a top compliment, tin-eared lines get quoted",
+          "n": 38
         },
         {
-          "t": "Witty, dark-humored banter is a draw; forced quirk, teen-speak or pages of aimless talk reads contrived",
-          "n": 7
+          "t": "Overwrought similes, thesaurus words, typos and clunky sentences are quoted and mocked in reviews",
+          "n": 37
         },
         {
-          "t": "Overwritten, 'literary' pretension in a suspense novel reads as trying too hard",
-          "n": 5
+          "t": "Repeating a trait, phrase or explanation the reader already grasped reads as condescension and becomes a joke",
+          "n": 33
         },
         {
-          "t": "Plain prose is forgiven if it moves; dry prose with no atmosphere leaves readers unable to care",
-          "n": 5
+          "t": "Itemized minutiae (meals, outfits, driving routes, weather, decor) is read as filler and skimmed",
+          "n": 27
         }
       ],
       "phases": {
         "opening": [
           {
-            "t": "A slow start is tolerated as a genre norm so long as a sinister undertone is present from page one",
-            "n": 9
+            "t": "A hook on page one (a body, a shocking death, a killer first line, an abduction) is the opener readers cite and credit",
+            "n": 51
           },
           {
-            "t": "A first chapter that 'blows me away' buys goodwill that carries readers through later flaws",
-            "n": 7
+            "t": "A strong start that collapses at the halfway mark is punished harder than a book that is weak throughout",
+            "n": 43
           },
           {
-            "t": "When the blurb's hook event arrives past the midpoint, or after 20% of backstory, readers feel cheated",
-            "n": 5
+            "t": "Front-loaded backstory or long character setup before the inciting crime loses critical readers by page 50-100",
+            "n": 36
           },
           {
-            "t": "Opening on the aftermath (a death already happened, a survivor's account) hooks immediately",
-            "n": 4
+            "t": "A slow start is forgiven when a sinister undertone, strong voice or atmosphere is present from the first page",
+            "n": 27
+          },
+          {
+            "t": "Too many characters or narrators introduced at once leaves readers unable to tell who is who",
+            "n": 15
           }
         ],
         "middle": [
           {
-            "t": "The middle is where books 'go downhill'; the second half must escalate, not pad toward a wrap-up",
-            "n": 19
+            "t": "The middle sags at 40-65%: readers name the percentage where they started skimming or jumped to the end",
+            "n": 87
           },
           {
-            "t": "Everything-but-the-kitchen-sink subplots added mid-book to stay twisty read as clutter",
-            "n": 5
+            "t": "Dual timelines and alternating POVs that drip-feed secrets and converge are loved when each strand leaves you wanting the next",
+            "n": 52
           },
           {
-            "t": "Investigations that loop (same searching, suspect to suspect, no new information) exhaust readers",
-            "n": 5
+            "t": "Side plots and personal subplots must visibly feed the case; new strands sprouting mid-book read as clutter",
+            "n": 32
           },
           {
-            "t": "A mid-book escalation or genre shift (mystery into psychological thriller) re-hooks and is welcomed",
-            "n": 4
+            "t": "Repetitive loops (same search, same worry, suspect/clear, fake-out danger) read as padding and teach readers to stop believing",
+            "n": 24
+          },
+          {
+            "t": "POV shifts or a trial frame used to keep the reader artificially in the dark are seen through as withholding, not suspense",
+            "n": 17
           }
         ],
         "ending": [
           {
-            "t": "A guessed reveal defines the rating; readers sort endings into surprising, so-so, or 'saw it miles away'",
-            "n": 20
+            "t": "Flat, rushed or 'where did that come from' endings are the most common reason a gripping read drops a star or two",
+            "n": 71
           },
           {
-            "t": "Leaving the central question unanswered reads as lazy, not artful; readers want closure",
-            "n": 8
+            "t": "A culprit guessed early flattens the ending no matter how it is staged; reviewers name the exact page they knew",
+            "n": 59
           },
           {
-            "t": "A climax too crammed or confusing to follow evaporates the emotional payoff built before it",
-            "n": 4
+            "t": "A genuinely unforeseen twist that makes readers rewind the whole book is the strongest driver of five stars",
+            "n": 50
           },
           {
-            "t": "Epilogues that over-explain, leap decades ahead or turn saccharine undercut an otherwise earned finish",
-            "n": 4
+            "t": "Readers want closure and the why explained; ambiguous or unanswered endings after a long mystery feel like a cheat",
+            "n": 31
           },
           {
-            "t": "A final sting on the last page, after things seem wrapped up, is remembered as 'a cracker'",
-            "n": 4
+            "t": "Sticking the landing redeems a flawed book; several ratings were raised a star by the ending alone",
+            "n": 23
           }
         ]
       },
       "scenes": {
-        "dialogue": {
-          "label": "dialogue",
+        "the_reveal": {
+          "label": "The whodunit / twist reveal",
           "items": [
             {
-              "t": "Dialogue that sounds written to seem young or quirky reads fake; readers cringe",
-              "n": 4
+              "t": "An unguessable reveal that makes everything before it click is the most rewarded scene; 'didn't see it coming' is top praise",
+              "n": 84
             },
             {
-              "t": "Madcap, dark-humored partner banter is praised as the fun of a detective tale",
-              "n": 3
+              "t": "A reveal confirming what readers suspected early lands flat however it is staged; the wait becomes obligation",
+              "n": 71
             },
             {
-              "t": "Pages of talk without action or stakes read as filler: 'too much talk and not enough action'",
-              "n": 3
+              "t": "A culprit chosen only to be unexpected, a twist from nowhere, or one contradicting character is called a cheat",
+              "n": 31
+            },
+            {
+              "t": "Clues must be there in hindsight; readers rewind to find the planted hints and praise fair play when they do",
+              "n": 16
+            },
+            {
+              "t": "The culprit must be a character properly met on the page, with motive and method explained",
+              "n": 11
             }
           ]
         },
-        "action": {
-          "label": "action",
+        "body_discovery": {
+          "label": "The opening crime, body discovery and gore",
           "items": [
             {
-              "t": "Action lands only when readers are unsure the hero will make it and care who might die",
-              "n": 4
+              "t": "A brutal, brief crime or body in the first pages (posed corpse, bones at a dig) is the genre's handshake",
+              "n": 27
             },
             {
-              "t": "Strings of chases and fights with little connecting them numb rather than thrill",
-              "n": 3
+              "t": "Graphic detail is accepted, even praised, when essential; repeated or shock-only gore caps the rating",
+              "n": 24
             },
             {
-              "t": "A climax confusing to follow, or 'ham-fisted' in tying threads, is where ratings drop",
-              "n": 3
-            }
-          ]
-        },
-        "intimacy": {
-          "label": "intimacy",
-          "items": [
+              "t": "A gripping opening crime raises the bar; the fall-off afterward is punished harder",
+              "n": 15
+            },
             {
-              "t": "Erotic-suspense readers grade sexual tension and sex scenes separately from plot; both must hold",
+              "t": "A signature detail at the scene, or a copycat replicating an old crime, is quoted and remembered",
               "n": 7
             },
             {
-              "t": "Romance told rather than shown, or instant, reads artificial; slow-burn attraction gets credit",
+              "t": "Decades-old remains or a cold case resurfacing alongside the present is a reliably loved setup",
               "n": 6
-            },
-            {
-              "t": "Sex irrelevant to the plot, or abuse framed as desire, draws the angriest one-star reviews",
-              "n": 5
             }
           ]
         },
-        "exposition": {
-          "label": "exposition",
+        "killer_pov": {
+          "label": "Inside the killer's head, and the killer's taunts",
           "items": [
             {
-              "t": "Historical, technical or procedural detail is a draw when woven into the pursuit, not lectured",
+              "t": "Chapters in the killer's or stalker's mind are relished when coherent, darkly funny and uncomfortably followable",
+              "n": 26
+            },
+            {
+              "t": "A killer who writes, texts or taunts the investigator, or a game with explicit rules, ratchets suspense",
+              "n": 17
+            },
+            {
+              "t": "A cunning villain readers half-root for, or a captor who believes he is loving, beats a cartoon or thin-motive one",
+              "n": 15
+            },
+            {
+              "t": "In series, 'the killer targets the detective personally' and crimes that exist only to taunt the hero feel worn",
               "n": 8
             },
             {
-              "t": "Piling on explanation to make a conspiracy convincing backfires; readers either go along or don't",
-              "n": 4
-            },
-            {
-              "t": "Backstory summarized in a few sentences, or front-loaded before the premise event, reads lazy",
-              "n": 4
+              "t": "A killer POV that stays surface-level or gimmicky, with no plot momentum, is 'just creepy', not a thriller",
+              "n": 6
             }
           ]
         },
-        "quiet": {
-          "label": "quiet",
+        "abduction_captivity": {
+          "label": "Abduction, disappearance and the captive's return",
           "items": [
             {
-              "t": "Long stretches inside one obsessive narrator's head exhaust; flashbacks or other POVs give relief",
+              "t": "A child or partner taken early and fast is 'every parent's nightmare' and launches the book off to the races",
+              "n": 19
+            },
+            {
+              "t": "The parents' or victim's anguish, rendered moment to moment with grief honored, is what grips",
+              "n": 12
+            },
+            {
+              "t": "Captives who could flee but don't infuriate unless constraints and fear are made real; readers do the math",
+              "n": 11
+            },
+            {
+              "t": "Survivors who shrug off trauma to turn detective, or withhold a small secret for 90% of the book, break belief",
+              "n": 8
+            },
+            {
+              "t": "The aftermath of a return (family adjustment, what she is hiding) can grip as hard as the abduction",
+              "n": 7
+            }
+          ]
+        },
+        "final_confrontation": {
+          "label": "Climax, showdown and rescue",
+          "items": [
+            {
+              "t": "A heart-racing showdown with cathartic justice against a loathsome villain is what readers remember",
+              "n": 21
+            },
+            {
+              "t": "Action lands only when readers have bought the hero and fear for who might die; otherwise it is noise",
+              "n": 15
+            },
+            {
+              "t": "Convenient rescues, the mandatory thunderstorm, a Hollywood finale or a tacked-on coda read as contrived",
+              "n": 11
+            },
+            {
+              "t": "A climax that never arrives, fizzles, or follows the predictable script (captured, partner arrives) is anticlimactic",
+              "n": 10
+            },
+            {
+              "t": "A muddled, hard-to-follow climax, or one after exhausting repetition, evaporates the charge built before it",
+              "n": 9
+            }
+          ]
+        },
+        "investigation_and_suspects": {
+          "label": "The investigation, suspect parade and red herrings",
+          "items": [
+            {
+              "t": "Every suspect must look genuinely capable of the crime; the sketchy one the heroine trusts telegraphs the culprit",
+              "n": 15
+            },
+            {
+              "t": "The right dose of red herrings lets readers feel they have it sussed; bulk herrings that go on forever are padding",
+              "n": 13
+            },
+            {
+              "t": "Detectives should solve by detection against resisting witnesses; a culprit found by luck is unearned",
+              "n": 13
+            },
+            {
+              "t": "Procedural and forensic detail is enjoyed when woven into the pursuit; acronyms and lectures in bulk overwhelm",
+              "n": 12
+            },
+            {
+              "t": "Case files handed to civilians, ignored forensics or absent police break belief immediately",
+              "n": 9
+            }
+          ]
+        },
+        "domestic_secrets": {
+          "label": "Marriage secrets, abuse behind closed doors, no one believes her",
+          "items": [
+            {
+              "t": "Control dynamics (money, isolation, bruises explained away) chill when recognizable; escalated to creative they lose belief",
+              "n": 13
+            },
+            {
+              "t": "Being a fly on the wall as a 'perfect' marriage unravels, with both partners lying, is a reliably addictive engine",
+              "n": 12
+            },
+            {
+              "t": "'No one believes her' works when the reader also doubts; drunk blackouts as the unreliability device wear thin",
+              "n": 10
+            },
+            {
+              "t": "Romanticizing an abuser, framing abuse as desire, or rape as a plot device draws the angriest reviews",
+              "n": 7
+            },
+            {
+              "t": "Long stretches inside one paranoid, obsessive narrator's head exhaust; other POVs or flashbacks give relief",
+              "n": 6
+            }
+          ]
+        },
+        "courtroom_trial": {
+          "label": "The courtroom and the trial",
+          "items": [
+            {
+              "t": "Courtroom chapters grip when procedure is right and the lawyer a convincing operator; lukewarm readers invest here",
+              "n": 10
+            },
+            {
+              "t": "Procedural howlers (unruled hearsay, impossible convictions) break trust more than any twist",
               "n": 4
             },
             {
-              "t": "Character study replacing the plot that hooked the reader drains the thrill",
-              "n": 4
+              "t": "Readers cheer when the courtroom delivers justice the system otherwise couldn't",
+              "n": 3
             },
             {
-              "t": "Interior passages earn their place when the voice is sharp or the observation rings true",
-              "n": 4
+              "t": "A trial frame that hides who died or who is accused for half the book is withholding, not suspense",
+              "n": 2
             }
           ]
         }
       },
       "voices": [
         {
-          "t": "Three kinds of thriller ending; mine you could see miles away",
+          "t": "I knew who did it and still couldn't put it down",
           "n": 1
         },
         {
-          "t": "The pages turned themselves, but edge-of-my-seat? Not so much",
+          "t": "This thriller lacked the thrill for me",
           "n": 1
         },
         {
-          "t": "Who finds something awful and decides to play detective? Nobody.",
+          "t": "I spent the last 200 pages on autopilot",
           "n": 1
         },
         {
-          "t": "Mysteries must make you feel something, or they're just books",
+          "t": "It doesn't end, it just stops",
           "n": 1
         },
         {
-          "t": "A 420-page book should not have a hundred-plus chapters",
+          "t": "Who finds a body and decides to play detective?",
           "n": 1
         },
         {
-          "t": "Kill someone the reader cares about or nothing changes",
+          "t": "Stop comparing every thriller to that one bestseller",
           "n": 1
         },
         {
-          "t": "Just when I thought she'd missed, another solution appeared",
+          "t": "I didn't like a single character, but sure loved the book",
           "n": 1
         },
         {
-          "t": "Could have lived with the book ending at sixty percent",
+          "t": "Show me how to make this a tight 300-page thriller",
           "n": 1
         }
       ],
-      "notes": "The sample is dominated by a handful of prolific Goodreads/NetGalley reviewers, so it over-represents 2015-2017 UK/US psychological thrillers, YA mystery and erotic romantic suspense, and under-represents classic detective fiction, hardboiled, legal, cozy and spy novels; a dozen entries are really horror, sci-fi or true crime. Surprising: sheer readability (short chapters, fast pace) routinely rescues a predictable book to 3 stars, while protagonist stupidity is punished more harshly than plot holes; 'unlikeable characters' complaints are almost always about a whole flat cast, not about an ant"
+      "notes": "The 1190 reviews skew toward 2010s psychological and domestic thrillers, long-running police-procedural series and romantic/erotic suspense, and under-represent golden-age detection, hardboiled noir, spy, heist and cozy; a scattering are really horror or true crime. Surprising: sheer readability rescues a predictable book to three stars, a guessed culprit is forgiven when the ride is good, and protagonist stupidity is punished more harshly than plot holes. 'Unlikable characters' complaints are almost always about a whole flat cast, not an antihero; readers happily love a book while hating ever"
     },
     "romance": {
       "label": "Romance",
@@ -1602,305 +2161,412 @@
         "chick lit",
         "women's fiction"
       ],
-      "reviews": 190,
+      "reviews": 1190,
       "reward": [
         {
-          "t": "Humor and quick banter between the leads is the most-cited pleasure; it buys forgiveness for thin plots",
-          "n": 24
+          "t": "Banter between the leads and laugh-out-loud humor are the most-cited pleasure; they buy forgiveness for a thin or familiar plot",
+          "n": 168
         },
         {
-          "t": "Chemistry that reads as connection, not just lust; readers call it 'palpable' and rate the book on it",
-          "n": 20
+          "t": "A hero with a hard shell and a shown devoted core (vulnerable, protective, treats her as an equal) carries the book even when the rest is weak",
+          "n": 123
         },
         {
-          "t": "Readers want to be wrecked: tears and 'I felt everything' are five-star language; emotional stakes beat plot stakes",
-          "n": 20
+          "t": "A warm secondary cast (family, friends, prior-book couples) is a selling point; readers often name a side character as the best part",
+          "n": 98
         },
         {
-          "t": "Protective, possessive hero wins when he is also patient, vulnerable and devoted; worship lands, domination alone does not",
-          "n": 15
+          "t": "Palpable chemistry and slow-built sexual tension are praised more often than the sex itself; 'worth the wait' is the ideal",
+          "n": 95
         },
         {
-          "t": "Heroines who hold their ground, say what they think and don't whine are singled out by name for praise",
-          "n": 15
+          "t": "Readers want to be wrecked: tears, aching, 'I felt everything' is five-star language; emotional payoff outranks plot mechanics",
+          "n": 81
         },
         {
-          "t": "Steam lands when balanced with raw emotion; 'heat, heart, humor' is the formula readers state outright",
-          "n": 13
+          "t": "A heroine who holds her own, knows what she wants and stays believably flawed is called 'refreshing' and 'tragically rare'",
+          "n": 79
         },
         {
-          "t": "A warm secondary cast (family, friends, prior-book couples) is a selling point readers return for, not filler",
-          "n": 13
+          "t": "Unputdownable pacing earns forgiveness for almost everything else; 'read it in one sitting' is the top compliment",
+          "n": 56
         },
         {
-          "t": "A fresh spin on a familiar trope (virgin hero, caveman POV, nerd Cinderella) is what readers remember and reward",
-          "n": 12
+          "t": "Steam is expected and praised, but it almost never decides the rating on its own; heat lands when it carries emotion",
+          "n": 42
         }
       ],
       "punish": [
         {
-          "t": "An immature, indecisive or self-absorbed heroine sinks the book even when the hero is adored",
-          "n": 24
+          "t": "An immature, whiny, selfish or doormat heroine is the single most common reason readers rate low or quit; 'I wanted to shake her'",
+          "n": 165
         },
         {
-          "t": "Readers count pages: 400+ for a simple arc, repeated scenes and 'nothing happens' stretches draw the harshest ratings",
-          "n": 16
+          "t": "Too long, too slow, nothing happens: readers name the pages to cut and skim; a couple alone is not a plot",
+          "n": 105
         },
         {
-          "t": "Hero cruelty, sleeping around under her nose, or ignoring 'no' is not redeemed by a late apology",
-          "n": 15
+          "t": "Insta-love or a rushed getting-to-know-you stage is not believed; readers must watch the connection form on the page",
+          "n": 103
         },
         {
-          "t": "Break-up/make-up loops and withheld-information misunderstandings read as padding, not conflict",
-          "n": 15
+          "t": "A hero who is cruel, controlling or sleeps around under her nose is not redeemed by backstory; without consent and care it is abuse",
+          "n": 102
         },
         {
-          "t": "Trope checklists with no personal twist get called 'cookie cutter'; readers name the book it copies",
-          "n": 15
+          "t": "Predictable trope checklists and twists guessed in chapter one turn the rest of the book into an empty wait",
+          "n": 91
         },
         {
-          "t": "Typos, run-ons and repeated tics (stares, snorts, lip-biting, pet names) get literally tallied in reviews",
-          "n": 15
+          "t": "Leads with no chemistry, or a connection told rather than felt, kill the romance regardless of plot or prose",
+          "n": 77
         },
         {
-          "t": "Insta-love with no visible build-up is the top structural complaint: 'I must have missed the tension'",
-          "n": 14
+          "t": "Conflict one honest conversation would fix, and repeated break-up/make-up loops, read as manufactured drama",
+          "n": 67
         },
         {
-          "t": "Being told the couple has a connection instead of shown one: 'as much chemistry as pieces of furniture'",
-          "n": 14
+          "t": "Implausible logic, plot holes and detail the reader knows is wrong (geography, sport, accents) snap readers out",
+          "n": 61
         }
       ],
       "expectations": [
         {
-          "t": "A real ending is owed; cliffhangers, 'standalone' serials and books that stop at 45% feel like a scam",
-          "n": 9
+          "t": "Readers pre-screen for cheating, love triangles and a guaranteed HEA; cheating by a lead is a near-universal dealbreaker",
+          "n": 96
         },
         {
-          "t": "Alpha is wanted, abuse is not: a possessive hero must never cross into coercion or steamroll consent",
-          "n": 8
+          "t": "An HEA (or clear HFN) is the contract; cliffhangers are accepted only when the series is signposted and a standalone must stand alone",
+          "n": 89
         },
         {
-          "t": "The love story must carry the book; suspense, sport or sequel-couple setup that crowds it out is penalized",
-          "n": 6
+          "t": "Readers know the tropes by name and judge execution, not novelty: a fresh twist on a worn trope is rewarded, played straight it bores",
+          "n": 61
         },
         {
-          "t": "Cover, title and blurb are a contract; a promised premise (nude resort, 30-day pact) that never arrives angers",
-          "n": 6
+          "t": "Cover, blurb and label are a promise of heat level, subgenre and premise; a book that does not deliver them is a bait",
+          "n": 50
         },
         {
-          "t": "Stacked trauma (abuse, rape, dead parents) deployed as an emotional shortcut is seen through and resented",
-          "n": 5
+          "t": "The love story must carry the book; suspense, sport, kitchen-sink subplots or sequel-couple setup that crowd it out are penalized",
+          "n": 41
         }
       ],
       "prose": [
         {
-          "t": "Readers tally repeated gestures and words; one tic used 80+ times becomes the whole review",
-          "n": 7
+          "t": "Repeated tics, pet names and catchphrases get literally tallied in reviews; one overused gesture can become the whole review",
+          "n": 76
         },
         {
-          "t": "Sappy declarations ('I die when you blink') and endless 'Angel' endearments read as cringe, not swoon",
-          "n": 6
+          "t": "Cheesy, stilted or speech-like dialogue is the most-quoted prose failing; 'who talks like that?' breaks immersion",
+          "n": 70
         },
         {
-          "t": "Run-ons, typos and missing edits make a book feel like a draft; readers quit by 10% and say so",
-          "n": 6
+          "t": "Lyrical, quotable, highlight-worthy lines earn praise and even a star when the plot disappoints",
+          "n": 55
         },
         {
-          "t": "An addictive, un-put-down-able voice carries readers through stories they dislike, and they admit it",
-          "n": 6
+          "t": "One wrong word in a sex scene (petals, channel, engorged, back passage) kills the mood for the whole book",
+          "n": 40
         },
         {
-          "t": "Sex-scene euphemisms (petals, channel, back passage, musky) break the mood and get quoted mockingly",
-          "n": 5
+          "t": "Typos, lie/lay slips and POV errors are noticed and cost stars, especially in self-published books",
+          "n": 34
         }
       ],
       "phases": {
         "opening": [
           {
-            "t": "Readers report being hooked by chapter one; a first page that sparks is cited as the reason for five stars",
-            "n": 10
+            "t": "Nothing to care about by 20-25% is the DNF point; a slow or confusing start is forgiven only when the book later pays off",
+            "n": 49
           },
           {
-            "t": "A riveting first 20-30% that then sags is a common two-star shape: 'the start was great, then...'",
-            "n": 10
+            "t": "A brilliant first chapter the book cannot sustain is the signature disappointment; readers mourn the deflated five-star balloon",
+            "n": 46
           },
           {
-            "t": "A slow or odd first 100 pages is forgiven if the midpoint finally delivers swoon",
-            "n": 5
+            "t": "Hooked from the first page or prologue predicts a five-star review and buys forgiveness for later flaws",
+            "n": 35
           },
           {
-            "t": "A memorable meet-cute (stranger in the bathtub, elevator, mistaken arrest) is recalled and praised",
-            "n": 5
+            "t": "Lust or love in the first pages before character and setting exist earns an eye-roll or a DNF at 3%",
+            "n": 13
+          },
+          {
+            "t": "Most early abandonments cite a lead the reader cannot stand, not the plot",
+            "n": 12
           }
         ],
         "middle": [
           {
-            "t": "The middle is where 'draggy' happens: snail pace, conversations rehashing what we just read, outfit lists",
-            "n": 9
+            "t": "The sagging middle is where skimming happens: lulls, rehashed conversations, repeated parties or standoffs",
+            "n": 53
           },
           {
-            "t": "Serial break-ups and make-ups across the middle are experienced as angst padding",
-            "n": 5
+            "t": "Sex scene after sex scene with no feeling or plot between them is skimmed; readers want substance with their steam",
+            "n": 38
           },
           {
-            "t": "Consummation timing matters: at 89% it is 'blue balls'; at 52% with no build it feels random",
-            "n": 5
+            "t": "Break-up/make-up cycles and hot-and-cold push-pull work in doses; constant reversals exhaust by the midpoint",
+            "n": 31
           },
           {
-            "t": "A midpoint shift that finally delivers swoon can rescue a disliked first half",
-            "n": 4
+            "t": "Kitchen-sink subplots, sequel couples or a mid-book genre pivot dilute the romance readers signed up for",
+            "n": 26
           },
           {
-            "t": "When the sequel couple or the mystery takes over the middle, readers notice the lead romance thinning",
-            "n": 3
+            "t": "A second half that turns around can rescue a wobbly first half, but '70% awful for 30% nice' is not worth it",
+            "n": 22
           }
         ],
         "ending": [
           {
-            "t": "Cliffhangers and abrupt non-endings are the most-cited ending failure, even from fans of the author",
-            "n": 9
+            "t": "Endings are rated separately; an epilogue years into the future is the expected reward and can lift the whole book a star",
+            "n": 81
           },
           {
-            "t": "HEA payoff plus an epilogue is loved; readers routinely wish the epilogue were longer",
-            "n": 8
+            "t": "A rushed last 15% after a long build is the most common ending complaint; a climax 'explained in a paragraph' is unforgivable",
+            "n": 51
           },
           {
-            "t": "A mystery solved in the last five pages or redemption arriving 'too late' reads as anticlimactic",
-            "n": 8
+            "t": "Cliffhangers thrill when the series is declared and feel like a scam when the book was sold as a standalone",
+            "n": 40
           },
           {
-            "t": "A non-rosy ending is accepted when it fits; readers call it 'the right ending for this story'",
-            "n": 4
+            "t": "Forgiveness in five seconds, a neat bow or a grovel bought with a ring and flowers undercuts the HEA",
+            "n": 35
           },
           {
-            "t": "Grand-gesture finales (limo, ring, dream dress) ring hollow unless the relationship earned them",
-            "n": 4
+            "t": "A predictable ending satisfies if the journey earned it; a late twist must be set up, not soap-opera shock",
+            "n": 27
           }
         ]
       },
       "scenes": {
-        "dialogue": {
-          "label": "dialogue",
+        "first_meeting": {
+          "label": "The first meeting",
           "items": [
             {
-              "t": "Bickering 'down to an art' and witty exchanges are the scenes readers quote back in reviews",
-              "n": 7
+              "t": "An odd, specific or hilarious meet (pit trap, bear trap, mistaken identity, accidental email) is quoted and named the book's charm",
+              "n": 50
             },
             {
-              "t": "Declaration scenes tip into cringe when the lines go purple; readers quote them to mock",
+              "t": "Stranger-turns-out-to-be-boss, or a one-night stand whose morning after drives the plot, is a beloved setup",
+              "n": 30
+            },
+            {
+              "t": "Love declared at the meet or within 48 hours is the most-mocked moment in the genre; sparks, not love",
+              "n": 22
+            },
+            {
+              "t": "A bickering or mutual-misjudgment first meeting is prized over a swooning one; it sets up the payoff",
+              "n": 16
+            },
+            {
+              "t": "The clumsy-heroine spilled-drink meet is recognized as done a thousand times; use it only with a twist",
+              "n": 11
+            }
+          ]
+        },
+        "banter_sparring": {
+          "label": "The verbal sparring match",
+          "items": [
+            {
+              "t": "Witty combative back-and-forth is the most quoted scene type; readers paste exchanges into reviews",
+              "n": 30
+            },
+            {
+              "t": "Sparring reads as foreplay when both sides land hits and she can out-talk him or call his bluff",
+              "n": 12
+            },
+            {
+              "t": "Banter that curdles into cruelty, slut-shaming or crude insults makes readers say 'they deserve each other'",
+              "n": 8
+            },
+            {
+              "t": "A standoff that runs too long becomes long-winded; the ice must visibly crack",
               "n": 4
-            },
-            {
-              "t": "Heavy phonetic brogue or accent in dialogue wears thin fast",
-              "n": 2
             }
           ]
         },
-        "action": {
-          "label": "action",
+        "first_intimacy": {
+          "label": "The first sex scene",
           "items": [
             {
-              "t": "Suspense works when believable and proportionate; serial kidnappings or a one-page villain wrap-up do not",
-              "n": 7
+              "t": "The first time must grow from built tension (rules, pacts, forbidden status, near-misses); one arriving 'out of nowhere' reads random",
+              "n": 47
+            },
+            {
+              "t": "The hottest scenes are praised for emotional intimacy and the couple's dynamic, not mechanics; rehearsed or inventory sex is skipped",
+              "n": 34
+            },
+            {
+              "t": "Readers police details: protection, plausible stamina, odd venues, and bedroom behaviour that matches each lead's established persona",
+              "n": 25
+            },
+            {
+              "t": "Steam is rated separately from the book; scorching sex can save a 3-star read and awkward sex can sink a 4-star one",
+              "n": 20
+            },
+            {
+              "t": "Heat must match the cover's promise; fade-to-black in a sexy pitch or explicit sex in a YA-feel book jars",
+              "n": 16
             }
           ]
         },
-        "intimacy": {
-          "label": "intimacy",
+        "secret_reveal": {
+          "label": "The secret comes out",
           "items": [
             {
-              "t": "Steamy scenes are praised when they carry emotion and the couple's dynamic, not just mechanics",
-              "n": 10
+              "t": "A reveal that truly surprises and reframes the story is remembered as the book's high point",
+              "n": 36
             },
             {
-              "t": "Anatomy euphemisms and 'devoured' mouths pull readers out; plain, confident heat is preferred",
-              "n": 6
+              "t": "A secret kept past 60-80% leaves readers no longer caring, and outright lying makes the liar unlovable",
+              "n": 22
             },
             {
-              "t": "Heat level must match the premise: fade-to-black in a sex-addict story or a chaste 'dirty' book disappoints",
-              "n": 6
+              "t": "When the reader guessed the secret chapters earlier, the long-delayed reveal lands flat",
+              "n": 18
             },
             {
-              "t": "Sex with no prior tension reads as random; readers ask 'where did that come from?'",
+              "t": "After the reveal readers want proportionate reaction and fallout, not a page of gloss and instant forgiveness",
+              "n": 14
+            },
+            {
+              "t": "Soap-opera reveals (secret paternity, twins) or twists from nowhere draw head-shaking, not gasps",
+              "n": 11
+            }
+          ]
+        },
+        "black_moment": {
+          "label": "The breakup / black moment",
+          "items": [
+            {
+              "t": "The black moment needs a cause talking could not fix; one unsaid sentence or noble self-sacrifice reads contrived",
+              "n": 31
+            },
+            {
+              "t": "Walking in on infidelity is the go-to rupture, but cheating by a lead is the one wound readers will not forgive",
+              "n": 19
+            },
+            {
+              "t": "A breakup that makes the heroine act out of character, or punish him for what he did not know, is hated more than the split",
+              "n": 12
+            },
+            {
+              "t": "Readers want the pain on the page, not summarized, and years of silence explained and answered for",
+              "n": 12
+            },
+            {
+              "t": "One black moment, not six; repeated break-up/make-up within a week exhausts",
+              "n": 11
+            }
+          ]
+        },
+        "grovel_reconciliation": {
+          "label": "The grovel, grand gesture and reunion",
+          "items": [
+            {
+              "t": "Forgiveness granted in half a page is a cop-out; the grovel must be proportional to the harm and the hurt party's anger must last",
+              "n": 27
+            },
+            {
+              "t": "A second-chance reunion must carry the weight of lost time; reunion sex minutes after he walks back in breaks belief",
+              "n": 25
+            },
+            {
+              "t": "A single concrete, personal gesture lands harder than a speech; a limo, spa or two-carat ring rings false if nothing earned it",
+              "n": 16
+            },
+            {
+              "t": "A hero's patient tenacity in winning her back is swoon-worthy; pursuit by nagging or sabotaging her dates is a stalker",
+              "n": 15
+            },
+            {
+              "t": "Declaration lines are quoted as the heart of the book, and mocked when they go purple",
+              "n": 14
+            }
+          ]
+        },
+        "danger_rescue": {
+          "label": "Danger, rescue and suspense",
+          "items": [
+            {
+              "t": "A suspense thread must be coherent, competent and solved, not wallpaper; serial kidnappings cheapen stakes",
+              "n": 19
+            },
+            {
+              "t": "When the action or mafia subplot overshadows the love story, readers say the romance got lost",
+              "n": 17
+            },
+            {
+              "t": "The hero stepping in to protect or rescue her, and losing control when she is in jeopardy, is described as hot",
+              "n": 16
+            },
+            {
+              "t": "Action set pieces keep readers going when the romance sags, and a cheesy rescue is enjoyed if the stakes were real",
+              "n": 8
+            },
+            {
+              "t": "Hero violence toward threats splits readers; violence toward the heroine is never romantic",
               "n": 5
             }
           ]
         },
-        "exposition": {
-          "label": "exposition",
+        "ensemble": {
+          "label": "Family and friend-group scenes",
           "items": [
             {
-              "t": "World and setting woven through the romance (a city, folklore, shifter rules) are praised as immersive",
-              "n": 6
+              "t": "Checking in with prior couples, siblings and townsfolk, and warm holiday-table scenes, are pleasures readers name explicitly",
+              "n": 23
             },
             {
-              "t": "A paranormal or sports world that is barely used or left vague feels like a missed layer",
-              "n": 4
+              "t": "When the ensemble takes the leads' page time, the main couple 'become secondary characters' in their own book",
+              "n": 13
             },
             {
-              "t": "Recapping prior books or retelling the same story from another POV reads as filler",
-              "n": 3
-            },
-            {
-              "t": "Past/present timelines must feel emotionally different or the switching exhausts",
-              "n": 3
-            }
-          ]
-        },
-        "quiet": {
-          "label": "quiet",
-          "items": [
-            {
-              "t": "Repeated interior loops (horniness, insecurity, self-pity) in introspective stretches drive readers off",
-              "n": 6
-            },
-            {
-              "t": "Long domestic stretches (cooking, cleaning, wedding planning, outfits) are called out as page filler",
-              "n": 4
-            },
-            {
-              "t": "Slow, artful interior shifts (a prejudice unwinding, journal entries) are praised when they carry change",
-              "n": 3
+              "t": "Families that exist only as decor or 'mini minions' serving the leads are noticed",
+              "n": 7
             }
           ]
         }
       },
       "voices": [
         {
-          "t": "There's a difference between chemistry and connection.",
-          "n": 1
+          "t": "There's a difference between chemistry and connection",
+          "n": 2
         },
         {
-          "t": "It's a rom-com, not Moby Dick; wrap it up.",
-          "n": 1
-        },
-        {
-          "t": "Counted 79 'stares'; I get it, you like her eyes.",
-          "n": 1
-        },
-        {
-          "t": "It's not a book, it's a third of a book.",
-          "n": 1
+          "t": "Chemistry like between two pieces of furniture",
+          "n": 2
         },
         {
           "t": "Why don't they just tell her what's going on?",
+          "n": 2
+        },
+        {
+          "t": "I need substance with my sex",
           "n": 1
         },
         {
-          "t": "I'll overlook anything for an alpha male.",
+          "t": "Alpha males don't have to be douches to be alpha",
           "n": 1
         },
         {
-          "t": "Just enough hardship to make the payoff sweeter.",
+          "t": "A ring and a few flowers do not an apology make",
           "n": 1
         },
         {
-          "t": "His words don't equal his actions.",
+          "t": "Whose book is this? Why am I reading about her cousin?",
+          "n": 1
+        },
+        {
+          "t": "It's not a book, it's a third of a book",
           "n": 1
         }
       ],
-      "notes": "About a third of the sample is one snarky gif-style blogger reviewing free or ARC new-adult, MC and shifter romance, and another sixth is two ARC bloggers whose five-star reviews are plot summaries, so the high bucket is summary-heavy and the low bucket often shares a single voice. Coverage is almost entirely 2012-2017 contemporary/NA/paranormal indie romance; historicals and classics are thin and erotica was excluded. Surprising: readers openly grant romance a reality waiver ('it's a romance novel so I forgive') but revoke it over pacing and heroine foolishness, and serialization or cliffhang"
+      "notes": "The sample is dominated by 2012-2017 indie contemporary, new-adult and paranormal romance reviewed by ARC and gif-style bloggers, so angst, alpha heroes and serialized novellas are over-represented while historicals, regency, women's fiction and traditionally published titles are thin; erotica was excluded. The heroine is judged far harder than the hero across every mapper, and steam, though expected, almost never decides a rating by itself. Surprising: pacing, page count and unflagged cliffhangers provoke as much anger as bad prose, and readers openly grant romance a reality waiver that they "
     },
     "young_adult": {
       "label": "Young adult",
@@ -1914,266 +2580,369 @@
         "new adult",
         "middle grade"
       ],
-      "reviews": 190,
+      "reviews": 1190,
       "reward": [
         {
-          "t": "Fast pacing and short chapters are the most-cited virtue; 'read it in one sitting' is the highest praise and rescues flawed books",
-          "n": 28
+          "t": "Relentless forward motion and short, hooky chapters: 'read it in one sitting' is the highest praise and rescues flawed books",
+          "n": 129
         },
         {
-          "t": "Flawed, honest, even unpleasant heroines who feel like real people earn devotion; readers want to argue with them, not admire them",
-          "n": 24
+          "t": "Friendship, sibling, family and found-crew bonds given real weight, often above romance, are named as the heart of the book",
+          "n": 114
         },
         {
-          "t": "Friendship, sibling and family bonds often land harder than the romance; readers name them as the best element",
-          "n": 20
+          "t": "Flawed, relatable protagonists who make mistakes and visibly grow are the ones readers connect with and reread",
+          "n": 90
         },
         {
-          "t": "Wit and banter from the narrator carry light books; humor is what makes shallow plots forgivable",
-          "n": 18
+          "t": "Rich, picturable world-building and magic readers 'want more of' is the single most memorable thing about a fantasy",
+          "n": 76
         },
         {
-          "t": "Twists still land when readers half-guess them; the pleasure is being 'shook' despite predicting, not being fooled",
-          "n": 18
+          "t": "Humor that lands (snarky narration, banter, a comic sidekick) is quoted back and lifts even dark books",
+          "n": 73
         },
         {
-          "t": "World-building readers can picture clearly is savored; they want to 'crawl inside' a world that feels bigger than the plot",
-          "n": 18
+          "t": "A fully fleshed supporting cast with distinct voices can carry a book whose lead or plot disappoints",
+          "n": 72
         },
         {
-          "t": "Beautiful prose buys forgiveness: readers finish confusing or slow books purely for the sentences and say so",
-          "n": 16
+          "t": "A twist readers genuinely didn't see coming, yet that plays fair in hindsight, puts a book on favorites shelves",
+          "n": 71
         },
         {
-          "t": "Slow-burn romance where the pair earn trust first produces breath-holding payoff; readers call the wait worth it",
-          "n": 15
+          "t": "Being emotionally wrecked (tears, 'the feels', ugly-crying) is the ultimate payoff and forgives much else",
+          "n": 69
         }
       ],
       "punish": [
         {
-          "t": "'I've read this book a hundred times': stock plots and cliché sets are the top complaint, named item by item",
-          "n": 29
+          "t": "Predictable, derivative plots and stacked cliches ('I've read this a hundred times') are called out trope by trope",
+          "n": 133
         },
         {
-          "t": "Cardboard secondary characters or too many names; readers stop caring when deaths don't register",
-          "n": 29
+          "t": "Flat, cardboard characters, especially the side cast, leave readers unable to care who lives or dies",
+          "n": 129
         },
         {
-          "t": "Slow stretches of filler, repeated thoughts and 'could have been cut in half' drive DNFs",
-          "n": 24
+          "t": "Stretches where 'nothing happens'; readers name the page count that should have been cut",
+          "n": 124
         },
         {
-          "t": "Whiny, self-centered or stupid heroines who act recklessly for plot reasons are despised, not forgiven",
-          "n": 22
+          "t": "A whiny, bratty, self-pitying or recklessly stupid protagonist makes readers want to 'shake' her, whatever the plot",
+          "n": 122
         },
         {
-          "t": "Contrived coincidences, deus ex machina and choices no real person would make break trust fast",
-          "n": 20
+          "t": "Mental illness, suicide, abuse or assault used as plot device, quirk or romance fodder draws one-star fury",
+          "n": 91
         },
         {
-          "t": "Romance that swallows a sci-fi, fantasy or mystery plot is resented; readers praise books that keep it subordinate",
-          "n": 19
+          "t": "Thin or hazy world-building: naming places is not building them; unexplained magic rules exhaust",
+          "n": 75
         },
         {
-          "t": "Hazy world-building: naming places is not building them; unexplained magic or premise leaves readers lost",
-          "n": 15
+          "t": "Insta-love is the most-named romance failure, often cited with the page number; its absence is praised",
+          "n": 72
         },
         {
-          "t": "Insta-love is a near-universal pet peeve, forgiven only when prose and character depth are exceptional",
-          "n": 12
+          "t": "Romance swamping the fantasy, sci-fi, mystery or serious plot is resented; 'no romance' is called a relief",
+          "n": 68
         }
       ],
       "expectations": [
         {
-          "t": "Love triangles are tolerated only when they make strategic or emotional sense; gratuitous ones are an eye-roll",
-          "n": 14
+          "t": "Sequels must move the story, not rehash book one; a finale must resolve threads, not open new worlds",
+          "n": 73
         },
         {
-          "t": "Retellings must stay recognizable yet twist; distorting the source's heart or renaming myths insults fans",
-          "n": 11
+          "t": "Contrived coincidences, deus ex machina and implausible events break trust; contemporaries are held to realism",
+          "n": 70
         },
         {
-          "t": "Heavy topics (mental illness, abuse, grief, race) must feel researched and authentic; readers can tell when they aren't",
-          "n": 10
+          "t": "Blurb, cover, comp titles and hype are a contract; a book that delivers a different premise is punished",
+          "n": 69
         },
         {
-          "t": "Diversity is welcomed but not enough alone; a queer or POC character given no arc of their own reads as token",
-          "n": 10
+          "t": "Love triangles are tolerated only when subtle or strategically sensible; obvious or padded ones are an eye-roll",
+          "n": 64
         },
         {
-          "t": "Contemporary YA is expected to be realistic; film-style coincidences and parents who don't react count as cheating",
-          "n": 8
+          "t": "Retellings must keep the source's recognizable bones and heart while genuinely reinventing it",
+          "n": 56
         }
       ],
       "prose": [
         {
-          "t": "Simplistic, 'standard' or repetitive prose is noticed and marked down even when the plot holds",
-          "n": 11
+          "t": "Lyrical, distinctive prose is quoted back in reviews and buys forgiveness for slow or confusing books",
+          "n": 96
         },
         {
-          "t": "Jokey tone, slang or profanity in a dark story drops the intensity; writing that feels too young for brutal content jars",
-          "n": 10
+          "t": "Plain 'adequate' prose and repeated phrases, traits or inner rules are counted and quoted mockingly",
+          "n": 88
         },
         {
-          "t": "A comparison in every paragraph or a figure of speech in every line reads as trying too hard",
-          "n": 6
+          "t": "Dialogue and voice must sound like real teens; stilted, robotic, over-snarky or dumbed-down 'written for YA' voice jars",
+          "n": 81
         },
         {
-          "t": "Teen dialogue must sound like actual teens; robotic flirting or ornate speech kills believability",
-          "n": 6
+          "t": "Beautiful writing cannot save a thin plot or flat characters; readers note 'lovely prose' then DNF",
+          "n": 31
         },
         {
-          "t": "A narrator who performs for the reader or seems aware of being read feels inauthentic",
-          "n": 2
+          "t": "Purple prose and a metaphor in every paragraph read as trying too hard and distance the reader",
+          "n": 27
         }
       ],
       "phases": {
         "opening": [
           {
-            "t": "Openings that take 100+ pages to engage lose readers to DNF; slowness is tolerated only with a strong voice",
-            "n": 10
+            "t": "Readers give roughly 100-150 pages; a plot direction and a likable lead must exist by then or they DNF",
+            "n": 83
           },
           {
-            "t": "Hooks that land in the first sentence or first five pages are remembered and quoted",
-            "n": 6
+            "t": "Being hooked from the first line or first few pages is praise readers state explicitly and remember",
+            "n": 38
           },
           {
-            "t": "A strong first third that then 'does a 180' into clichés angers readers more than a weak start",
-            "n": 6
+            "t": "A strong premise that fizzles, or arrives 100+ pages late, angers readers more than a weak start",
+            "n": 35
           },
           {
-            "t": "Characters introduced early then dropped from the plot are missed and resented",
-            "n": 4
+            "t": "Confusing first chapters (unexplained world, unclear POV, invented terms) lose readers before chapter five",
+            "n": 20
+          },
+          {
+            "t": "An unlikable lead at the start works only if visible change is promised early",
+            "n": 9
           }
         ],
         "middle": [
           {
-            "t": "Repetitive middles—endless walking, riding, parties, the same confrontation again—are where books sag",
-            "n": 9
+            "t": "The repetitive middle (training loop, angst loop, parties, walking) is where readers skim or quit, usually 25-65%",
+            "n": 86
           },
           {
-            "t": "Readers often say the last third was great and 'should have been like that all along'",
-            "n": 5
+            "t": "A strong last third is credited ('stars are for the second half') but many readers never reach it",
+            "n": 19
           },
           {
-            "t": "Romance kicking in mid-book and taking over derails readers who came for the plot",
-            "n": 4
+            "t": "A mid-book turn that reframes the setup, or mini-cliffhangers between alternating POVs, keeps the middle alive",
+            "n": 18
           },
           {
-            "t": "Alternating past/present chapters that reveal a crew's backstory are praised for pacing",
-            "n": 3
+            "t": "Romance taking over mid-book and side characters vanishing for it is noticed and resented",
+            "n": 16
+          },
+          {
+            "t": "Action-light stretches are forgiven when constant danger, tension or voice carries them",
+            "n": 14
           }
         ],
         "ending": [
           {
-            "t": "Earned, honest conclusions—even upsetting ones—are praised; 'no sugar-coating' is a compliment",
-            "n": 9
+            "t": "Rushed, abrupt or unresolved endings are the sharpest final-act complaint and can sink a whole series",
+            "n": 88
           },
           {
-            "t": "Predictable endings are accepted in contemporary romance if the journey was fun",
-            "n": 7
+            "t": "Earned closure for characters and threads, even with loss or heartbreak, is what earns five stars",
+            "n": 63
           },
           {
-            "t": "Rushed, hazy or tone-breaking final chapters can sink an otherwise liked book",
-            "n": 6
+            "t": "Cliffhangers after a real climax are adored; cut mid-scene in a disliked book they read as a marketing ploy",
+            "n": 60
           },
           {
-            "t": "Cliffhangers and unanswered questions read as 'a third of a book' and feel like a cheat",
-            "n": 6
+            "t": "A series finale must outdo the middle books and answer the questions raised; loose ends feel like betrayal",
+            "n": 27
           },
           {
-            "t": "Resolutions that come too easily—a five-minute talk, a regime toppled offstage—feel unearned",
-            "n": 6
+            "t": "Everything fixed by one conversation, or a tidy 'Hollywood' resolution with no catharsis, feels unearned",
+            "n": 22
           }
         ]
       },
       "scenes": {
-        "dialogue": {
-          "label": "dialogue",
+        "big_reveal": {
+          "label": "The big reveal or twist",
           "items": [
             {
-              "t": "Awkward-sweet flirting exchanges are singled out as highlights",
-              "n": 5
+              "t": "A reveal readers genuinely didn't see coming is rare in YA and celebrated as the book's best moment",
+              "n": 25
             },
             {
-              "t": "Dialogue must sound like real teens; stilted or over-figurative talk breaks it",
-              "n": 4
+              "t": "Seed clues readers can rewind to; a twist from nowhere is as punished as one called from page one",
+              "n": 22
             },
             {
-              "t": "Banter in the middle of danger reads as childish and deflates stakes",
+              "t": "A reveal telegraphed early, or a killer shown too soon, drains the rest of the book",
+              "n": 15
+            },
+            {
+              "t": "Answer the questions you raise; withholding known backstory past the midpoint reads as coyness",
+              "n": 13
+            },
+            {
+              "t": "A guessed twist is forgiven if the landing has emotional weight",
+              "n": 10
+            }
+          ]
+        },
+        "character_death": {
+          "label": "Character death and grief",
+          "items": [
+            {
+              "t": "A death only devastates if the reader was made to love the character first; otherwise 'didn't bat an eye'",
+              "n": 23
+            },
+            {
+              "t": "Deaths for shock, to plug plot holes, or later undone by loophole are called cheap",
+              "n": 14
+            },
+            {
+              "t": "Grief rendered through daily texture, with hope and humor, earns the tears readers want",
+              "n": 13
+            },
+            {
+              "t": "A death readers didn't foresee that still feels inevitable is the most prized kind",
+              "n": 6
+            }
+          ]
+        },
+        "first_kiss": {
+          "label": "First kiss, confession and romantic payoff",
+          "items": [
+            {
+              "t": "The kiss or confession lands after trust and tension are built; readers call it 'worth the wait'",
+              "n": 33
+            },
+            {
+              "t": "Banter and love-hate sparring before the romance is the most quoted material in the genre",
+              "n": 33
+            },
+            {
+              "t": "A kiss or 'I love you' within days, between people who showed no chemistry, is cited with the page number",
+              "n": 26
+            },
+            {
+              "t": "Heat level must match the voice; readers want more than chaste kisses and queer romance felt on the page",
+              "n": 22
+            },
+            {
+              "t": "Overwrought declarations ('a single frozen tear') draw laughs and get quoted back as ridicule",
+              "n": 9
+            }
+          ]
+        },
+        "battle_action": {
+          "label": "Battle, fight and escape sequences",
+          "items": [
+            {
+              "t": "Action works only when danger could cost something; cartoon-safe peril is skimmed",
+              "n": 21
+            },
+            {
+              "t": "Clear, concrete staging that readers can visualize and that makes tactical sense earns praise",
+              "n": 14
+            },
+            {
+              "t": "A heroine picking up the sword or using her own powers, instead of agonizing, is a cheered moment",
+              "n": 13
+            },
+            {
+              "t": "A promised war or climax that happens offstage or fizzles is the biggest letdown",
+              "n": 11
+            },
+            {
+              "t": "Readers count the action scenes and want them early and recurring, not saved for the end",
+              "n": 10
+            }
+          ]
+        },
+        "training_trials": {
+          "label": "Training, trials and competitions",
+          "items": [
+            {
+              "t": "A competition or trial structure gives the middle a spine when stakes escalate every round",
+              "n": 14
+            },
+            {
+              "t": "Training drags unless each session reveals character or carries stakes; long prep gets skipped",
+              "n": 9
+            },
+            {
+              "t": "Learning the rules (poisons, powers, spycraft) step by step with a mentor is a warm, returned-to spot",
+              "n": 9
+            },
+            {
+              "t": "Put the stages on the page with real risk; skipping to results or risk-free trials bores",
+              "n": 8
+            }
+          ]
+        },
+        "school_cruelty": {
+          "label": "School cliques, bullying and friend-group drama",
+          "items": [
+            {
+              "t": "Petty friend-group and mean-girl drama exhausts goodwill fast; 'good kids' are a relief",
+              "n": 33
+            },
+            {
+              "t": "Bullying bites when specific and sensory, implicates bystanders, and deals with the hurt afterward",
+              "n": 16
+            },
+            {
+              "t": "School life (classes, dorms, detention) works when it generates plot, not hallway wallpaper",
+              "n": 13
+            },
+            {
+              "t": "'New girl, new town, mysterious boy' is recognized as formula instantly and needs a twist",
+              "n": 10
+            }
+          ]
+        },
+        "family_scene": {
+          "label": "Parents, siblings and kitchen-table scenes",
+          "items": [
+            {
+              "t": "Present, flawed-but-loving parents and fully drawn siblings are rare enough that readers celebrate them",
+              "n": 20
+            },
+            {
+              "t": "Absent, useless or stereotyped adults who don't react break belief",
+              "n": 13
+            },
+            {
+              "t": "A family blow-up resolved in one conversation cannot fix years of hurt and feels unearned",
+              "n": 6
+            },
+            {
+              "t": "Family dropped the moment the romance starts angers readers",
               "n": 3
             }
           ]
         },
-        "action": {
-          "label": "action",
+        "mental_health_crisis": {
+          "label": "Breakdown, trauma and recovery scenes",
           "items": [
             {
-              "t": "Peril the reader knows will pass is skimmed; danger must feel like it could cost something",
-              "n": 4
+              "t": "Readers with lived experience judge these scenes; get the specific symptoms and research right",
+              "n": 16
             },
             {
-              "t": "Fight scenes earn praise when clearly staged and easy to visualize",
-              "n": 4
+              "t": "A crisis 'fixed' by a love interest or an external trick is the most despised move",
+              "n": 15
             },
             {
-              "t": "Readers want action early and recurring; long walking stretches between set pieces kill momentum",
-              "n": 4
-            }
-          ]
-        },
-        "intimacy": {
-          "label": "intimacy",
-          "items": [
-            {
-              "t": "Romantic payoff after a long build produces the breath-holding scenes readers remember",
-              "n": 5
+              "t": "Raw, unsugar-coated struggle that spends more time on recovery than on the hurt is called important",
+              "n": 13
             },
             {
-              "t": "Attraction rooted in looks alone is a turn-off; show why they fall",
-              "n": 4
+              "t": "Content warnings are expected; reviewers supply them when the book doesn't",
+              "n": 7
             },
             {
-              "t": "Queer romances kept chaste or off-page frustrate readers who want to feel it",
-              "n": 4
-            },
-            {
-              "t": "Groping or sex scenes near trauma read as gross and cheap",
-              "n": 2
-            }
-          ]
-        },
-        "exposition": {
-          "label": "exposition",
-          "items": [
-            {
-              "t": "Both over-explaining to convince and under-explaining the premise are punished; aim for clarity without pleading",
-              "n": 6
-            },
-            {
-              "t": "Visible research (illness, prostitution, war, culture) earns trust; shallow cultural detail disappoints",
-              "n": 6
-            },
-            {
-              "t": "Backstory that is told, not witnessed, carries no emotion",
-              "n": 4
-            },
-            {
-              "t": "Didactic lectures on themes readers already accept slow the book",
-              "n": 3
-            }
-          ]
-        },
-        "quiet": {
-          "label": "quiet",
-          "items": [
-            {
-              "t": "Interior rumination that repeats the same thought is skimmed or DNF'd",
-              "n": 6
-            },
-            {
-              "t": "Quiet, melancholic books work when voice and prose carry them: 'calm until it isn't'",
-              "n": 4
+              "t": "Therapy and asking for help should be modeled, not a friend's DIY cure",
+              "n": 7
             }
           ]
         }
@@ -2184,23 +2953,11 @@
           "n": 1
         },
         {
-          "t": "Starts with action, ends with action; in between it's a walking tour",
+          "t": "Read in a single, foodless sitting.",
           "n": 1
         },
         {
-          "t": "Characters so cardboard you could cut them out of the pages",
-          "n": 1
-        },
-        {
-          "t": "This is not science fiction, this is a love story",
-          "n": 1
-        },
-        {
-          "t": "This book doesn't make you feel anything",
-          "n": 1
-        },
-        {
-          "t": "Too much sauce and not enough meat",
+          "t": "I kept waiting for the story to start; it never did",
           "n": 1
         },
         {
@@ -2208,11 +2965,23 @@
           "n": 1
         },
         {
-          "t": "Not perfect, but perfectly imperfect",
+          "t": "Many characters died and I didn't bat an eye",
+          "n": 1
+        },
+        {
+          "t": "Insta-love, and an immediate halt to all story progression.",
+          "n": 1
+        },
+        {
+          "t": "It's not a book, it's a third of a book",
+          "n": 1
+        },
+        {
+          "t": "Manipulation is not love.",
           "n": 1
         }
       ],
-      "notes": "The sample is dominated by one prolific blogger (the same social-links signature appears on well over half the reviews), so her tastes—love of LGBT romance, hatred of cheating and insta-love, fantasy preference—are over-represented; middle grade and boy-narrated books are nearly absent, and the books skew to 2012–2017 YA fantasy and contemporary. Surprising: prose quality is the single most common reason a disliked book gets finished, and slowness is forgiven far more often than predictability; readers also repeatedly ask for the POV of the most interesting side character rather than more plot"
+      "notes": "The sample skews to 2012-2018 YA fantasy and contemporary with female narrators and romance subplots, reviewed largely by adult bloggers (one prolific reviewer dominates the small lens); middle grade, boy-led, and non-romance YA are under-represented, as are verse and graphic formats. Surprising: slowness is forgiven far more readily than predictability, and although romance is the genre's engine, the loudest praise goes to friendship and family bonds while 'no romance' is repeatedly called a relief. Lyrical prose is the most common reason a disliked book gets finished rather than DNF'd."
     }
   }
 }
