@@ -20,3 +20,7 @@ yarn-error.log*
 # local env files
 .env
 .env*.local
+
+# reader-lens working files
+samples_*/
+/build/

@@ -7,7 +7,7 @@ import {
   sectionCount,
 } from "@/lib/book";
 import { reviseChunk, analyzeStory } from "@/lib/claude";
-import { ndjsonResponse } from "@/lib/generate";
+import { ndjsonResponse, lensForSection, rubricFor } from "@/lib/generate";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -55,6 +55,7 @@ export async function POST(request, { params }) {
       chunkText,
       isFirst,
       isLast,
+      lens: lensForSection(src, { isFirst, isLast }),
       onDelta,
     });
     send({ t: "generated" });
@@ -84,6 +85,7 @@ export async function POST(request, { params }) {
           arc: done.arc,
           sections: sectionCount(done),
           final: true,
+          rubric: rubricFor(done),
         });
         if (analysis) done.analysis = analysis;
       } catch {

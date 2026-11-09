@@ -10,7 +10,7 @@ import {
   publicBook,
 } from "@/lib/book";
 import { reviseManuscript, analyzeStory } from "@/lib/claude";
-import { ndjsonResponse } from "@/lib/generate";
+import { ndjsonResponse, lensForSection, rubricFor } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +55,7 @@ export async function POST(request, { params }) {
       critique: a.critique,
       quality: a.quality,
       score: a.qualityScore,
+      lens: lensForSection(src, {}),
       onDelta,
     });
     send({ t: "generated" });
@@ -81,6 +82,7 @@ export async function POST(request, { params }) {
         arc: fork.arc,
         sections: sectionCount(fork),
         final: true,
+        rubric: rubricFor(fork),
       });
       if (analysis) fork.analysis = analysis;
     } catch {

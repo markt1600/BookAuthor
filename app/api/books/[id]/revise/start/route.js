@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
 import { newBook, fullManuscript, fullTextWithChapters, reviseChunks, countWords } from "@/lib/book";
 import { revisionPlan } from "@/lib/claude";
+import { rubricFor } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,7 @@ export async function POST(request, { params }) {
       critique: a.critique,
       quality: a.quality,
       score: a.qualityScore,
+      rubric: rubricFor(src),
     });
   } catch (err) {
     const msg =
