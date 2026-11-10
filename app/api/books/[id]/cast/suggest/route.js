@@ -3,6 +3,7 @@ import { getBook } from "@/lib/store";
 import { manuscriptText } from "@/lib/book";
 import { suggestCast } from "@/lib/claude";
 import { bookUnlocked } from "@/lib/admin";
+import { providerErrorMessage } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -31,10 +32,7 @@ export async function POST(request, { params }) {
     });
     return NextResponse.json({ suggestions });
   } catch (err) {
-    const msg =
-      err && err.code === "NO_API_KEY"
-        ? "The server is missing ANTHROPIC_API_KEY."
-        : "Couldn't read the manuscript for characters — try again.";
+    const msg = providerErrorMessage(err, "Couldn't read the manuscript for characters — try again.");
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

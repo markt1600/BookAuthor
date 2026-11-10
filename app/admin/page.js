@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CoverArt from "@/components/CoverArt";
+import LocalModelSettings from "@/components/LocalModelSettings";
 
 function when(ts) {
   if (!ts) return "—";
@@ -154,7 +155,7 @@ export default function Admin() {
           </span>
           <span className="mark-name">Loom</span>
         </div>
-        <h1 className="admin-title">All books</h1>
+        <h1 className="admin-title">Administration</h1>
       </div>
       <div className="admin-head-actions">
         {gate === "open" && configured && (
@@ -211,6 +212,9 @@ export default function Admin() {
     <main className="admin">
       <div className="admin-inner">
         {Header}
+
+        <LocalModelSettings />
+        <h2>All books</h2>
 
         {mode === "memory" && (
           <div className="banner warn-banner">

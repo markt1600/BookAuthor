@@ -1,12 +1,13 @@
 import { getBook, getRemarkableAuth, setRemarkableAuth } from "@/lib/store";
 import { buildEpub } from "@/lib/epub";
-import { sendEpub, RemarkableError } from "@/lib/remarkable";
+import { offline, sendEpub, RemarkableError } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
 
 // Send the book's CURRENT text to the paired reMarkable as an EPUB. Built
 // fresh on every click, so the tablet always receives the latest version.
 export async function POST(request, { params }) {
+  if (offline) return Response.json({error:'Cloud sync is unavailable offline. Use EPUB or PDF export and transfer by USB.',code:'offline'},{status:503});
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return Response.json({ error: "Book not found." }, { status: 404 });

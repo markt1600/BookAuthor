@@ -1,6 +1,7 @@
 "use client";
 
 import { GUIDE_CHOICES, GUIDE_LABELS } from "@/lib/book";
+import { STYLE_HINT, adultLocked } from "@/lib/maturity";
 
 function Chips({ field, value, onChange }) {
   return (
@@ -32,10 +33,7 @@ export default function GuideControls({ guide, onChange, allowErotica = false })
       <div className="setup-row">
         <div className="setup-label">Writing style</div>
         <Chips field="style" value={guide.style} onChange={onChange} />
-        <div className="setup-hint">
-          Hemingway, Murakami &amp; Burdett also preset point of view, tense, and maturity to match the author —
-          adjust anything below.
-        </div>
+        <div className="setup-hint">{STYLE_HINT}</div>
       </div>
 
       <div className="setup-row">
@@ -69,6 +67,7 @@ export default function GuideControls({ guide, onChange, allowErotica = false })
           <input
             type="checkbox"
             checked={!!guide.adult}
+            disabled={adultLocked(guide)}
             onChange={(e) => onChange("adult", e.target.checked)}
           />
           <span className="toggle-track" aria-hidden="true">
@@ -99,7 +98,7 @@ export default function GuideControls({ guide, onChange, allowErotica = false })
                   />
                   <span className="intensity-val">{GUIDE_LABELS.intensity[guide[s.key]]}</span>
                 </div>
-                {s.key === "sexual" && allowErotica && (
+                {s.key === "sexual" && allowErotica && !adultLocked(guide) && (
                   <label className="erotica-check">
                     <input
                       type="checkbox"

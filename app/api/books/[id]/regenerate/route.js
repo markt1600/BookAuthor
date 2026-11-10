@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook, saveSnapshot, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, publicBook, sectionCount } from "@/lib/book";
 import { continueStory, guideStory, planSection } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, lensForSection, plannerLens } from "@/lib/generate";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, plannerLens, lensForSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +59,7 @@ export async function POST(request, { params }) {
           priorAnalysis,
           send,
           meta,
+          direction: directionPrompt,
           makePlan: () =>
             planSection({
               title: book.title,
@@ -115,6 +116,7 @@ export async function POST(request, { params }) {
         priorAnalysis,
         send,
         meta,
+        direction: directionPrompt,
         makePlan: () =>
           planSection({
             title: book.title,
@@ -125,7 +127,7 @@ export async function POST(request, { params }) {
             sections: sectionCount(book),
             targetWords: target,
             ...ctx,
-            ...plannerLens(book),
+            ...plannerLens(book, { direction: directionPrompt }),
           }),
         makeDraft: (onDelta, variant, plan) =>
           continueStory(
@@ -140,7 +142,7 @@ export async function POST(request, { params }) {
               ...ctx,
               variant,
               plan,
-              lens: lensForSection(book, { plan }),
+              lens: lensForSection(book, { direction: directionPrompt, plan }),
               onDelta,
             })
           ),

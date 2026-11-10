@@ -141,6 +141,29 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
         </div>
 
         <div className="setup-row">
+          <div className="setup-label">Reader lens</div>
+          <label className="drawer-toggle">
+            <input
+              type="checkbox"
+              checked={!!settings.readerLens}
+              onChange={(e) => change("readerLens", e.target.checked)}
+            />
+            <span className="toggle-track" aria-hidden="true">
+              <span className="toggle-knob" />
+            </span>
+            <span className="toggle-text">
+              <strong>Guide the writing with what readers of the genre reward and punish</strong>
+              <em>
+                Distilled from thousands of real reader reviews, per genre: what readers reward,
+                what they punish, what they expect, and the kinds of scene they actually discuss.
+                Folded into section planning, drafting, rewrites, and the book’s review as guidance,
+                not rules. Off by default; applies from the next section onward.
+              </em>
+            </span>
+          </label>
+        </div>
+
+        <div className="setup-row">
           <div className="setup-label">Second take</div>
           <label className="drawer-toggle">
             <input
@@ -200,7 +223,7 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
               <em>
                 Highest fidelity to earlier chapters, but costs more per turn and is
                 best for shorter books. Off by default — Loom otherwise sends a running
-                story-memory plus the opening and recent pages.
+                story-memory plus the opening and recent pages. A local model has a finite context window; requests that exceed it report an error, so layered context is recommended for long books offline.
               </em>
             </span>
           </label>

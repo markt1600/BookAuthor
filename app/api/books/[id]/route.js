@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { applyPatch, chapterDigest, countWords, currentChapterNum, latestColdRead, splitChapterAt, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, sectionCount } from "@/lib/book";
+import { applyPatch, chapterDigest, countWords, currentChapterNum, latestColdRead, splitChapterAt, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, reviewLean, sectionCount } from "@/lib/book";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
-import { refreshAnalysis, refreshChapterNotes, resolveDoneSuggestions, rubricFor } from "@/lib/generate";
+import { refreshAnalysis, refreshChapterNotes, resolveDoneSuggestions } from "@/lib/generate";
 
 export const dynamic = "force-dynamic";
 // The full-text edit and the one-time "mark ended" final evaluation both run an
@@ -70,13 +70,7 @@ export async function PUT(request, { params }) {
           digest: chapterDigest(merged),
           coldRead: latestColdRead(merged),
           chapterNum: currentChapterNum(merged),
-          rubric: rubricFor(merged),
-          eroticaLean:
-            merged.mode === "guide" &&
-            merged.guide &&
-            merged.guide.adult &&
-            merged.guide.erotica &&
-            merged.guide.sexual === 3,
+          ...reviewLean(merged),
         });
         if (analysis) {
           merged.analysis = analysis;
@@ -177,7 +171,7 @@ export async function PUT(request, { params }) {
         digest: chapterDigest(next),
         coldRead: latestColdRead(next),
         chapterNum: currentChapterNum(next),
-        rubric: rubricFor(next),
+        ...reviewLean(next),
       });
       if (analysis) {
         next.analysis = analysis;

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
 import { newBook, fullManuscript, fullTextWithChapters, reviseChunks, countWords } from "@/lib/book";
 import { revisionPlan } from "@/lib/claude";
-import { rubricFor } from "@/lib/generate";
+import { plannerLens } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
+import { providerErrorMessage } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -42,13 +43,10 @@ export async function POST(request, { params }) {
       critique: a.critique,
       quality: a.quality,
       score: a.qualityScore,
-      rubric: rubricFor(src),
+      ...plannerLens(src, { direction: "" }),
     });
   } catch (err) {
-    const msg =
-      err && err.code === "NO_API_KEY"
-        ? "The server is missing ANTHROPIC_API_KEY."
-        : "Couldn't plan the revision. Try again.";
+    const msg = providerErrorMessage(err, "Couldn't plan the revision. Try again.");
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 

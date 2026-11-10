@@ -18,11 +18,17 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [ephemeral, setEphemeral] = useState(false);
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     fetch("/api/health")
       .then((r) => r.json())
-      .then((d) => setEphemeral(d.storageMode === "memory"))
+      .then((d) => {
+        setEphemeral(d.storageMode === "memory");
+        setOffline(Boolean(d.offline));
+        // New-book defaults that follow the online/offline toggle.
+        if (d.defaults) setSettings((s) => ({ ...s, ...d.defaults }));
+      })
       .catch(() => {});
   }, []);
 
@@ -63,6 +69,7 @@ export default function Home() {
       <main className="landing">
         <div className="landing-inner landing-wide">
           {Mark}
+          <p><Link href="/admin">{offline ? "Admin: models and library" : "Admin: library"}</Link></p>
           <div className="landing-lede">
             <h1 className="lede-title">A book written in two hands, read as one voice.</h1>
             <p className="lede-body">
@@ -153,6 +160,26 @@ export default function Home() {
             </div>
 
             <div className="setup">
+              <div className="setup-row">
+                <div className="setup-label">Reader lens</div>
+                <label className="drawer-toggle">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.readerLens}
+                    onChange={(e) => changeSetting("readerLens", e.target.checked)}
+                  />
+                  <span className="toggle-track" aria-hidden="true">
+                    <span className="toggle-knob" />
+                  </span>
+                  <span className="toggle-text">
+                    <strong>Guide the writing with what readers of the genre reward and punish</strong>
+                    <em>
+                      Distilled from thousands of real reader reviews, per genre. Folded into
+                      planning, drafting, and the review as guidance, not rules. Off by default.
+                    </em>
+                  </span>
+                </label>
+              </div>
               {guideMode ? (
                 <>
                   <GuideControls guide={guide} onChange={changeGuide} />

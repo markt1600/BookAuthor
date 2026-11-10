@@ -3,7 +3,7 @@ import { getBook, saveBook, saveSnapshot, acquireLock, releaseLock } from "@/lib
 import { countWords, publicBook } from "@/lib/book";
 import { selfEditSection } from "@/lib/claude";
 import { lintProse } from "@/lib/craft";
-import { refreshAnalysis, ndjsonResponse, carryNotes } from "@/lib/generate";
+import { refreshAnalysis, ndjsonResponse, carryNotes, lensForSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +66,7 @@ export async function POST(request, { params }) {
         draft: turns[idx].text,
         memory: priorAnalysis,
         lint,
+        lens: lensForSection(book, { direction: turns[idx].prompt || "", plan: turns[idx].plan || "" }),
         onDelta,
       });
 

@@ -8,6 +8,7 @@ import {
   countWords,
   sectionCount,
   publicBook,
+  reviewLean,
 } from "@/lib/book";
 import { reviseManuscript, analyzeStory } from "@/lib/claude";
 import { ndjsonResponse, lensForSection, rubricFor } from "@/lib/generate";
@@ -55,7 +56,7 @@ export async function POST(request, { params }) {
       critique: a.critique,
       quality: a.quality,
       score: a.qualityScore,
-      lens: lensForSection(src, {}),
+      lens: lensForSection(src, { direction: "" }),
       onDelta,
     });
     send({ t: "generated" });
@@ -83,6 +84,7 @@ export async function POST(request, { params }) {
         sections: sectionCount(fork),
         final: true,
         rubric: rubricFor(fork),
+        ...reviewLean(fork),
       });
       if (analysis) fork.analysis = analysis;
     } catch {

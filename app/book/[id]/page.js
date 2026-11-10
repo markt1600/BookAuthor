@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE, latestColdRead, closedChapterNotes } from "@/lib/book";
-import { lintProse } from "@/lib/craft";
+import { lintProse, splitSuggestionBlob } from "@/lib/craft";
+import { REVIEW_CARD } from "@/lib/maturity";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import ChaptersDrawer from "@/components/ChaptersDrawer";
 import HistoryDrawer from "@/components/HistoryDrawer";
@@ -246,6 +247,27 @@ export default function BookStudio() {
   const [pages, setPages] = useState([]); // [[run,...], ...]
   const [turnStart, setTurnStart] = useState({}); // turnId -> page index
   const [scale, setScale] = useState(1);
+  // Whether this build runs offline (the toggle in lib/providers.js, via /api/health).
+  const [offline, setOffline] = useState(false);
+  const offlineRef = useRef(false);
+  const [fitPage, setFitPage] = useState(false);
+  const [portraitPage, setPortraitPage] = useState(false);
+  useEffect(() => {
+    try { setFitPage(localStorage.getItem('loom:fit-page') === 'true');
+      setPortraitPage(localStorage.getItem('loom:portrait-page') === 'true'); } catch {}
+  }, []);
+  function togglePortraitPage() {
+    setPortraitPage(value => {
+      try { localStorage.setItem('loom:portrait-page', String(!value)); } catch {}
+      return !value;
+    });
+  }
+  function toggleFitPage() {
+    setFitPage(value => {
+      try { localStorage.setItem('loom:fit-page', String(!value)); } catch {}
+      return !value;
+    });
+  }
   const [box, setBox] = useState({ w: 0, h: 0 }); // available area on mobile (responsive geometry)
   const [fontsReady, setFontsReady] = useState(false);
   const [animTurn, setAnimTurn] = useState(null);
@@ -629,7 +651,8 @@ export default function BookStudio() {
         setBox((prev) => (Math.abs(prev.w - w) > 4 || Math.abs(prev.h - h) > 6 ? { w, h } : prev));
       } else {
         const avail = el.clientWidth - 10;
-        setScale(Math.max(0.3, Math.min(1, avail / baseGeom.w)));
+        const heightScale = fitPage ? Math.max(1, el.clientHeight - 16) / baseGeom.h : 1;
+        setScale(Math.max(0.05, Math.min(1, avail / baseGeom.w, heightScale)));
       }
     };
     measure();
@@ -644,7 +667,7 @@ export default function BookStudio() {
       ro.disconnect();
       if (vv) vv.removeEventListener("resize", measure);
     };
-  }, [isMobile, baseGeom.w, status]);
+  }, [isMobile, baseGeom.w, baseGeom.h, status, fitPage]);
 
   // ---- keep the mobile layout sized to the visible viewport (handles the
   //      on-screen keyboard, which shrinks the visual viewport) ----
@@ -1564,6 +1587,12 @@ export default function BookStudio() {
     } catch {}
     const u = new SpeechSynthesisUtterance(text);
     u.rate = Math.min(2, Math.max(0.5, speedRef.current));
+    if (!deviceVoiceRef.current && offlineRef.current) {
+      // Offline, never fall through to a browser voice that streams from a server.
+      setBanner("No offline speech voice is installed in this browser.");
+      stopReading();
+      return;
+    }
     if (deviceVoiceRef.current) u.voice = deviceVoiceRef.current;
     u.onend = () => {
       if (!readingRef.current || readIdxRef.current !== index) return;
@@ -1731,6 +1760,8 @@ export default function BookStudio() {
     fetch("/api/health")
       .then((r) => r.json())
       .then((d) => {
+        offlineRef.current = Boolean(d && d.offline);
+        setOffline(offlineRef.current);
         if (d && d.tts === false) {
           voiceModeRef.current = "device";
           setVoiceMode("device");
@@ -1743,7 +1774,8 @@ export default function BookStudio() {
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     const pick = () => {
-      const vs = window.speechSynthesis.getVoices();
+      const all = window.speechSynthesis.getVoices();
+      const vs = offlineRef.current ? all.filter((v) => v.localService) : all;
       if (!vs || !vs.length) return;
       const en =
         vs.find((v) => /^en[-_]/i.test(v.lang) && v.default) ||
@@ -1807,7 +1839,7 @@ export default function BookStudio() {
       e.target && e.target.closest
         ? !!e.target.closest("textarea, input, button, a, .spine, .chapter-toggle")
         : false;
-    touchRef.current = { x: t.clientX, y: t.clientY, onControl };
+    touchRef.current = { x: t.clientX, y: t.clientY, onControl, rotated: fitPage && portraitPage && !isMobile };
   }
   function onTouchEnd(e) {
     const s = touchRef.current;
@@ -1815,8 +1847,11 @@ export default function BookStudio() {
     if (!s || s.onControl || generating) return;
     const t = e.changedTouches && e.changedTouches[0];
     if (!t) return;
-    const dx = t.clientX - s.x;
-    const dy = t.clientY - s.y;
+    const screenDx = t.clientX - s.x;
+    const screenDy = t.clientY - s.y;
+    // Invert the clockwise CSS rotation to measure movement across the page.
+    const dx = s.rotated ? screenDy : screenDx;
+    const dy = s.rotated ? -screenDx : screenDy;
     if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.2) return; // not a clear horizontal swipe
     if (dx < 0) {
       if (!onWritingPage && currentPage < navMax) turnTo(Math.min(navMax, currentPage + 1));
@@ -1938,7 +1973,7 @@ export default function BookStudio() {
   };
 
   return (
-    <div className={`studio${isMobile ? " is-mobile" : ""}${onComposerMobile ? " composer-scroll" : ""}`}>
+    <div className={`studio${isMobile ? " is-mobile" : ""}${fitPage && !isMobile ? " fit-page" : ""}${fitPage && portraitPage && !isMobile ? " portrait-page" : ""}${onComposerMobile ? " composer-scroll" : ""}`}>
       <header className="topbar">
         <div className="topbar-title">
           <h1>{book.title}</h1>
@@ -1977,6 +2012,14 @@ export default function BookStudio() {
           )}
         </div>
         <div className="topbar-actions">
+          {!isMobile && <button className="btn btn-ghost" onClick={toggleFitPage} aria-pressed={fitPage}
+            title="Fit the whole page on screen, or return to a larger reading size">
+            {fitPage ? "Reading size" : "Fit page"}
+          </button>}
+          {!isMobile && fitPage && <button className="btn btn-ghost" onClick={togglePortraitPage}
+            aria-pressed={portraitPage} title="Rotate the reading view 90 degrees clockwise; hold the device with its right edge at the top">
+            {portraitPage ? "Landscape" : "Rotate 90°"}
+          </button>}
           <div className="read-cluster">
             <label
               className="read-toggle"
@@ -2009,7 +2052,7 @@ export default function BookStudio() {
               {speed}×
             </button>
           </div>
-          {isMobile && (
+          {(isMobile || fitPage) && (
             <button
               className="btn btn-ghost more-toggle"
               onClick={() => setMoreOpen((v) => !v)}
@@ -2111,7 +2154,7 @@ export default function BookStudio() {
               </div>
             )}
 
-            <div className="page-viewport" ref={vpRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+            <div className="page-viewport" ref={vpRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchRef.current = null; }}>
               <div
                 className={`page-scaler${onWritingPage ? " is-flat" : ""}`}
                 style={{ width: geom.w * scale, height: onComposerMobile ? "auto" : geom.h * scale }}
@@ -2633,6 +2676,12 @@ export default function BookStudio() {
                 {a.quality}
               </div>
             )}
+            {REVIEW_CARD && a[REVIEW_CARD.key] && (
+              <div className="critique">
+                <div className="critique-h">{REVIEW_CARD.label}</div>
+                <div className="v">{a[REVIEW_CARD.key]}</div>
+              </div>
+            )}
             {a.critique && (
               <div className="critique">
                 <div className="critique-h">What's holding it back</div>
@@ -2665,7 +2714,7 @@ export default function BookStudio() {
                   {guideMode ? "Ways the next section could answer this" : "Ways to write into this next"}
                 </div>
                 <div className="suggestion-cards">
-                  {a.suggestions
+                  {splitSuggestionBlob(a.suggestions)
                     .split(/\n+/)
                     .map((line) => line.replace(/^[\s•\-–*]+/, "").trim())
                     .filter(Boolean)
@@ -2684,6 +2733,42 @@ export default function BookStudio() {
               </div>
             )}
           </div>
+          {a.pacing && (
+            <div className="note-card">
+              <div className="k">Plot pacing</div>
+              <div
+                className="v"
+                title="The editor's pacing read on the story so far. It is fed back into the next section, which leans on it to slow the plot down or speed it up."
+              >
+                {a.pacing}
+              </div>
+            </div>
+          )}
+          {!ended && a.balance && (
+            <div className="note-card">
+              <div className="k">Where the words went</div>
+              <div
+                className="v"
+                style={{ whiteSpace: "pre-line" }}
+                title="SLACK: a scene or description that ran long without changing anything. RUSHED: a turning point given too little room. Fed back into the next section, which is planned and sized against the pattern."
+              >
+                {a.balance}
+              </div>
+            </div>
+          )}
+          {!ended && a.holes && (
+            <div className="note-card">
+              <div className="k">Open logic gaps</div>
+              <div className="v" style={{ whiteSpace: "pre-line" }}>
+                {a.holes}
+              </div>
+              <div className="tells-hint">
+                Plot holes the editor is tracking — unexplained knowledge, uncaused turns, coincidences, dropped
+                consequences. The AI author sees this list and repairs a gap when a section touches it; a line
+                stays here until the text actually fixes it.
+              </div>
+            </div>
+          )}
           {(book.scoreHistory || []).length >= 2 && (
             <div className="note-card">
               <div className="k">Score over time</div>
@@ -2752,8 +2837,8 @@ export default function BookStudio() {
               )}
               <div className="tells-hint">
                 A deterministic scan for machine-writing patterns (uniform rhythm, “not X, but Y”,
-                stock phrases…). Fixing repairs exactly these findings in place — story events and
-                length stay put, and the prior version is kept in History.
+                stock phrases, stacked similes, scenic openings…). Fixing repairs exactly these findings in place —
+                story events stay put (the passage may come out a little tighter), and the prior version is kept in History.
               </div>
             </div>
           )}
@@ -3410,3 +3495,4 @@ export default function BookStudio() {
     </div>
   );
 }
+

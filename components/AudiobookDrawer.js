@@ -8,6 +8,7 @@ import { countWords } from "@/lib/book";
 // server error surfaces as a message instead of a JSON page.
 export default function AudiobookDrawer({ book, onClose }) {
   const [ttsOk, setTtsOk] = useState(null); // null = checking
+  const [offline, setOffline] = useState(false);
   const [busyIdx, setBusyIdx] = useState(-1);
   const [err, setErr] = useState("");
 
@@ -22,7 +23,10 @@ export default function AudiobookDrawer({ book, onClose }) {
   useEffect(() => {
     fetch("/api/health")
       .then((r) => r.json())
-      .then((d) => setTtsOk(!(d && d.tts === false)))
+      .then((d) => {
+        setOffline(Boolean(d && d.offline));
+        setTtsOk(!(d && d.tts === false));
+      })
       .catch(() => setTtsOk(true)); // uncertain — let the download attempt decide
   }, []);
 
@@ -81,8 +85,9 @@ export default function AudiobookDrawer({ book, onClose }) {
 
         {ttsOk === false && (
           <div className="pw-err" style={{ marginBottom: 14 }}>
-            The natural voice isn't configured on this server (ELEVENLABS_API_KEY) — audiobook
-            export needs it. Read-aloud's on-device voice can't produce files.
+            {offline
+              ? "Audiobook synthesis is not enabled in this offline installation. EPUB and PDF exports remain available. Device read-aloud depends on an installed local voice."
+              : "The natural voice isn't configured on this server — audiobook export needs a text-to-speech key. Read-aloud's on-device voice can't produce files."}
           </div>
         )}
         {err && (

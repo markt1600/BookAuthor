@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { offline, speechConfigured, synthesizeSpeech } from "@/lib/providers";
 import { getBook } from "@/lib/store";
 import { chapterText } from "@/lib/book";
 import { bookUnlocked } from "@/lib/admin";
@@ -6,8 +7,8 @@ import { bookUnlocked } from "@/lib/admin";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-// A chapter is synthesized in sentence-boundary chunks (ElevenLabs caps a
-// request around 5k chars) and the MP3 segments are concatenated — same codec
+// A chapter is synthesized in sentence-boundary chunks (the speech provider caps
+// a request around 5k chars) and the MP3 segments are concatenated — same codec
 // settings throughout, so byte-level concatenation plays cleanly.
 const CHUNK_CHARS = 4200;
 const MAX_CHAPTER_CHARS = 120000; // ~20k words — keep one request's work bounded
@@ -37,6 +38,7 @@ function chunkText(text) {
 
 // GET /api/books/[id]/audiobook?chapter=N — one chapter as a downloadable MP3.
 export async function GET(request, { params }) {
+  if (offline) return NextResponse.json({error:'Audiobook synthesis is not enabled in this offline installation.'},{status:503});
   const { id } = await params;
   const book = await getBook(id);
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
@@ -44,10 +46,9 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "This book is locked." }, { status: 401 });
   }
 
-  const key = process.env.ELEVENLABS_API_KEY;
-  if (!key) {
+  if (!speechConfigured()) {
     return NextResponse.json(
-      { error: "Audiobook export isn't configured — the server is missing ELEVENLABS_API_KEY." },
+      { error: "Audiobook export isn't configured — the server is missing its text-to-speech key." },
       { status: 503 }
     );
   }
@@ -65,35 +66,13 @@ export async function GET(request, { params }) {
     );
   }
 
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"; // default: "Rachel"
-  const modelId = process.env.ELEVENLABS_MODEL_ID || "eleven_turbo_v2_5";
-
   const segments = [];
   for (const chunk of chunkText(text)) {
-    let res;
     try {
-      res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: "POST",
-        headers: { "xi-api-key": key, "Content-Type": "application/json", Accept: "audio/mpeg" },
-        body: JSON.stringify({
-          text: chunk,
-          model_id: modelId,
-          voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0.0, use_speaker_boost: true },
-        }),
-      });
-    } catch {
-      return NextResponse.json({ error: "Could not reach the text-to-speech service." }, { status: 502 });
+      segments.push(await synthesizeSpeech(chunk, { failMessage: "Text-to-speech failed part-way through the chapter." }));
+    } catch (err) {
+      return NextResponse.json({ error: err.message || "Text-to-speech failed." }, { status: err.status || 502 });
     }
-    if (!res.ok) {
-      let msg = "Text-to-speech failed part-way through the chapter.";
-      try {
-        const j = await res.json();
-        const detail = (j.detail && (j.detail.message || j.detail)) || j.message;
-        if (typeof detail === "string") msg = detail;
-      } catch {}
-      return NextResponse.json({ error: msg }, { status: res.status === 401 ? 401 : 502 });
-    }
-    segments.push(Buffer.from(await res.arrayBuffer()));
   }
 
   const audio = Buffer.concat(segments);

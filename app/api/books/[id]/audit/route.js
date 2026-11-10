@@ -3,6 +3,7 @@ import { getBook } from "@/lib/store";
 import { castText, manuscriptText } from "@/lib/book";
 import { auditConsistency } from "@/lib/claude";
 import { bookUnlocked } from "@/lib/admin";
+import { providerErrorMessage } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -33,10 +34,7 @@ export async function POST(request, { params }) {
     });
     return NextResponse.json({ findings, at: Date.now() });
   } catch (err) {
-    const msg =
-      err && err.code === "NO_API_KEY"
-        ? "The server is missing ANTHROPIC_API_KEY."
-        : "The consistency check failed — try again.";
+    const msg = providerErrorMessage(err, "The consistency check failed — try again.");
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

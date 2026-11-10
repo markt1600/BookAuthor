@@ -2156,3 +2156,35 @@ textarea.voice-sample { resize: vertical; min-height: 96px; line-height: 1.5; fo
 .split-mark { font-family: var(--data); font-size: 11px; color: var(--brass); min-width: 16px; text-align: center; }
 .split-text { font-family: "Spectral", Georgia, serif; font-size: 13px; line-height: 1.5; }
 .split-title { margin: 12px 22px 0; width: calc(100% - 44px); }
+
+/* Small laptop layout: keep the sheet and navigation within the window. */
+.work { grid-template-columns: minmax(0, 1fr) 320px; }
+.stage, .stage-col { min-width: 0; }
+.topbar, .topbar-actions, .topbar-more { flex-wrap: wrap; }
+.studio.fit-page { height: 100dvh; min-height: 0; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.studio.fit-page .stage { min-height: 0; padding: 12px 18px 10px; overflow: hidden; }
+.studio.fit-page .stage-col { height: 100%; min-height: 0; }
+.studio.fit-page .page-viewport { flex: 1 1 0; min-height: 0; overflow: hidden; }
+.studio.fit-page .page-scaler { flex-shrink: 0; }
+.studio.fit-page .dock { position: static; flex: 0 0 auto; margin-top: 8px; flex-wrap: wrap; }
+.studio.fit-page .thinking { flex-shrink: 0; }
+.studio.fit-page .section-direction, .studio.fit-page .arc-toast { max-height: 48px; overflow-y: auto; flex-shrink: 0; }
+.studio.fit-page .notes { min-height: 0; overflow-y: auto; }
+@media (max-width: 900px) { .work { grid-template-columns: minmax(0, 1fr); } }
+.studio.fit-page .ledger, .studio.fit-page .read-cluster { display: none; }
+.studio.fit-page .topbar-more { display: none; }
+.studio.fit-page .topbar-more.open { display: flex; }
+.studio.fit-page .topbar { padding: 8px 18px; }
+.studio.fit-page .work { grid-template-columns: minmax(0, 1fr); }
+.studio.fit-page .notes, .studio.fit-page .section-direction { display: none; }
+.studio.fit-page .dock { max-width: 100%; width: auto; padding: 6px 12px; gap: 8px; }
+.studio.fit-page .dock .icon-btn { width: 32px; height: 32px; }
+
+/* Rotate the complete reading view, including its controls, into portrait. */
+.studio.fit-page.portrait-page {
+  position: fixed; z-index: 20; top: 0; left: 100vw;
+  width: 100dvh; height: 100dvw; min-width: 0;
+  transform: rotate(90deg); transform-origin: top left;
+}
+.studio.portrait-page .topbar-actions { min-width: 0; }
+.studio.portrait-page .dock { justify-content: center; }

@@ -3,6 +3,7 @@ import { getBook } from "@/lib/store";
 import { STYLE_PROFILE } from "@/lib/book";
 import { suggestOpening } from "@/lib/claude";
 import { bookUnlocked } from "@/lib/admin";
+import { providerErrorMessage } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -28,10 +29,7 @@ export async function POST(request, { params }) {
     if (!suggestion) throw new Error("empty suggestion");
     return NextResponse.json({ suggestion });
   } catch (err) {
-    const msg =
-      err && err.code === "NO_API_KEY"
-        ? "The server is missing ANTHROPIC_API_KEY."
-        : "Couldn't suggest an opening — try again.";
+    const msg = providerErrorMessage(err, "Couldn't suggest an opening — try again.");
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

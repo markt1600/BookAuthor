@@ -1,5 +1,5 @@
 import { getRemarkableAuth, setRemarkableAuth } from "@/lib/store";
-import { pairDevice, RemarkableError } from "@/lib/remarkable";
+import { pairDevice, RemarkableError } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
 

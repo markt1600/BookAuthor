@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook, saveSnapshot, acquireLock, releaseLock } from "@/lib/store";
 import { castText, countWords, publicBook } from "@/lib/book";
 import { rewritePassage } from "@/lib/claude";
-import { refreshAnalysis, ndjsonResponse, carryNotes } from "@/lib/generate";
+import { refreshAnalysis, ndjsonResponse, carryNotes, lensForSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -94,6 +94,7 @@ export async function POST(request, { params }) {
         memory: priorAnalysis,
         bible: (book.bible || "").trim(),
         cast: castText(book),
+        lens: lensForSection(book, { direction: instruction, plan: turns[idx].plan || "" }),
         onDelta,
       });
 

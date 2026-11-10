@@ -6,6 +6,13 @@ export default function ShareDrawer({ book, onClose, onSetShared }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const shared = Boolean(book.shared);
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((d) => setOffline(Boolean(d && d.offline)))
+      .catch(() => {});
+  }, []);
 
   const link =
     typeof window !== "undefined" ? `${window.location.origin}/read/${book.id}` : `/read/${book.id}`;
@@ -44,13 +51,14 @@ export default function ShareDrawer({ book, onClose, onSetShared }) {
         </div>
 
         <p className="drawer-hint">
-          Publish a read-only link to this book. Anyone with the link can read it in its book form —
-          no editing, no controls. Turn it off any time to revoke access.
+          {offline
+            ? "Create a read-only link to this book. In the offline installation it opens on this computer; it is not published to the internet. Export EPUB or PDF to share a file."
+            : "Publish a read-only link to this book. Anyone with the link can read it in its book form — no editing, no controls. Turn it off any time to revoke access."}
         </p>
 
         <label className="share-toggle">
           <input type="checkbox" checked={shared} disabled={busy} onChange={(e) => toggle(e.target.checked)} />
-          <span>{shared ? "Public read-only link is on" : "Sharing is off"}</span>
+          <span>{shared ? (offline ? "Read-only link is on" : "Public read-only link is on") : "Sharing is off"}</span>
         </label>
 
         {shared && (

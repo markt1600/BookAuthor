@@ -23,4 +23,9 @@ yarn-error.log*
 
 # reader-lens working files
 samples_*/
-/build/
+
+# offline data (the SQLite library and service state); the lens data is tracked
+/data/*
+!/data/reader-lenses.json
+!/data/reader-lenses.md
+*.sqlite*
