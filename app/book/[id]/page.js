@@ -12,6 +12,8 @@ import ArcDrawer from "@/components/ArcDrawer";
 import { diffWords } from "diff";
 import ShareDrawer from "@/components/ShareDrawer";
 import CastDrawer from "@/components/CastDrawer";
+import PlanningCards from "@/components/PlanningCards";
+import { splitPlan, priorityKind } from "@/lib/storyplan";
 import AudiobookDrawer from "@/components/AudiobookDrawer";
 
 /* physical page geometry (px @96dpi) — real trim sizes */
@@ -980,7 +982,15 @@ export default function BookStudio() {
             } else if (ev.t === "analysis") {
               setBook((prev) =>
                 prev
-                  ? { ...prev, analysis: ev.analysis, ...(ev.chapterNotes ? { chapterNotes: ev.chapterNotes } : {}) }
+                  ? {
+                      ...prev,
+                      analysis: ev.analysis,
+                      ...(ev.chapterNotes ? { chapterNotes: ev.chapterNotes } : {}),
+                      // The planning layer rides the same event: a redrawn outline, a
+                      // proposed brief. `undefined` (an older server) changes nothing.
+                      ...(ev.outline !== undefined ? { outline: ev.outline } : {}),
+                      ...(ev.brief !== undefined ? { brief: ev.brief } : {}),
+                    }
                   : prev
               );
               setNotesRefreshing(false);
@@ -2146,7 +2156,25 @@ export default function BookStudio() {
                     {currentTurn.plan && (
                       <details className="sd-plan" onClick={(e) => e.stopPropagation()}>
                         <summary>the beat plan it wrote from</summary>
-                        <div className="sd-plan-body">{currentTurn.plan}</div>
+                        {(() => {
+                          // The plan carries the beats and, under PRIORITIES, the editor's
+                          // desk ruling — what it decided mattered most for this section.
+                          const desk = splitPlan(currentTurn.plan);
+                          if (!desk.priorities.length) return <div className="sd-plan-body">{currentTurn.plan}</div>;
+                          return (
+                            <div className="sd-plan-body">
+                              {desk.beats}
+                              <div className="sd-plan-h">what mattered most, in order</div>
+                              <ol className="sd-priorities">
+                                {desk.priorities.map((p, pi) => (
+                                  <li key={pi} data-kind={priorityKind(p) || undefined}>
+                                    {p}
+                                  </li>
+                                ))}
+                              </ol>
+                            </div>
+                          );
+                        })()}
                       </details>
                     )}
                   </>
@@ -2188,7 +2216,7 @@ export default function BookStudio() {
                           : streamPhase === "second-take"
                           ? "Writing a second take…"
                           : streamPhase === "planning"
-                          ? "Sketching the beats…"
+                          ? "Weighing the notes, sketching the beats…"
                           : "The AI author is writing…"}
                         {autoLeft > 0 &&
                           ` · Autopilot — ${autoLeft} section${autoLeft > 1 ? "s" : ""} to go`}
@@ -2463,7 +2491,7 @@ export default function BookStudio() {
                   : streamPhase === "second-take"
                   ? "The AI author is writing a second take — the more human one will be kept…"
                   : streamPhase === "planning"
-                  ? "The AI author is sketching the section's beats before writing…"
+                  ? "The editor's desk is weighing the book's notes and sketching this section's beats…"
                   : guideMode
                   ? "The AI author is writing the next section…"
                   : `The AI author is writing about ${draftWords} words in your voice…`}
@@ -2733,6 +2761,7 @@ export default function BookStudio() {
               </div>
             )}
           </div>
+          <PlanningCards book={book} id={id} ended={ended} save={save} onBook={setBook} />
           {a.pacing && (
             <div className="note-card">
               <div className="k">Plot pacing</div>

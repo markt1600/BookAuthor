@@ -59,6 +59,7 @@ export async function POST(request, { params }) {
     guide: src.guide,
   });
   fork.revisionOf = src.id;
+  fork.brief = src.brief || null; // a revision is held to the same stated aims
   fork.revisionPlan = plan;
   fork.revisionSynopsis = a.synopsis || "";
   fork.revisionScore = typeof a.qualityScore === "number" ? a.qualityScore : null;

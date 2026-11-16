@@ -3,7 +3,7 @@ import { getBook, saveBook, saveSnapshot, acquireLock, releaseLock } from "@/lib
 import { countWords, publicBook } from "@/lib/book";
 import { selfEditSection } from "@/lib/claude";
 import { lintProse } from "@/lib/craft";
-import { refreshAnalysis, ndjsonResponse, carryNotes, lensForSection } from "@/lib/generate";
+import { refreshAnalysis, ndjsonResponse, carryNotes, notesEvent, lensForSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +85,7 @@ export async function POST(request, { params }) {
       await refreshAnalysis(book, priorAnalysis);
       const latest = carryNotes((await getBook(id)) || book, book);
       await saveBook(latest);
-      send({ t: "analysis", analysis: latest.analysis, chapterNotes: latest.chapterNotes });
+      send(notesEvent(latest));
     } finally {
       await releaseLock(id, lock);
     }

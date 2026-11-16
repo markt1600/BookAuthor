@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook, saveSnapshot, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, publicBook, sectionCount } from "@/lib/book";
 import { continueStory, guideStory, planSection } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, plannerLens, lensForSection } from "@/lib/generate";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, notesEvent, plannerLens, lensForSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -47,11 +47,14 @@ export async function POST(request, { params }) {
   // Drop the AI passage; regenerate from exactly the same point.
   const removed = turns.pop();
   const directionPrompt = removed.prompt || "";
+  // If the section being rewritten is the one that opened a chapter, the plan
+  // should read the outline for THAT chapter (its mark sits just past the end).
+  const opensChapter = (book.chapters || []).some((c) => c && c.startTurn === turns.length && turns.length > 0);
 
   return ndjsonResponse(async (send) => {
     try {
       if (guideMode) {
-        const ctx = authorContext(book);
+        const ctx = authorContext(book, { opensChapter });
         const targetWords = (book.guide && book.guide.sectionWords) || 500;
         const meta = {};
         const prose = await produceSection({
@@ -102,14 +105,14 @@ export async function POST(request, { params }) {
         await refreshAnalysis(book, priorAnalysis);
         const latest = carryNotes((await getBook(id)) || book, book);
         await saveBook(latest);
-        send({ t: "analysis", analysis: latest.analysis, chapterNotes: latest.chapterNotes });
+        send(notesEvent(latest));
         return;
       }
 
       // Participate: the preceding user turn (now last) is what we continue from.
       const prevUser = book.turns[book.turns.length - 1];
       const target = prevUser && prevUser.text ? countWords(prevUser.text) : 150;
-      const ctx = authorContext(book);
+      const ctx = authorContext(book, { opensChapter });
       const meta = {};
       const continuation = await produceSection({
         book,
@@ -156,7 +159,7 @@ export async function POST(request, { params }) {
       await refreshAnalysis(book, priorAnalysis);
       const latest = carryNotes((await getBook(id)) || book, book);
       await saveBook(latest);
-      send({ t: "analysis", analysis: latest.analysis, chapterNotes: latest.chapterNotes });
+      send(notesEvent(latest));
     } finally {
       await releaseLock(id, lock);
     }

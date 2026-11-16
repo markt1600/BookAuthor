@@ -128,13 +128,38 @@ export default function SettingsDrawer({ book, onClose, onSave, onSetPassword })
               <span className="toggle-knob" />
             </span>
             <span className="toggle-text">
-              <strong>Sketch the beats before writing each section</strong>
+              <strong>Plan each section, and rule on what matters for it</strong>
               <em>
                 Before drafting, the AI privately plans the section — what the character wants,
-                what’s in the way, what changes by the end, what’s withheld, and where it ends —
-                then writes from that plan. Keeps sections from being pretty but static. A quick,
-                cheap step, so it’s on by default; the plan is shown under each section’s
-                direction.
+                what’s in the way, what changes by the end, where it ends — and acts as the editor’s
+                desk: it weighs every note on the book (your brief, the outline, open plot holes,
+                setups, pacing, reader expectations) and hands the writer a short ranked list of
+                what matters for this section, in place of the whole pile. On by default; the plan
+                and its priorities are shown under each section’s direction. Switched off, the
+                writer is given all the notes directly, as before.
+              </em>
+            </span>
+          </label>
+        </div>
+
+        <div className="setup-row">
+          <div className="setup-label">Chapter audit</div>
+          <label className="drawer-toggle">
+            <input
+              type="checkbox"
+              checked={settings.chapterAudit !== false}
+              onChange={(e) => change("chapterAudit", e.target.checked)}
+            />
+            <span className="toggle-track" aria-hidden="true">
+              <span className="toggle-knob" />
+            </span>
+            <span className="toggle-text">
+              <strong>Audit each chapter as it closes, and redraw the outline</strong>
+              <em>
+                When a chapter closes, the stronger model reads all of it: what it did for the story,
+                how it sits against your brief and the outline, and a ruling on every suspected plot
+                hole. The outline for the next chapters is then redrawn from where the story actually
+                stands. One deep read per chapter, so it’s on by default.
               </em>
             </span>
           </label>

@@ -13,6 +13,7 @@ import {
 import { reviseManuscript, analyzeStory } from "@/lib/claude";
 import { ndjsonResponse, lensForSection, rubricFor } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
+import { briefBlock } from "@/lib/storyplan";
 
 export const dynamic = "force-dynamic";
 // A whole-book rewrite plus a final re-score — give it generous room.
@@ -70,6 +71,7 @@ export async function POST(request, { params }) {
       guide: src.guide,
     });
     fork.arc = (src.arc || []).map((h) => ({ ...h, bornTurns: 0 }));
+    fork.brief = src.brief || null; // a revision is held to the same stated aims
     fork = mergeFullText(fork, rewritten);
     fork.ended = true; // a finished revision
 
@@ -84,6 +86,7 @@ export async function POST(request, { params }) {
         sections: sectionCount(fork),
         final: true,
         rubric: rubricFor(fork),
+        brief: briefBlock(fork.brief, countWords(fullManuscript(fork))),
         ...reviewLean(fork),
       });
       if (analysis) fork.analysis = analysis;

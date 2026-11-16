@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, isUsersMove, publicBook, normalizeChapters, sectionCount } from "@/lib/book";
 import { continueStory, guideStory, planSection } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, plannerLens, lensForSection } from "@/lib/generate";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, notesEvent, plannerLens, lensForSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +67,7 @@ export async function POST(request, { params }) {
     try {
       let addedTurnIds;
       if (guideMode) {
-        const ctx = authorContext(book);
+        const ctx = authorContext(book, { opensChapter: wantsChapter });
         const targetWords = (book.guide && book.guide.sectionWords) || 500;
         const meta = {};
         const prose = await produceSection({
@@ -120,7 +120,7 @@ export async function POST(request, { params }) {
         book.turns.push(userTurn);
         let claudeTurn = null;
         try {
-          const ctx = authorContext(book);
+          const ctx = authorContext(book, { opensChapter: wantsChapter });
           const targetWords = countWords(text);
           const meta = {};
           const continuation = await produceSection({
@@ -179,7 +179,7 @@ export async function POST(request, { params }) {
       await refreshAnalysis(book, priorAnalysis);
       const latest = carryNotes((await getBook(id)) || book, book);
       await saveBook(latest);
-      send({ t: "analysis", analysis: latest.analysis, chapterNotes: latest.chapterNotes });
+      send(notesEvent(latest));
     } finally {
       await releaseLock(id, lock);
     }

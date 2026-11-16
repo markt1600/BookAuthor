@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { applyPatch, chapterDigest, countWords, currentChapterNum, latestColdRead, splitChapterAt, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, reviewLean, sectionCount } from "@/lib/book";
+import { applyPatch, chapterDigest, countWords, currentChapterNum, latestColdRead, splitChapterAt, truncateAt, mergeFullText, manuscriptText, fullManuscript, publicBook, recordScore, reviewLean, sectionCount, totalWords, latestAudit } from "@/lib/book";
+import { briefBlock, auditBlock } from "@/lib/storyplan";
 import { getBook, saveBook, deleteBook, saveSnapshot, deleteSnapshots } from "@/lib/store";
 import { isAuthed, bookUnlocked } from "@/lib/admin";
 import { analyzeStory } from "@/lib/claude";
@@ -70,6 +71,8 @@ export async function PUT(request, { params }) {
           digest: chapterDigest(merged),
           coldRead: latestColdRead(merged),
           chapterNum: currentChapterNum(merged),
+          brief: briefBlock(merged.brief, totalWords(merged)),
+          audit: auditBlock(latestAudit(merged)),
           ...reviewLean(merged),
         });
         if (analysis) {
@@ -171,6 +174,8 @@ export async function PUT(request, { params }) {
         digest: chapterDigest(next),
         coldRead: latestColdRead(next),
         chapterNum: currentChapterNum(next),
+        brief: briefBlock(next.brief, totalWords(next)),
+        audit: auditBlock(latestAudit(next)),
         ...reviewLean(next),
       });
       if (analysis) {

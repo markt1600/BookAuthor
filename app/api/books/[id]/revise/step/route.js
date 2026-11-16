@@ -9,6 +9,7 @@ import {
 } from "@/lib/book";
 import { reviseChunk, analyzeStory } from "@/lib/claude";
 import { ndjsonResponse, revisionChunkLens, rubricFor } from "@/lib/generate";
+import { briefBlock } from "@/lib/storyplan";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -87,6 +88,7 @@ export async function POST(request, { params }) {
           sections: sectionCount(done),
           final: true,
           rubric: rubricFor(done),
+          brief: briefBlock(done.brief),
           ...reviewLean(done),
         });
         if (analysis) done.analysis = analysis;
