@@ -20,6 +20,7 @@ const {
   fallbackDirections,
   sanitizeFinish,
   sectionPlacement,
+  openSetupLines,
   sectionRecap,
   nextFinishTarget,
 } = await import("../lib/storyplan.js");
@@ -162,4 +163,26 @@ test("a section is told what its chapter already put on the page and what is hel
   assert.ok(!third.includes("  3. He confesses."), "its own direction is not listed as done or as later");
   const last = sectionPlacement({ num: 4, directions, done: 3, final: true, landed: ["a", "b", "c"] });
   assert.ok(last.includes("LAST section of the book") && !last.includes("STILL TO COME"));
+});
+
+test("a section is shown what the book still has open, so it can close what its events allow", () => {
+  const directions = ["a", "b"];
+  assert.ok(!sectionPlacement({ num: 2, directions, done: 0 }).includes("OPENINGS"));
+  const setups = openSetupLines("- the spare key under the lamp\n- the storm warning (paid off ch 3)\n- the keeper's limp ✓");
+  assert.deepEqual(setups, ["the spare key under the lamp"]);
+  const note = sectionPlacement({ num: 2, directions, done: 0, gaps: ["How did Mara get the key?"], setups });
+  assert.ok(note.includes("OPENINGS") && note.includes("  logic gap: How did Mara get the key?") && note.includes("  planted, awaiting payoff: the spare key under the lamp"));
+  assert.ok(note.includes("never by explanation or coincidence") && note.includes("leave alone anything the outline keeps for a later chapter"));
+  const end = sectionPlacement({ num: 3, directions, done: 1, final: true, gaps: ["g"], landed: ["x"] });
+  assert.ok(end.includes("this is its last chapter") && end.includes("  logic gap: g"));
+});
+
+test("chapter markers in a full text being edited are found with their offsets and numbers", async () => {
+  const { chapterMarkers } = await import("../lib/book.js");
+  const text = "Opening prose.\n\n## Chapter: The Boat\n\nMore.\n\n  ## chapter\n\nEnd. ## Chapter not a marker";
+  const marks = chapterMarkers(text);
+  assert.deepEqual(marks.map((m) => [m.num, m.title]), [[2, "The Boat"], [3, ""]]);
+  assert.ok(text.slice(marks[0].index).startsWith("## Chapter: The Boat"));
+  assert.deepEqual(chapterMarkers("## Chapter: One\n\nText.").map((m) => m.num), [1], "a marker at the very top is chapter 1");
+  assert.deepEqual(chapterMarkers("No chapters here."), []);
 });

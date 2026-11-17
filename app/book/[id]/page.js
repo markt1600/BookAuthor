@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { countWords, isUsersMove, totalWords, fullTextWithChapters, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE, latestColdRead, closedChapterNotes } from "@/lib/book";
+import { countWords, isUsersMove, totalWords, fullTextWithChapters, chapterMarkers, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE, latestColdRead, closedChapterNotes } from "@/lib/book";
 import { lintProse, splitSuggestionBlob } from "@/lib/craft";
 import { REVIEW_CARD } from "@/lib/maturity";
 import SettingsDrawer from "@/components/SettingsDrawer";
@@ -196,6 +196,7 @@ export default function BookStudio() {
   const [finishing, setFinishing] = useState(false); // "Finish the book" run in progress
   const [finishStopping, setFinishStopping] = useState(false); // stop requested — the current section is finishing
   const finishStopRef = useRef(false);
+  const fullEditAreaRef = useRef(null);
   const autoStopRef = useRef(false); // set to finish the current section and stop
   const [streamText, setStreamText] = useState(""); // live prose as it's written
   const [streamPhase, setStreamPhase] = useState("idle"); // 'idle' | 'writing' | 'finalizing'
@@ -3124,8 +3125,67 @@ export default function BookStudio() {
                 Cancel
               </button>
             </div>
+            {(() => {
+              // Jump from chapter to chapter: put the caret on the marker line
+              // and scroll it to the top of the editor. The offset is measured
+              // with an off-screen copy of the text up to that point.
+              const marks = chapterMarkers(fullEditText);
+              if (!marks.length) return null;
+              const jump = (index) => {
+                const ta = fullEditAreaRef.current;
+                if (!ta) return;
+                const at = Math.max(0, Math.min(ta.value.length, index));
+                const cs = getComputedStyle(ta);
+                const probe = document.createElement("div");
+                for (const k of ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "padding", "tabSize"]) probe.style[k] = cs[k];
+                Object.assign(probe.style, {
+                  position: "absolute",
+                  visibility: "hidden",
+                  top: "0",
+                  left: "-9999px",
+                  boxSizing: "border-box",
+                  width: `${ta.clientWidth}px`,
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "break-word",
+                });
+                probe.textContent = ta.value.slice(0, at);
+                document.body.appendChild(probe);
+                const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) || 0;
+                const y = at === 0 ? 0 : Math.max(0, probe.offsetHeight - pad);
+                probe.remove();
+                ta.focus({ preventScroll: true });
+                ta.setSelectionRange(at, at);
+                ta.scrollTop = at >= ta.value.length ? ta.scrollHeight : y;
+              };
+              const caret = () => (fullEditAreaRef.current ? fullEditAreaRef.current.selectionStart : 0);
+              const prev = () => {
+                const before = marks.filter((m) => m.index < caret());
+                jump(before.length ? before[before.length - 1].index : 0);
+              };
+              const next = () => {
+                const after = marks.find((m) => m.index > caret());
+                jump(after ? after.index : fullEditText.length);
+              };
+              return (
+                <div className="fulledit-nav" aria-label="Jump to a chapter">
+                  <button type="button" className="fulledit-chip" onClick={prev} title="Previous chapter">‹ Prev</button>
+                  <button type="button" className="fulledit-chip" onClick={next} title="Next chapter">Next ›</button>
+                  <div className="fulledit-chips">
+                    <button type="button" className="fulledit-chip" onClick={() => jump(0)}>Top</button>
+                    {marks.map((m) => (
+                      <button type="button" key={m.index} className="fulledit-chip" onClick={() => jump(m.index)} title={m.title || `Chapter ${m.num}`}>
+                        {m.num}
+                        {m.title ? ` · ${m.title}` : ""}
+                      </button>
+                    ))}
+                    <button type="button" className="fulledit-chip" onClick={() => jump(fullEditText.length)}>End</button>
+                  </div>
+                </div>
+              );
+            })()}
             <textarea
               className="fulledit-area"
+              ref={fullEditAreaRef}
               value={fullEditText}
               onChange={(e) => setFullEditText(e.target.value)}
               placeholder="The whole book's text…"
