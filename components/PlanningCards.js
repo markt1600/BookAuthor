@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { currentChapterNum, finishOutlook, latestAudit, totalWords } from "@/lib/book";
-import { BRIEF_FIELDS, ENDGAME_MAX, OUTLINE_MAX, briefConfirmed, briefProposed, lengthPosition, outlineLastNum } from "@/lib/storyplan";
+import { BRIEF_FIELDS, ENDGAME_MAX, OUTLINE_MAX, briefConfirmed, briefProposed, lengthPosition, moveOutlineEntry, outlineLastNum, renumberOutline } from "@/lib/storyplan";
 
 // The planning layer of the reader's notes: THE BRIEF (what the book is trying
 // to be), THE OUTLINE (the next few chapters), and THE CHAPTER AUDIT (the deep
@@ -305,7 +305,8 @@ function OutlineCard({ book, id, save, onBook, locked }) {
   const open = () => {
     setDraft({
       through: (outline && outline.through) || "",
-      chapters: ahead.length ? ahead.map((e) => ({ ...e })) : [{ num: cur, title: "", summary: "", pinned: true }],
+      base: ahead.length ? ahead[0].num : cur,
+      chapters: ahead.length ? ahead.map((e) => ({ ...e, _k: e.id || `n${e.num}` })) : [{ num: cur, title: "", summary: "", pinned: true, _k: "new0" }],
     });
     setErr("");
     setEditing(true);
@@ -313,10 +314,14 @@ function OutlineCard({ book, id, save, onBook, locked }) {
   const setEntry = (i, patch) =>
     setDraft((d) => ({ ...d, chapters: d.chapters.map((e, j) => (j === i ? { ...e, ...patch } : e)) }));
   const addEntry = () =>
-    setDraft((d) => {
-      const next = d.chapters.length ? Math.max(...d.chapters.map((e) => e.num)) + 1 : cur;
-      return { ...d, chapters: [...d.chapters, { num: next, title: "", summary: "", pinned: true }] };
-    });
+    setDraft((d) => ({
+      ...d,
+      chapters: renumberOutline([...d.chapters, { title: "", summary: "", pinned: true, _k: `new${Date.now()}` }], d.base || cur),
+    }));
+  // Deleting or moving a chapter renumbers the ones after it.
+  const removeEntry = (i) =>
+    setDraft((d) => ({ ...d, chapters: renumberOutline(d.chapters.filter((_, j) => j !== i), d.base || cur) }));
+  const moveEntry = (i, dir) => setDraft((d) => ({ ...d, chapters: moveOutlineEntry(d.chapters, i, dir, d.base || cur) }));
 
   async function redraw() {
     setBusy("drawing");
@@ -334,7 +339,10 @@ function OutlineCard({ book, id, save, onBook, locked }) {
 
   async function commit() {
     setBusy("saving");
-    const chapters = draft.chapters.filter((e) => (e.summary || "").trim());
+    const chapters = renumberOutline(
+      draft.chapters.filter((e) => (e.summary || "").trim()).map(({ _k, ...e }) => e),
+      draft.base || cur
+    );
     const ok = await save({ outline: chapters.length || draft.through.trim() ? { through: draft.through, chapters } : null });
     setBusy("");
     if (ok) setEditing(false);
@@ -362,7 +370,7 @@ function OutlineCard({ book, id, save, onBook, locked }) {
             />
           </label>
           {draft.chapters.map((e, i) => (
-            <div className="outline-edit" key={i}>
+            <div className="outline-edit" key={e._k || i}>
               <div className="outline-edit-head">
                 <span className="ledger-ch">ch {e.num}</span>
                 <input
@@ -374,8 +382,27 @@ function OutlineCard({ book, id, save, onBook, locked }) {
                 />
                 <button
                   className="outline-x"
-                  title="Remove this chapter from the outline"
-                  onClick={() => setDraft((d) => ({ ...d, chapters: d.chapters.filter((_, j) => j !== i) }))}
+                  title="Move this chapter earlier"
+                  aria-label={`Move chapter ${e.num} earlier`}
+                  disabled={i === 0}
+                  onClick={() => moveEntry(i, -1)}
+                >
+                  ↑
+                </button>
+                <button
+                  className="outline-x"
+                  title="Move this chapter later"
+                  aria-label={`Move chapter ${e.num} later`}
+                  disabled={i === draft.chapters.length - 1}
+                  onClick={() => moveEntry(i, 1)}
+                >
+                  ↓
+                </button>
+                <button
+                  className="outline-x"
+                  title="Delete this chapter — the ones after it move up"
+                  aria-label={`Delete chapter ${e.num}`}
+                  onClick={() => removeEntry(i)}
                 >
                   ✕
                 </button>
@@ -404,8 +431,8 @@ function OutlineCard({ book, id, save, onBook, locked }) {
             </button>
           </div>
           <div className="tells-hint">
-            Any chapter you write or change here is pinned: the AI keeps it as written and redraws the others
-            around it.
+            Use ↑ ↓ to reorder and ✕ to delete; the chapters renumber themselves. Any chapter you write, change
+            or move is pinned: the AI keeps it as written and redraws the others around it.
           </div>
         </>
       ) : ahead.length || (outline && outline.through) ? (

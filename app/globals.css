@@ -2236,6 +2236,8 @@ textarea.voice-sample { resize: vertical; min-height: 96px; line-height: 1.5; fo
   background: none; border: none; color: var(--on-desk-dim); cursor: pointer; font-size: 13px; padding: 4px 6px;
 }
 .outline-x:hover { color: var(--on-desk); }
+.outline-x:disabled { opacity: 0.25; cursor: default; }
+.outline-x:disabled:hover { color: var(--on-desk-dim); }
 .audit-verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; margin-top: 10px; font-size: 12.5px; line-height: 1.5; }
 .audit-verdict-k { font-family: var(--data); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; }
 .audit-verdict-note { flex-basis: 100%; color: var(--on-desk); }

@@ -22,6 +22,8 @@ const {
   sectionPlacement,
   openSetupLines,
   criticismLines,
+  renumberOutline,
+  moveOutlineEntry,
   sectionRecap,
   nextFinishTarget,
 } = await import("../lib/storyplan.js");
@@ -189,6 +191,30 @@ test("a section is shown the editor's criticism, to answer in what happens", () 
   assert.ok(note.includes("ACTION FIRST") && note.includes("Keep inner monologue to a line or two"), "every autopilot section leans on action over interior monologue");
   const end = sectionPlacement({ num: 3, directions, done: 1, final: true, concerns, landed: ["x"] });
   assert.ok(end.includes("the last chapter in which to answer it") && end.trim().endsWith(")"));
+});
+
+test("deleting or moving an outline chapter renumbers the rest and keeps each chapter's overview", () => {
+  const prev = {
+    toEnd: true,
+    through: "t",
+    chapters: [
+      { id: "a", num: 5, title: "A", summary: "sa", detail: "da", pinned: false },
+      { id: "b", num: 6, title: "B", summary: "sb", detail: "db", pinned: false },
+      { id: "c", num: 7, title: "C", summary: "sc", detail: "dc", pinned: false },
+    ],
+  };
+  // delete chapter 6: chapter 7 becomes 6, unpinned, overview intact
+  const cut = authorOutline({ through: "t", chapters: renumberOutline([prev.chapters[0], prev.chapters[2]], 5) }, prev);
+  assert.deepEqual(cut.chapters.map((e) => [e.num, e.id, e.detail, e.pinned]), [[5, "a", "da", false], [6, "c", "dc", false]]);
+  assert.equal(outlineLastNum(cut), 6);
+  // move chapter 7 earlier: it trades places with 6, both pinned, overviews follow
+  const moved = authorOutline({ through: "t", chapters: moveOutlineEntry(prev.chapters, 2, -1, 5) }, prev);
+  assert.deepEqual(moved.chapters.map((e) => [e.num, e.id, e.detail, e.pinned]), [[5, "a", "da", false], [6, "c", "dc", true], [7, "b", "db", true]]);
+  // a move off either end changes nothing
+  assert.deepEqual(moveOutlineEntry(prev.chapters, 0, -1, 5).map((e) => e.id), ["a", "b", "c"]);
+  // an edited line still loses its overview and is pinned
+  const edited = authorOutline({ through: "t", chapters: prev.chapters.map((e) => (e.id === "b" ? { ...e, summary: "new" } : e)) }, prev);
+  assert.deepEqual(edited.chapters.map((e) => [e.detail || "", e.pinned]), [["da", false], ["", true], ["dc", false]]);
 });
 
 test("chapter markers in a full text being edited are found with their offsets and numbers", async () => {
