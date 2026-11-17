@@ -50,6 +50,7 @@ await j("PUT", `/api/books/${id}`, { brief: { premise: "Mara finds a letter the 
 r = await j("POST", `/api/books/${id}/finish`, { action: "plan" });
 let b = r.data.book;
 ok(r.status === 200 && b.outline.toEnd === true && b.outline.chapters.length === 3, "planning draws an outline that runs to the end (3 chapters)");
+ok(b.outline.chapters.every((e) => e.detail && e.detail.startsWith(`Overview of chapter ${e.num}`)), "every planned chapter carries a fuller overview");
 ok(b.finish && b.finish.status === "planned" && b.finish.chapter.num === 1 && b.finish.chapter.opens === false, "the run is planned and starts inside the chapter in progress");
 ok(b.turns.length === 2 && !b.ended, "planning writes nothing");
 const eg = last("endgame");
@@ -94,12 +95,13 @@ const cps = of("chapterplan");
 const cp2 = cps.find((p) => p.user.includes("THE CHAPTER TO BREAK DOWN — chapter 2"));
 ok(cp2 && cp2.user.includes("AUTHOR: the supply boat arrives a day early."), "the author's pinned chapter is what gets written");
 ok(cp2 && cp2.user.includes("Audit of chapter 1") && cp2.user.includes("Chapter 1 ("), "chapter 2 was broken down AFTER chapter 1 was audited and summarised");
+ok(cp2 && cp2.user.includes("The agreed overview of this chapter") && cp2.user.includes("Overview of chapter 2:"), "the chapter is broken down from its overview, the author's pinned one included");
 const cp3 = cps.find((p) => p.user.includes("THE CHAPTER TO BREAK DOWN — chapter 3 (the final chapter)"));
 ok(cp3 && cp3.system.includes("This is the FINAL chapter of the book"), "the last chapter is broken down as the ending");
 ok(of("audit").length === 3, "every chapter was audited as it closed, the final one included");
 const plans = of("endgame");
 ok(
-  plans.length >= 2 && !plans[0].user.includes("Your previous answer planned only") && plans[1].user.includes("Your previous answer planned only 1 chapter"),
+  plans.length >= 2 && !plans[0].user.includes("Your previous answer covered only") && plans[1].user.includes("Your previous answer covered only 1 chapter"),
   "a plan that stopped after one chapter was sent back for the whole book"
 );
 const redraws = plans.slice(2);

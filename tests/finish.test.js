@@ -129,3 +129,19 @@ test("a finished chapter opens the next; an edited or displaced plan is redone f
   // a blank book starts at chapter 1 without opening a second one
   assert.deepEqual(nextFinishTarget({ finish: {}, currentNum: 1, hasText: false, entrySummary: summary }), { num: 1, opens: false, reuse: false });
 });
+
+test("a plan to the end keeps each chapter's overview; an author's edit drops a stale one and takes the model's next", () => {
+  const withDetail = entries(1, 3).map((e) => ({ ...e, detail: `Overview ${e.num}.` }));
+  const plan = sanitizeOutline({ toEnd: true, chapters: withDetail });
+  assert.equal(plan.chapters[1].detail, "Overview 2.");
+  assert.equal("detail" in sanitizeOutline({ chapters: entries(1, 2) }).chapters[0], false);
+  const edited = authorOutline({ chapters: plan.chapters.map((e) => (e.num === 2 ? { ...e, summary: "AUTHOR: the boat comes early." } : e)) }, plan);
+  assert.equal(edited.chapters[1].pinned, true);
+  assert.equal(edited.chapters[1].detail, undefined, "the old overview no longer fits");
+  assert.equal(edited.chapters[0].detail, "Overview 1.");
+  const merged = mergeOutline({ chapters: withDetail.map((e) => ({ ...e, detail: `New overview ${e.num}.` })) }, edited, 1, { toEnd: true });
+  assert.equal(merged.chapters[1].summary, "AUTHOR: the boat comes early.");
+  assert.equal(merged.chapters[1].detail, "New overview 2.");
+  assert.ok(outlineBlock(merged, 1).includes("How this chapter is planned to go: New overview 1."));
+  assert.ok(!outlineBlock(merged, 1).includes("New overview 2."), "only the chapter being written carries its overview into the prompt");
+});

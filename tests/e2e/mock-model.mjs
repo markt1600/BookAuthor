@@ -100,13 +100,14 @@ function reply(kind, system, user) {
       const cap = system.match(/ends the book at chapter (\d+)/);
       // A first answer that stops after the current chapter — what a weak model
       // does — so the run proves the planner asks again and gets the whole plan.
-      const retried = /Your previous answer planned only/.test(user);
+      const retried = /Your previous answer covered only/.test(user);
       const lastNum = cap ? Number(cap[1]) : retried ? cur + 2 : cur;
       const chapters = [];
       for (let k = cur; k <= lastNum; k++) {
         chapters.push({
           num: k,
           title: k === lastNum ? "The Rock" : `Endgame ${k}`,
+          detail: `Overview of chapter ${k}: it opens on the stairs, the keeper stalls twice, and it ends with the lamp relit.`,
           summary: k === lastNum ? `Endgame plan for chapter ${k}: she burns the letter and the book ends.` : `Endgame plan for chapter ${k}: the keeper's story cracks a little further.`,
         });
       }

@@ -236,16 +236,7 @@ function FinishCard({ book, id, onBook, run }) {
                     {e.num === last && <span className="plan-tag">final chapter</span>}
                     {e.pinned && <span className="plan-tag">yours</span>}
                   </div>
-                  <div className="finish-plan-s">{e.summary}</div>
-                  {here && (
-                    <ol className="finish-steps">
-                      {c.directions.map((d, i) => (
-                        <li key={i} data-state={i < c.done ? "done" : i === c.done ? "now" : undefined}>
-                          {d}
-                        </li>
-                      ))}
-                    </ol>
-                  )}
+                  <div className="finish-plan-s">{e.detail || e.summary}</div>
                 </li>
               );
             })}
@@ -272,7 +263,7 @@ function FinishCard({ book, id, onBook, run }) {
           <div className="tells-hint">
             {run.running
               ? "Each chapter is audited against the brief and the outline as it closes, and the chapters still to come are redrawn from what it actually did. Keep this page open; stop at any time and the section in flight still lands."
-              : "This is the high-level plan for every chapter to the last. To change it, edit the outline above (your edits are pinned). Each chapter is broken into sections only when the run reaches it; the run opens each chapter itself and marks the book ended after the final one."}
+              : "An overview of every chapter to the last — a fuller version of the outline above. To change a chapter, edit its outline entry (your edits are pinned and its overview is rewritten to fit on the next replan). The sections inside a chapter are worked out when the run reaches it; the run opens each chapter itself and marks the book ended after the final one."}
           </div>
         </>
       ) : (
