@@ -72,7 +72,7 @@ let steps = 0;
 let ended = false;
 let firstEvents = null;
 while (!ended && steps < 60) {
-  r = await stream(`/api/books/${id}/finish/step`);
+  r = await stream(`/api/books/${id}/finish/step`, steps === 1 ? { steer: "Have the keeper lie about the boat." } : {});
   const err = r.events.find((e) => e.t === "error");
   if (r.status !== 200 || err) {
     ok(false, `step ${steps + 1} failed: ${r.error || (err && err.error)}`);
@@ -121,6 +121,13 @@ ok(
 );
 ok(cp2 && cp2.user.includes("The editor's criticism — what is holding the book back") && cp2.system.includes("Go through the editor's criticism"), "each chapter breakdown assigns the criticism to sections");
 ok(second && second.user.includes("ACTION FIRST"), "autopilot sections are told to favour action over inner monologue");
+const steered = of("writer").filter((p) => p.user.includes("A LIVE NOTE FROM THE AUTHOR"));
+const steeredPlan = of("planner").filter((p) => p.user.includes("A LIVE NOTE FROM THE AUTHOR"));
+ok(
+  steered.length >= 1 && steered.every((p) => p.user.includes('"Have the keeper lie about the boat."') && p.user.includes("Autopilot — section 2 of")) && steeredPlan.length === 1,
+  "a live note reaches the planner and writer of the next section only, alongside its direction"
+);
+ok(!b.turns.some((t) => (t.prompt || "").includes("LIVE NOTE")), "the stored direction is not replaced by the live note");
 const cpRules = cps[0];
 ok(cpRules && cpRules.system.includes("Bias every direction toward action"), "chapter breakdowns are biased toward action");
 ok(cpRules && cpRules.system.includes("Go through the open logic gaps and planted setups one by one"), "the chapter breakdown assigns open gaps and setups to sections");

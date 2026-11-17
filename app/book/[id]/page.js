@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { countWords, isUsersMove, totalWords, fullTextWithChapters, chapterMarkers, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE, latestColdRead, closedChapterNotes } from "@/lib/book";
+import { countWords, isUsersMove, totalWords, fullTextWithChapters, chapterMarkers, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE } from "@/lib/book";
 import { lintProse, splitSuggestionBlob } from "@/lib/craft";
 import { REVIEW_CARD } from "@/lib/maturity";
 import SettingsDrawer from "@/components/SettingsDrawer";
@@ -13,7 +13,7 @@ import { diffWords } from "diff";
 import ShareDrawer from "@/components/ShareDrawer";
 import CastDrawer from "@/components/CastDrawer";
 import PlanningCards from "@/components/PlanningCards";
-import { splitPlan, priorityKind } from "@/lib/storyplan";
+import { splitPlan, priorityKind, STEER_MAX } from "@/lib/storyplan";
 import AudiobookDrawer from "@/components/AudiobookDrawer";
 
 /* physical page geometry (px @96dpi) — real trim sizes */
@@ -44,16 +44,6 @@ const AI_VCHROME = AI_PAD_Y * 2 + AI_BORDER * 2; // height the AI box adds
 function authorName(author, bookAuthor) {
   if (author === "user") return bookAuthor?.trim() || "You";
   return "AI Author";
-}
-
-// Whether an audit finding's verbatim quote can actually be located in the text
-// (the model occasionally paraphrases despite instructions — hide dead links).
-const normQuote = (s) =>
-  String(s).replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/\s+/g, " ").trim().toLowerCase();
-function jumpableQuote(book, quote) {
-  const q = normQuote(quote);
-  if (!q) return false;
-  return (book.turns || []).some((t) => normQuote(t.text).includes(q));
 }
 
 /* ---- notes-panel mini charts (single series — the card heading names it, so
@@ -193,6 +183,13 @@ export default function BookStudio() {
   const [autoPilot, setAutoPilot] = useState(false); // guide: keep writing after this direction
   const [autoCount, setAutoCount] = useState(3); // 1..5 sections per autopilot run
   const [autoLeft, setAutoLeft] = useState(0); // sections still to write in the running batch
+  // A live suggestion for the NEXT section of an auto run (autopilot or finish
+  // the book): typed in the notes panel while the AI writes, queued, and sent
+  // along with the next section's request as guidance.
+  const [steerDraft, setSteerDraft] = useState("");
+  const [steerQueued, setSteerQueued] = useState("");
+  const [steerUsing, setSteerUsing] = useState("");
+  const steerRef = useRef("");
   const [finishing, setFinishing] = useState(false); // "Finish the book" run in progress
   const [finishStopping, setFinishStopping] = useState(false); // stop requested — the current section is finishing
   const finishStopRef = useRef(false);
@@ -232,9 +229,6 @@ export default function BookStudio() {
   const [splitPara, setSplitPara] = useState(0);
   const [splitTitle, setSplitTitle] = useState("");
   const [splitSaving, setSplitSaving] = useState(false);
-  const [auditBusy, setAuditBusy] = useState(false);
-  const [audit, setAudit] = useState(null); // { findings, at } from the last consistency check
-  const [auditErr, setAuditErr] = useState("");
   const [bibleEditing, setBibleEditing] = useState(false); // author's canon editor open
   const [bibleDraft, setBibleDraft] = useState("");
   const [bibleSaving, setBibleSaving] = useState(false);
@@ -1057,12 +1051,35 @@ export default function BookStudio() {
     }
   }, [id]);
 
+  const queueSteer = useCallback((text) => {
+    const said = String(text || "").replace(/\s+/g, " ").trim().slice(0, STEER_MAX);
+    steerRef.current = said;
+    setSteerQueued(said);
+    if (said) setSteerDraft("");
+  }, []);
+  // Hand the queued suggestion to the section about to be requested.
+  const takeSteer = useCallback(() => {
+    const said = steerRef.current;
+    steerRef.current = "";
+    setSteerQueued("");
+    setSteerUsing(said);
+    return said;
+  }, []);
+  // The run is over: a suggestion nobody used goes back into the box.
+  const releaseSteer = useCallback((unused) => {
+    const left = unused || steerRef.current;
+    steerRef.current = "";
+    setSteerQueued("");
+    setSteerUsing("");
+    if (left) setSteerDraft((d) => d || left);
+  }, []);
+
   const submitTurn = useCallback(async () => {
     if (!draft.trim() || generating || finishing) return;
     const wasNewChapter = newChapter;
     if (wasNewChapter) setNewChapter(false);
-    const sendSection = (text, chapter) =>
-      consumeStream(`/api/books/${id}/turn`, { text, newChapter: chapter }, {
+    const sendSection = (text, chapter, steer) =>
+      consumeStream(`/api/books/${id}/turn`, { text, newChapter: chapter, ...(steer ? { steer } : {}) }, {
         onDone: (b) => {
           // The book already includes the new chapter (added server-side), so a
           // single update paginates once and the jump lands on the right page.
@@ -1089,12 +1106,18 @@ export default function BookStudio() {
           return;
         }
         if (autoStopRef.current) return;
-        if (!(await sendSection(direction, false))) return;
+        const steer = takeSteer();
+        if (!(await sendSection(direction, false, steer))) {
+          releaseSteer(steer);
+          return;
+        }
+        setSteerUsing("");
       }
     } finally {
       setAutoLeft(0);
+      releaseSteer();
     }
-  }, [draft, generating, id, newChapter, guideMode, autoPilot, autoCount, consumeStream, fetchNextDirection]);
+  }, [draft, generating, id, newChapter, guideMode, autoPilot, autoCount, consumeStream, fetchNextDirection, takeSteer, releaseSteer]);
 
   // Let the section being written finish, then stop the autopilot batch.
   const stopAutopilot = useCallback(() => {
@@ -1114,7 +1137,8 @@ export default function BookStudio() {
     try {
       for (let i = 0; i < 600 && !finishStopRef.current; i++) {
         let ended = false;
-        const ok = await consumeStream(`/api/books/${id}/finish/step`, {}, {
+        const steer = takeSteer();
+        const ok = await consumeStream(`/api/books/${id}/finish/step`, steer ? { steer } : {}, {
           onDone: (b) => {
             ended = Boolean(b.ended);
             const aiTurn = b.turns[b.turns.length - 1];
@@ -1124,13 +1148,16 @@ export default function BookStudio() {
             setBook(b);
           },
         });
+        if (!ok) releaseSteer(steer);
+        else setSteerUsing("");
         if (!ok || ended) break;
       }
     } finally {
       setFinishing(false);
       setFinishStopping(false);
+      releaseSteer();
     }
-  }, [generating, finishing, id, consumeStream]);
+  }, [generating, finishing, id, consumeStream, takeSteer, releaseSteer]);
 
   const stopFinish = useCallback(() => {
     finishStopRef.current = true;
@@ -1304,39 +1331,6 @@ export default function BookStudio() {
     } finally {
       setSplitSaving(false);
     }
-  }
-
-  // On-demand consistency audit (read-only — nothing on the book changes).
-  async function runAudit() {
-    if (auditBusy) return;
-    setAuditBusy(true);
-    setAuditErr("");
-    try {
-      const res = await fetch(`/api/books/${id}/audit`, { method: "POST" });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setAuditErr(d.error || "The consistency check failed — try again.");
-        return;
-      }
-      setAudit(d);
-    } catch {
-      setAuditErr("Network error — try again.");
-    } finally {
-      setAuditBusy(false);
-    }
-  }
-
-  // Jump to the passage containing an audit finding's verbatim quote.
-  function jumpToQuote(quote) {
-    if (!book || !quote) return;
-    const q = normQuote(quote);
-    if (!q) return;
-    const turn = (book.turns || []).find((t) => normQuote(t.text).includes(q));
-    if (!turn) return;
-    const page = turnStart[turn.id];
-    if (page == null) return;
-    if (isMobile) setNotesOpen(false);
-    turnTo(page);
   }
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -1995,12 +1989,6 @@ export default function BookStudio() {
     );
 
   const a = book.analysis || {};
-  // Fresh-eyes notes: the cold read of the most recently closed chapter, and
-  // every closed chapter's grip score for the small strip under it.
-  const coldRead = latestColdRead(book);
-  const gripRows = closedChapterNotes(book)
-    .filter((n) => n.cold && n.cold.grip != null)
-    .map((n) => ({ num: n.num, grip: n.cold.grip }));
   const ended = Boolean(book.ended);
   const perWord = 26;
   const flipClass = nav === "next" ? "flip-next" : nav === "prev" ? "flip-prev" : "";
@@ -2687,6 +2675,59 @@ export default function BookStudio() {
             )}
           </div>
 
+          {(finishing || autoLeft > 0 || steerUsing) && (
+            <div className="live-steer">
+              <div className="live-steer-k">Live suggestion — for the next section</div>
+              {steerUsing && (
+                <div className="live-steer-state" data-kind="using">
+                  <span>Being worked into the section now writing</span>
+                  {steerUsing}
+                </div>
+              )}
+              {steerQueued ? (
+                <div className="live-steer-state" data-kind="queued">
+                  <span>Queued for the next section</span>
+                  {steerQueued}
+                  <div className="live-steer-actions">
+                    <button
+                      className="bible-edit-btn"
+                      onClick={() => {
+                        setSteerDraft(steerQueued);
+                        queueSteer("");
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button className="bible-edit-btn" onClick={() => queueSteer("")}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    className="arc-text live-steer-text"
+                    rows={2}
+                    maxLength={STEER_MAX}
+                    value={steerDraft}
+                    placeholder="e.g. Let the keeper lie about the boat — and have Mara notice."
+                    onChange={(e) => setSteerDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && steerDraft.trim()) queueSteer(steerDraft);
+                    }}
+                  />
+                  <button className="bible-edit-btn" onClick={() => queueSteer(steerDraft)} disabled={!steerDraft.trim()}>
+                    ➜ Send to the next section
+                  </button>
+                </>
+              )}
+              <div className="tells-hint">
+                A nudge, not an override: the AI stays the author and works your note into the next section it
+                starts, alongside its plan. It is used once.
+              </div>
+            </div>
+          )}
+
           <div className="share-top">
             <div className="share-label">Your private link — return any time</div>
             <div className="share-row">
@@ -2841,19 +2882,6 @@ export default function BookStudio() {
               </div>
             </div>
           )}
-          {!ended && a.holes && (
-            <div className="note-card">
-              <div className="k">Open logic gaps</div>
-              <div className="v" style={{ whiteSpace: "pre-line" }}>
-                {a.holes}
-              </div>
-              <div className="tells-hint">
-                Plot holes the editor is tracking — unexplained knowledge, uncaused turns, coincidences, dropped
-                consequences. The AI author sees this list and repairs a gap when a section touches it; a line
-                stays here until the text actually fixes it.
-              </div>
-            </div>
-          )}
           {(book.scoreHistory || []).length >= 2 && (
             <div className="note-card">
               <div className="k">Score over time</div>
@@ -2866,41 +2894,6 @@ export default function BookStudio() {
                   <PacingBars rows={chapterRows} />
                 </>
               )}
-            </div>
-          )}
-          {book.turns.length > 0 && (
-            <div className="note-card">
-              <div className="k">Consistency</div>
-              {audit && audit.findings.length > 0 && (
-                <div className="audit-findings">
-                  {audit.findings.map((f, fi) => (
-                    <div className="audit-finding" key={fi}>
-                      <span className="audit-sev" data-sev={f.severity}>
-                        {f.severity}
-                      </span>
-                      {f.issue}
-                      {f.quote && jumpableQuote(book, f.quote) && (
-                        <button className="audit-jump" onClick={() => jumpToQuote(f.quote)}>
-                          find →
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {audit && audit.findings.length === 0 && (
-                <div className="v tells-clean">✓ No contradictions found.</div>
-              )}
-              {!audit && (
-                <div className="v muted">
-                  Scan the whole book for contradictions — names, timelines, facts — checked against
-                  your canon and cast sheet.
-                </div>
-              )}
-              <button className="bible-edit-btn" onClick={runAudit} disabled={auditBusy}>
-                {auditBusy ? "Reading the whole book…" : audit ? "↻ Check again" : "✦ Check the book"}
-              </button>
-              {auditErr && <div className="pw-err" style={{ marginTop: 8 }}>{auditErr}</div>}
             </div>
           )}
           {lastAiText && !ended && (
@@ -2924,88 +2917,6 @@ export default function BookStudio() {
                 A deterministic scan for machine-writing patterns (uniform rhythm, “not X, but Y”,
                 stock phrases, stacked similes, scenic openings…). Fixing repairs exactly these findings in place —
                 story events stay put (the passage may come out a little tighter), and the prior version is kept in History.
-              </div>
-            </div>
-          )}
-          {!ended && a.ledger && (
-            <div className="note-card">
-              <div className="k">Setups &amp; payoffs</div>
-              <div className="ledger-list">
-                {a.ledger
-                  .split(/\n+/)
-                  .map((line) => line.replace(/^[\s•\-–*]+/, "").trim())
-                  .filter(Boolean)
-                  .map((line, li) => {
-                    // "ch N · the setup · status" — fall back to the raw line.
-                    const parts = line.split(/\s+·\s+/);
-                    const ch = parts.length >= 3 ? parts[0] : "";
-                    const body = parts.length >= 3 ? parts.slice(1, -1).join(" · ") : line;
-                    const status = parts.length >= 3 ? parts[parts.length - 1] : "";
-                    const kind = /paid|resolved/i.test(status) ? "paid" : /stale/i.test(status) ? "stale" : "open";
-                    return (
-                      <div className="ledger-row" data-kind={kind} key={li}>
-                        {ch && <span className="ledger-ch">{ch}</span>}
-                        <span className="ledger-text">{body}</span>
-                        {status && <span className="ledger-status">{status}</span>}
-                      </div>
-                    );
-                  })}
-              </div>
-              <div className="tells-hint">
-                What the book has planted and not yet paid off. The AI author sees this list while writing
-                and is told to pay setups off deliberately — stale ones have waited five chapters or more.
-              </div>
-            </div>
-          )}
-          {coldRead && (
-            <div className="note-card">
-              <div className="k">
-                Fresh eyes — chapter {coldRead.num}
-                {coldRead.title ? ` · ${coldRead.title}` : ""}
-              </div>
-              {coldRead.cold.grip != null && (
-                <div className="grip-row">
-                  <span className="grip-label">Grip</span>
-                  <span className="meter grip-meter">
-                    <i style={{ width: `${coldRead.cold.grip * 10}%` }} />
-                  </span>
-                  <span className="grip-val">{coldRead.cold.grip}/10</span>
-                </div>
-              )}
-              <dl className="cold-read">
-                {coldRead.cold.confused && (
-                  <>
-                    <dt>Confused</dt>
-                    <dd>{coldRead.cold.confused}</dd>
-                  </>
-                )}
-                {coldRead.cold.skimmed && (
-                  <>
-                    <dt>Skimmed</dt>
-                    <dd>{coldRead.cold.skimmed}</dd>
-                  </>
-                )}
-                {coldRead.cold.wanted && (
-                  <>
-                    <dt>Wanted</dt>
-                    <dd>{coldRead.cold.wanted}</dd>
-                  </>
-                )}
-              </dl>
-              {gripRows.length >= 2 && (
-                <div className="grip-strip" title="Grip by chapter, from a reader given each chapter alone">
-                  {gripRows.map((r) => (
-                    <span className="grip-chip" key={r.num} data-grip={r.grip} title={`Chapter ${r.num}: ${r.grip}/10`}>
-                      {r.num}
-                      <i style={{ height: `${Math.max(12, r.grip * 10)}%` }} />
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="tells-hint">
-                A reader handed only this chapter — no memory of the rest of the book — reports where they
-                lost the thread, where they skimmed, and what they wanted next. Runs once each time a chapter
-                closes.
               </div>
             </div>
           )}

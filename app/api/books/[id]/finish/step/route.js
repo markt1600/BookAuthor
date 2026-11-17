@@ -27,6 +27,14 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "There is no plan to the end yet — plan the rest of the book first." }, { status: 400 });
   }
 
+  // An optional live suggestion from the author for this section.
+  let steer = "";
+  try {
+    steer = String((await request.json()).steer || "");
+  } catch {
+    steer = "";
+  }
+
   const lock = await acquireLock(id);
   if (!lock) {
     return NextResponse.json(
@@ -40,7 +48,7 @@ export async function POST(request, { params }) {
     try {
       let result;
       try {
-        result = await writeFinishSection(book, { send, priorAnalysis, persist: () => saveBook(book) });
+        result = await writeFinishSection(book, { send, priorAnalysis, steer, persist: () => saveBook(book) });
       } catch (err) {
         if (!(err instanceof FinishError)) throw err;
         send({ t: "error", error: err.message });

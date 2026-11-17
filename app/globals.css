@@ -1233,6 +1233,16 @@ body {
    =================================================================== */
 .notes-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .notes-head h2 { margin: 0; }
+.live-steer {
+  margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--brass); border-radius: 8px;
+  background: rgba(201, 164, 92, 0.07);
+}
+.live-steer-k { font-family: var(--data); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.8; margin-bottom: 8px; }
+.live-steer-text { width: 100%; margin-bottom: 8px; resize: vertical; }
+.live-steer-state { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
+.live-steer-state span { display: block; font-family: var(--data); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.65; margin-bottom: 2px; }
+.live-steer-state[data-kind="using"] { opacity: 0.75; }
+.live-steer-actions { display: flex; gap: 8px; margin-top: 8px; }
 
 /* prominent share block, now at the top of the notes */
 .share-top {

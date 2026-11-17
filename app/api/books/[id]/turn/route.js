@@ -4,6 +4,7 @@ import { makeTurn, countWords, isUsersMove, publicBook, normalizeChapters, secti
 import { continueStory, guideStory, planSection } from "@/lib/claude";
 import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, notesEvent, plannerLens, lensForSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
+import { liveSteerNote } from "@/lib/storyplan";
 
 export const dynamic = "force-dynamic";
 // Long books carry a large context, and the section is followed by a second
@@ -70,6 +71,8 @@ export async function POST(request, { params }) {
         const ctx = authorContext(book, { opensChapter: wantsChapter });
         const targetWords = (book.guide && book.guide.sectionWords) || 500;
         const meta = {};
+        // A live suggestion sent during an autopilot batch rides on the direction.
+        const prompt = [text, liveSteerNote(body.steer)].filter(Boolean).join("\n\n");
         const prose = await produceSection({
           book,
           priorAnalysis,
@@ -81,7 +84,7 @@ export async function POST(request, { params }) {
               title: book.title,
               mode: "guide",
               guide: book.guide,
-              prompt: text,
+              prompt,
               memory: priorAnalysis,
               recent: withContext(book, {}).recent || "",
               arc: book.arc,
@@ -96,7 +99,7 @@ export async function POST(request, { params }) {
                 title: book.title,
                 author: book.author,
                 guide: book.guide,
-                prompt: text,
+                prompt,
                 memory: priorAnalysis,
                 arc: book.arc,
                 sections: sectionCount(book),

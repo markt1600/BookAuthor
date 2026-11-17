@@ -7,6 +7,8 @@ import { appendFileSync, writeFileSync } from "node:fs";
 
 const LOG = process.argv[2];
 const PORT = Number(process.argv[3] || 18555);
+// Optional: hold each answer back this many ms (for watching a run in a browser).
+const DELAY = Number(process.env.MOCK_DELAY_MS || 0);
 writeFileSync(LOG, "");
 
 const kinds = [
@@ -146,9 +148,11 @@ createServer((req, res) => {
     const kind = (kinds.find(([, re]) => re.test(system)) || ["other"])[0];
     const text = reply(kind, system, user);
     appendFileSync(LOG, JSON.stringify({ kind, system, user, reply: text }) + "\n");
-    res.writeHead(200, { "Content-Type": "text/event-stream" });
-    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-    res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\n`);
-    res.end("data: [DONE]\n\n");
+    setTimeout(() => {
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\n`);
+      res.end("data: [DONE]\n\n");
+    }, DELAY);
   });
 }).listen(PORT, "127.0.0.1", () => console.log("mock model on", PORT));

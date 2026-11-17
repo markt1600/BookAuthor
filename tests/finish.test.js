@@ -22,6 +22,8 @@ const {
   sectionPlacement,
   openSetupLines,
   criticismLines,
+  liveSteerNote,
+  STEER_MAX,
   renumberOutline,
   moveOutlineEntry,
   sectionRecap,
@@ -215,6 +217,15 @@ test("deleting or moving an outline chapter renumbers the rest and keeps each ch
   // an edited line still loses its overview and is pinned
   const edited = authorOutline({ through: "t", chapters: prev.chapters.map((e) => (e.id === "b" ? { ...e, summary: "new" } : e)) }, prev);
   assert.deepEqual(edited.chapters.map((e) => [e.detail || "", e.pinned]), [["da", false], ["", true], ["dc", false]]);
+});
+
+test("a live note from the author rides on the direction as a strong suggestion, not an override", () => {
+  assert.equal(liveSteerNote(""), "");
+  assert.equal(liveSteerNote("   \n "), "");
+  const note = liveSteerNote("  Have the keeper\nlie about the boat.  ");
+  assert.ok(note.includes('"Have the keeper lie about the boat."'));
+  assert.ok(note.includes("strong suggestion") && note.includes("It does NOT replace the direction above") && note.includes("you are still the author"));
+  assert.ok(liveSteerNote("x".repeat(5000)).length < STEER_MAX + 900);
 });
 
 test("chapter markers in a full text being edited are found with their offsets and numbers", async () => {
