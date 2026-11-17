@@ -17,6 +17,8 @@ const kinds = [
   ["coldread", /sharp, honest reader/],
   ["audit", /auditing ONE chapter/],
   ["outline", /keeping the ROLLING OUTLINE/],
+  ["endgame", /drawing up the ENDGAME OUTLINE/],
+  ["chapterplan", /Break ONE chapter of that outline/],
   ["brief", /writing the one-page brief/],
 ];
 
@@ -89,6 +91,28 @@ function reply(kind, system, user) {
           summary: [`AI plan for chapter ${cur + i}: she confronts him and he lies.`, `AI plan for chapter ${cur + i}: the boat comes early.`, `AI plan for chapter ${cur + i}: she reads the log.`, `AI plan for chapter ${cur + i}: the truth costs her the letter.`][i],
         })),
       });
+    }
+    case "endgame": {
+      // The plan to the end: three chapters on a first plan, never past the
+      // agreed last chapter on a redraw.
+      const m = user.match(/The chapter now being written is chapter (\d+)/);
+      const cur = m ? Number(m[1]) : 1;
+      const cap = system.match(/ends the book at chapter (\d+)/);
+      const lastNum = cap ? Number(cap[1]) : cur + 2;
+      const chapters = [];
+      for (let k = cur; k <= lastNum; k++) {
+        chapters.push({
+          num: k,
+          title: k === lastNum ? "The Rock" : `Endgame ${k}`,
+          summary: k === lastNum ? `Endgame plan for chapter ${k}: she burns the letter and the book ends.` : `Endgame plan for chapter ${k}: the keeper's story cracks a little further.`,
+        });
+      }
+      return JSON.stringify({ through: "Mara learns who the letter was for, and chooses to keep it.", chapters });
+    }
+    case "chapterplan": {
+      const want = Number((user.match(/Return exactly (\d+) direction/) || [])[1] || 2);
+      const num = Number((user.match(/THE CHAPTER TO BREAK DOWN — chapter (\d+)/) || [])[1] || 0);
+      return JSON.stringify({ sections: Array.from({ length: want }, (_, i) => `Ch ${num} step ${i + 1}: Mara presses the keeper and something gives.`) });
     }
     case "brief":
       return JSON.stringify({

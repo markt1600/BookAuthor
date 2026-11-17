@@ -1,18 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { currentChapterNum, latestAudit, totalWords } from "@/lib/book";
-import { BRIEF_FIELDS, briefConfirmed, briefProposed, lengthPosition } from "@/lib/storyplan";
+import { currentChapterNum, finishOutlook, latestAudit, totalWords } from "@/lib/book";
+import { BRIEF_FIELDS, ENDGAME_MAX, OUTLINE_MAX, briefConfirmed, briefProposed, lengthPosition, outlineLastNum } from "@/lib/storyplan";
 
 // The planning layer of the reader's notes: THE BRIEF (what the book is trying
 // to be), THE OUTLINE (the next few chapters), and THE CHAPTER AUDIT (the deep
-// read made each time a chapter closes). `save(patch)` is the page's normal
-// PUT; `onBook(book)` replaces the book after a server-side redraw.
-export default function PlanningCards({ book, id, ended, save, onBook }) {
+// read made each time a chapter closes) — and FINISH THE BOOK, which plans the
+// outline to the last chapter and writes it. `save(patch)` is the page's normal
+// PUT; `onBook(book)` replaces the book after a server-side redraw; `finishRun`
+// is the page's handle on the run ({ running, stopping, busy, start, stop }).
+export default function PlanningCards({ book, id, ended, save, onBook, finishRun }) {
   return (
     <>
       <BriefCard book={book} id={id} save={save} />
-      {!ended && <OutlineCard book={book} id={id} save={save} onBook={onBook} />}
+      {!ended && <OutlineCard book={book} id={id} save={save} onBook={onBook} locked={Boolean(finishRun && finishRun.running)} />}
+      {!ended && book.mode === "guide" && finishRun && <FinishCard book={book} id={id} onBook={onBook} run={finishRun} />}
       <AuditCard book={book} />
     </>
   );
@@ -165,8 +168,119 @@ function BriefCard({ book, id, save }) {
   );
 }
 
-function OutlineCard({ book, id, save, onBook }) {
+// Finish the book: plan every remaining chapter, then let the AI write them.
+function FinishCard({ book, id, onBook, run }) {
+  const [busy, setBusy] = useState(""); // "" | "planning" | "cancelling"
+  const [err, setErr] = useState("");
+  const f = book.finish;
+  const last = outlineLastNum(book.outline);
+  const planned = Boolean(f && last && f.status !== "done");
+  const look = finishOutlook(book);
+  const hasBrief = briefConfirmed(book.brief);
+  const canPlan = (book.turns || []).length > 0 || hasBrief;
+
+  async function call(action) {
+    setBusy(action === "cancel" ? "cancelling" : "planning");
+    setErr("");
+    try {
+      const res = await fetch(`/api/books/${id}/finish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.book) setErr(data.error || "Couldn't draw up a plan to the end — try again.");
+      else onBook(data.book);
+    } catch {
+      setErr("Network error — try again.");
+    }
+    setBusy("");
+  }
+
+  const c = f && f.chapter;
+  const midChapter = c && c.done < c.directions.length;
+  const now = midChapter
+    ? `chapter ${c.num}${last ? ` of ${last}` : ""}, section ${c.done + 1} of ${c.directions.length}`
+    : last
+      ? `chapter ${Math.min(last, look.cur + (c ? 1 : 0))} of ${last}`
+      : "";
+  const resumed = Boolean(f && f.sections > 0);
+  return (
+    <div className="note-card">
+      <div className="k">
+        Finish the book
+        {run.running ? <span className="plan-tag">writing</span> : planned ? <span className="plan-tag">{resumed ? "paused" : "planned"}</span> : null}
+      </div>
+      {planned ? (
+        <>
+          <div className="v">
+            {run.running ? "Writing " : resumed ? "Paused at " : "Starts at "}
+            {now}. About {look.chaptersLeft} chapter{look.chaptersLeft === 1 ? "" : "s"}, {look.sectionsLeft} section
+            {look.sectionsLeft === 1 ? "" : "s"} and {look.wordsLeft.toLocaleString()} words to go
+            {look.targetWords ? ` — the brief plans ${look.targetWords.toLocaleString()} in all` : ""}.
+          </div>
+          {midChapter && (
+            <ol className="finish-steps">
+              {c.directions.map((d, i) => (
+                <li key={i} data-state={i < c.done ? "done" : i === c.done ? "now" : undefined}>
+                  {d}
+                </li>
+              ))}
+            </ol>
+          )}
+          <div className="bible-actions">
+            {run.running ? (
+              <button className="btn btn-ghost" onClick={run.stop} disabled={run.stopping}>
+                {run.stopping ? "Stopping after this section…" : "⏸ Stop after this section"}
+              </button>
+            ) : (
+              <>
+                <button className="btn btn-primary" onClick={run.start} disabled={!!busy || run.busy}>
+                  {resumed ? "▶ Resume" : "▶ Write it to the end"}
+                </button>
+                <button className="bible-edit-btn" onClick={() => call("plan")} disabled={!!busy || run.busy}>
+                  {busy === "planning" ? "Replanning…" : "↻ Replan"}
+                </button>
+                <button className="bible-edit-btn" onClick={() => call("cancel")} disabled={!!busy || run.busy}>
+                  Discard plan
+                </button>
+              </>
+            )}
+          </div>
+          <div className="tells-hint">
+            {run.running
+              ? "Each chapter is audited against the brief and the outline as it closes, and the chapters still to come are redrawn from what it actually did. Keep this page open; stop at any time and the section in flight still lands."
+              : "The outline above now runs to the last chapter — read it, and edit anything you want changed (your edits are pinned) before you start. The run writes one section at a time through the normal pipeline, opens each chapter itself, and marks the book ended after the final one."}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="v muted">
+            Let the AI write the rest: it plans every remaining chapter through to the ending, shows you the
+            plan, then writes it chapter by chapter — consistent with the brief, the outline, the canon and
+            everything still open in the story.
+          </div>
+          {!hasBrief && (
+            <div className="tells-hint">
+              No brief is confirmed, so the plan will follow where the story itself is pointing. Confirm a
+              brief first to fix the destination and the length.
+            </div>
+          )}
+          <div className="bible-actions">
+            <button className="bible-edit-btn" onClick={() => call("plan")} disabled={!!busy || run.busy || !canPlan}>
+              {busy === "planning" ? "Planning to the end…" : "✦ Plan the rest of the book"}
+            </button>
+          </div>
+        </>
+      )}
+      {err && <div className="pw-err" style={{ marginTop: 8 }}>{err}</div>}
+    </div>
+  );
+}
+
+function OutlineCard({ book, id, save, onBook, locked }) {
   const outline = book.outline;
+  const last = outlineLastNum(outline);
   const cur = currentChapterNum(book);
   const ahead = ((outline && outline.chapters) || []).filter((e) => e.num >= cur);
   const [editing, setEditing] = useState(false);
@@ -217,7 +331,10 @@ function OutlineCard({ book, id, save, onBook }) {
   if (!hasText && !outline) return null;
   return (
     <div className="note-card">
-      <div className="k">The outline — next chapters</div>
+      <div className="k">
+        {last ? "The outline — to the end" : "The outline — next chapters"}
+        {last ? <span className="plan-tag">{ahead.length} to go</span> : null}
+      </div>
       {editing ? (
         <>
           <label className="brief-field">
@@ -260,7 +377,7 @@ function OutlineCard({ book, id, save, onBook }) {
               />
             </div>
           ))}
-          {draft.chapters.length < 6 && (
+          {draft.chapters.length < (last ? ENDGAME_MAX : OUTLINE_MAX) && (
             <button className="bible-edit-btn" onClick={addEntry}>
               ＋ Add a chapter
             </button>
@@ -288,6 +405,7 @@ function OutlineCard({ book, id, save, onBook }) {
                   <span className="ledger-ch">ch {e.num}</span>
                   {e.title && <span className="outline-title">{e.title}</span>}
                   {e.num === cur && <span className="plan-tag">writing now</span>}
+                  {last > 0 && e.num === last && <span className="plan-tag">final chapter</span>}
                   {e.pinned && <span className="plan-tag plan-tag-pin" title="Set by you — kept when the outline is redrawn">pinned</span>}
                 </div>
                 <div className="outline-sum">{e.summary}</div>
@@ -295,10 +413,10 @@ function OutlineCard({ book, id, save, onBook }) {
             ))}
           </div>
           <div className="bible-actions">
-            <button className="bible-edit-btn" onClick={open} disabled={!!busy}>
+            <button className="bible-edit-btn" onClick={open} disabled={!!busy || locked}>
               Edit outline
             </button>
-            <button className="bible-edit-btn" onClick={redraw} disabled={!!busy}>
+            <button className="bible-edit-btn" onClick={redraw} disabled={!!busy || locked}>
               {busy === "drawing" ? "Redrawing…" : "↻ Redraw"}
             </button>
           </div>

@@ -24,5 +24,7 @@ trap 'kill $MOCK $APP 2>/dev/null' EXIT
 for _ in $(seq 1 40); do curl -sf "http://127.0.0.1:$APP_PORT/api/health" > /dev/null && break; sleep 0.5; done
 node tests/e2e/drive.mjs "http://127.0.0.1:$APP_PORT" "$WORK/prompts.jsonl"
 STATUS=$?
+# Finish the book: plan to the end, then run the autopilot to the last page.
+node tests/e2e/finish.mjs "http://127.0.0.1:$APP_PORT" "$WORK/prompts.jsonl" || STATUS=1
 echo "prompts logged to $WORK/prompts.jsonl"
 exit $STATUS

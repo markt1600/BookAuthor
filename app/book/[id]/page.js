@@ -193,6 +193,9 @@ export default function BookStudio() {
   const [autoPilot, setAutoPilot] = useState(false); // guide: keep writing after this direction
   const [autoCount, setAutoCount] = useState(3); // 1..5 sections per autopilot run
   const [autoLeft, setAutoLeft] = useState(0); // sections still to write in the running batch
+  const [finishing, setFinishing] = useState(false); // "Finish the book" run in progress
+  const [finishStopping, setFinishStopping] = useState(false); // stop requested — the current section is finishing
+  const finishStopRef = useRef(false);
   const autoStopRef = useRef(false); // set to finish the current section and stop
   const [streamText, setStreamText] = useState(""); // live prose as it's written
   const [streamPhase, setStreamPhase] = useState("idle"); // 'idle' | 'writing' | 'finalizing'
@@ -990,6 +993,7 @@ export default function BookStudio() {
                       // proposed brief. `undefined` (an older server) changes nothing.
                       ...(ev.outline !== undefined ? { outline: ev.outline } : {}),
                       ...(ev.brief !== undefined ? { brief: ev.brief } : {}),
+                      ...(ev.finish !== undefined ? { finish: ev.finish } : {}),
                     }
                   : prev
               );
@@ -1053,7 +1057,7 @@ export default function BookStudio() {
   }, [id]);
 
   const submitTurn = useCallback(async () => {
-    if (!draft.trim() || generating) return;
+    if (!draft.trim() || generating || finishing) return;
     const wasNewChapter = newChapter;
     if (wasNewChapter) setNewChapter(false);
     const sendSection = (text, chapter) =>
@@ -1095,6 +1099,41 @@ export default function BookStudio() {
   const stopAutopilot = useCallback(() => {
     autoStopRef.current = true;
     setAutoLeft(0);
+  }, []);
+
+  // Finish the book: write the plan to its end, one section per request. Each
+  // step streams like a directed section; the server decides what comes next
+  // (the next section, a new chapter, the last page) and marks the book ended
+  // when the final chapter closes. Stopping lets the section in flight land.
+  const runFinish = useCallback(async () => {
+    if (generating || finishing) return;
+    finishStopRef.current = false;
+    setFinishStopping(false);
+    setFinishing(true);
+    try {
+      for (let i = 0; i < 600 && !finishStopRef.current; i++) {
+        let ended = false;
+        const ok = await consumeStream(`/api/books/${id}/finish/step`, {}, {
+          onDone: (b) => {
+            ended = Boolean(b.ended);
+            const aiTurn = b.turns[b.turns.length - 1];
+            pendingJump.current = aiTurn ? aiTurn.id : null;
+            setAnimTurn(aiTurn ? aiTurn.id : null);
+            setComposing(false);
+            setBook(b);
+          },
+        });
+        if (!ok || ended) break;
+      }
+    } finally {
+      setFinishing(false);
+      setFinishStopping(false);
+    }
+  }, [generating, finishing, id, consumeStream]);
+
+  const stopFinish = useCallback(() => {
+    finishStopRef.current = true;
+    setFinishStopping(true);
   }, []);
 
   const regenerate = useCallback(async () => {
@@ -2356,7 +2395,7 @@ export default function BookStudio() {
                           <button
                             className="btn btn-primary"
                             onClick={submitTurn}
-                            disabled={generating || !draft.trim()}
+                            disabled={generating || finishing || !draft.trim()}
                           >
                             {generating ? "Weaving…" : guideMode ? "Write this section →" : "Hand to the AI author →"}
                           </button>
@@ -2590,7 +2629,16 @@ export default function BookStudio() {
                   </>
                 )}
               </div>
-              {autoLeft > 0 ? (
+              {finishing ? (
+                <button
+                  className="btn btn-ghost"
+                  onClick={stopFinish}
+                  disabled={finishStopping}
+                  title="Finish the section being written, then stop. You can resume from the notes."
+                >
+                  {finishStopping ? "Stopping after this section…" : "⏸ Stop — finishing the book"}
+                </button>
+              ) : autoLeft > 0 ? (
                 <button
                   className="btn btn-ghost"
                   onClick={stopAutopilot}
@@ -2599,7 +2647,7 @@ export default function BookStudio() {
                   ⏸ Stop autopilot · {autoLeft} to go
                 </button>
               ) : onWritingPage ? (
-                <button className="btn btn-primary" onClick={submitTurn} disabled={generating || !draft.trim()}>
+                <button className="btn btn-primary" onClick={submitTurn} disabled={generating || finishing || !draft.trim()}>
                   {generating ? "Weaving…" : guideMode ? "Write this section →" : "Hand to the AI author →"}
                 </button>
               ) : usersMove && !book.ended ? (
@@ -2761,7 +2809,14 @@ export default function BookStudio() {
               </div>
             )}
           </div>
-          <PlanningCards book={book} id={id} ended={ended} save={save} onBook={setBook} />
+          <PlanningCards
+            book={book}
+            id={id}
+            ended={ended}
+            save={save}
+            onBook={setBook}
+            finishRun={{ running: finishing, stopping: finishStopping, busy: generating, start: runFinish, stop: stopFinish }}
+          />
           {a.pacing && (
             <div className="note-card">
               <div className="k">Plot pacing</div>

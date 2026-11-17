@@ -2244,6 +2244,11 @@ textarea.voice-sample { resize: vertical; min-height: 96px; line-height: 1.5; fo
 .sd-priorities li { margin-bottom: 4px; }
 .sd-priorities li[data-kind="AVOID"] { opacity: 0.85; }
 .sd-priorities li[data-kind="KEEP"] { opacity: 0.7; }
+.finish-steps { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 12.5px; line-height: 1.5; color: var(--on-desk); }
+.finish-steps li { opacity: 0.75; }
+.finish-steps li[data-state="done"] { opacity: 0.4; text-decoration: line-through; }
+.finish-steps li[data-state="now"] { opacity: 1; }
+.finish-steps li[data-state="now"]::marker { color: var(--brass); font-weight: 700; }
 .note-card .bible-actions { flex-wrap: wrap; }
 .note-card .bible-actions .btn { white-space: nowrap; padding-left: 14px; padding-right: 14px; }
 .note-card .audit-h { margin-top: 14px; }
