@@ -19,6 +19,8 @@ const {
   cleanDirections,
   fallbackDirections,
   sanitizeFinish,
+  sectionPlacement,
+  sectionRecap,
   nextFinishTarget,
 } = await import("../lib/storyplan.js");
 
@@ -142,6 +144,22 @@ test("a plan to the end keeps each chapter's overview; an author's edit drops a 
   const merged = mergeOutline({ chapters: withDetail.map((e) => ({ ...e, detail: `New overview ${e.num}.` })) }, edited, 1, { toEnd: true });
   assert.equal(merged.chapters[1].summary, "AUTHOR: the boat comes early.");
   assert.equal(merged.chapters[1].detail, "New overview 2.");
-  assert.ok(outlineBlock(merged, 1).includes("How this chapter is planned to go: New overview 1."));
+  assert.ok(/How this chapter is planned to go \(a high-level sketch[^)]*\): New overview 1\./.test(outlineBlock(merged, 1)));
   assert.ok(!outlineBlock(merged, 1).includes("New overview 2."), "only the chapter being written carries its overview into the prompt");
+});
+
+test("a section is told what its chapter already put on the page and what is held for later", () => {
+  const directions = ["Mara finds the key.", "She confronts the keeper.", "He confesses.", "She burns the letter."];
+  const first = sectionPlacement({ num: 4, directions, done: 0 });
+  assert.ok(first.includes("section 1 of 4 in chapter 4") && !first.includes("ALREADY ON THE PAGE"));
+  assert.ok(first.includes("  2. She confronts the keeper.") && first.includes("do not wrap the chapter up"));
+  const recap = sectionRecap({ prompt: "Mara finds the key.", plan: "WANT: x\n**CHANGE:** trust → doubt\nENDING: the lamp going out" });
+  assert.equal(recap, "Mara finds the key. — it changed: trust → doubt — it ended on: the lamp going out");
+  assert.equal(sectionRecap({ prompt: "Just this." }), "Just this.");
+  const third = sectionPlacement({ num: 4, directions, done: 2, landed: [recap, "She confronts the keeper."] });
+  assert.ok(third.includes("ALREADY ON THE PAGE") && third.includes("  1. Mara finds the key. — it changed: trust → doubt"));
+  assert.ok(third.includes("  2. She confronts the keeper.") && third.includes("STILL TO COME") && third.includes("  4. She burns the letter."));
+  assert.ok(!third.includes("  3. He confesses."), "its own direction is not listed as done or as later");
+  const last = sectionPlacement({ num: 4, directions, done: 3, final: true, landed: ["a", "b", "c"] });
+  assert.ok(last.includes("LAST section of the book") && !last.includes("STILL TO COME"));
 });

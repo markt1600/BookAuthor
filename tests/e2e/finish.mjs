@@ -108,6 +108,11 @@ const redraws = plans.slice(2);
 ok(redraws.length === 2 && redraws.every((p) => p.system.includes("ends the book at chapter 3")), "the plan was redrawn at each chapter close and held to its last chapter");
 ok(redraws[0].user.includes("FIXED entries set by the author:\nch 2"), "…around the author's pinned entry");
 
+const second = of("writer").find((p) => p.user.includes("section 2 of") && p.user.includes("in chapter 2"));
+ok(
+  second && second.user.includes("ALREADY ON THE PAGE") && second.user.includes("1. Ch 2 step 1") && second.user.includes("it ended on: the lamp going out") && second.user.includes("STILL TO COME"),
+  "a later section is told what the chapter already wrote and what is held back"
+);
 const opening = of("planner").find((p) => p.user.includes("section 1 of") && p.user.includes("in chapter 2"));
 ok(opening && opening.user.includes("THIS CHAPTER (ch 2 — The Boat)") && opening.user.includes("Audit of chapter 1"), "the section that opens chapter 2 is planned against its entry and chapter 1's audit");
 ok(opening && opening.user.includes("The book ends with chapter 3"), "the planner knows how many chapters remain");
