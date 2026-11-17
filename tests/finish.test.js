@@ -21,6 +21,7 @@ const {
   sanitizeFinish,
   sectionPlacement,
   openSetupLines,
+  criticismLines,
   sectionRecap,
   nextFinishTarget,
 } = await import("../lib/storyplan.js");
@@ -175,6 +176,19 @@ test("a section is shown what the book still has open, so it can close what its 
   assert.ok(note.includes("never by explanation or coincidence") && note.includes("leave alone anything the outline keeps for a later chapter"));
   const end = sectionPlacement({ num: 3, directions, done: 1, final: true, gaps: ["g"], landed: ["x"] });
   assert.ok(end.includes("this is its last chapter") && end.includes("  logic gap: g"));
+});
+
+test("a section is shown the editor's criticism, to answer in what happens", () => {
+  const directions = ["a", "b"];
+  assert.ok(!sectionPlacement({ num: 2, directions, done: 0 }).includes("HOLDING THE BOOK BACK"));
+  const concerns = criticismLines("• The keeper wants nothing.\n\n- The stakes are abstract.\nnone\nThird.\nFourth.\nFifth.", 3);
+  assert.deepEqual(concerns, ["The keeper wants nothing.", "The stakes are abstract.", "Third."]);
+  const note = sectionPlacement({ num: 2, directions, done: 0, concerns });
+  assert.ok(note.includes("HOLDING THE BOOK BACK") && note.includes("  - The keeper wants nothing.") && note.includes("  - Third."));
+  assert.ok(note.includes("never by explaining it") && note.includes("One point answered properly"));
+  assert.ok(note.includes("ACTION FIRST") && note.includes("Keep inner monologue to a line or two"), "every autopilot section leans on action over interior monologue");
+  const end = sectionPlacement({ num: 3, directions, done: 1, final: true, concerns, landed: ["x"] });
+  assert.ok(end.includes("the last chapter in which to answer it") && end.trim().endsWith(")"));
 });
 
 test("chapter markers in a full text being edited are found with their offsets and numbers", async () => {

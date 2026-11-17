@@ -114,7 +114,15 @@ ok(
   "a later section is told what the chapter already wrote and what is held back"
 );
 ok(second && second.user.includes("OPENINGS") && second.user.includes("planted, awaiting payoff: ch 1 · the unopened letter"), "sections are shown what the book still has open, to close where the chapter allows");
+ok(second && second.user.includes("HOLDING THE BOOK BACK") && second.user.includes("  - The keeper has no visible want of his own yet."), "sections are shown the editor's criticism, to answer in what happens");
+ok(
+  plans.every((p) => p.user.includes("The editor's criticism — what is holding the book back") && p.user.includes("2. The stakes are still abstract.")) && plans[0].system.includes("take the points one by one and give each a chapter"),
+  "the plan to the end is drawn to answer the editor's criticism"
+);
+ok(cp2 && cp2.user.includes("The editor's criticism — what is holding the book back") && cp2.system.includes("Go through the editor's criticism"), "each chapter breakdown assigns the criticism to sections");
+ok(second && second.user.includes("ACTION FIRST"), "autopilot sections are told to favour action over inner monologue");
 const cpRules = cps[0];
+ok(cpRules && cpRules.system.includes("Bias every direction toward action"), "chapter breakdowns are biased toward action");
 ok(cpRules && cpRules.system.includes("Go through the open logic gaps and planted setups one by one"), "the chapter breakdown assigns open gaps and setups to sections");
 const opening = of("planner").find((p) => p.user.includes("section 1 of") && p.user.includes("in chapter 2"));
 ok(opening && opening.user.includes("THIS CHAPTER (ch 2 — The Boat)") && opening.user.includes("Audit of chapter 1"), "the section that opens chapter 2 is planned against its entry and chapter 1's audit");
