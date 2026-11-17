@@ -97,7 +97,12 @@ ok(cp2 && cp2.user.includes("Audit of chapter 1") && cp2.user.includes("Chapter 
 const cp3 = cps.find((p) => p.user.includes("THE CHAPTER TO BREAK DOWN — chapter 3 (the final chapter)"));
 ok(cp3 && cp3.system.includes("This is the FINAL chapter of the book"), "the last chapter is broken down as the ending");
 ok(of("audit").length === 3, "every chapter was audited as it closed, the final one included");
-const redraws = of("endgame").slice(1);
+const plans = of("endgame");
+ok(
+  plans.length >= 2 && !plans[0].user.includes("Your previous answer planned only") && plans[1].user.includes("Your previous answer planned only 1 chapter"),
+  "a plan that stopped after one chapter was sent back for the whole book"
+);
+const redraws = plans.slice(2);
 ok(redraws.length === 2 && redraws.every((p) => p.system.includes("ends the book at chapter 3")), "the plan was redrawn at each chapter close and held to its last chapter");
 ok(redraws[0].user.includes("FIXED entries set by the author:\nch 2"), "…around the author's pinned entry");
 

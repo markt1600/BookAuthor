@@ -205,6 +205,9 @@ function FinishCard({ book, id, onBook, run }) {
       ? `chapter ${Math.min(last, look.cur + (c ? 1 : 0))} of ${last}`
       : "";
   const resumed = Boolean(f && f.sections > 0);
+  // The whole plan, chapter by chapter, from the one being written to the last.
+  const from = c && c.done >= c.directions.length && c.num === look.cur ? look.cur + 1 : look.cur;
+  const plan = ((book.outline && book.outline.chapters) || []).filter((e) => e.num >= from);
   return (
     <div className="note-card">
       <div className="k">
@@ -219,15 +222,34 @@ function FinishCard({ book, id, onBook, run }) {
             {look.sectionsLeft === 1 ? "" : "s"} and {look.wordsLeft.toLocaleString()} words to go
             {look.targetWords ? ` — the brief plans ${look.targetWords.toLocaleString()} in all` : ""}.
           </div>
-          {midChapter && (
-            <ol className="finish-steps">
-              {c.directions.map((d, i) => (
-                <li key={i} data-state={i < c.done ? "done" : i === c.done ? "now" : undefined}>
-                  {d}
+          <div className="finish-plan-h">
+            The plan to the end — {plan.length} chapter{plan.length === 1 ? "" : "s"}
+          </div>
+          <ul className="finish-plan">
+            {plan.map((e) => {
+              const here = midChapter && c.num === e.num;
+              return (
+                <li key={e.num} data-state={here ? "now" : undefined}>
+                  <div className="finish-plan-t">
+                    Chapter {e.num}
+                    {e.title ? ` — ${e.title}` : ""}
+                    {e.num === last && <span className="plan-tag">final chapter</span>}
+                    {e.pinned && <span className="plan-tag">yours</span>}
+                  </div>
+                  <div className="finish-plan-s">{e.summary}</div>
+                  {here && (
+                    <ol className="finish-steps">
+                      {c.directions.map((d, i) => (
+                        <li key={i} data-state={i < c.done ? "done" : i === c.done ? "now" : undefined}>
+                          {d}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                 </li>
-              ))}
-            </ol>
-          )}
+              );
+            })}
+          </ul>
           <div className="bible-actions">
             {run.running ? (
               <button className="btn btn-ghost" onClick={run.stop} disabled={run.stopping}>
@@ -250,7 +272,7 @@ function FinishCard({ book, id, onBook, run }) {
           <div className="tells-hint">
             {run.running
               ? "Each chapter is audited against the brief and the outline as it closes, and the chapters still to come are redrawn from what it actually did. Keep this page open; stop at any time and the section in flight still lands."
-              : "The outline above now runs to the last chapter — read it, and edit anything you want changed (your edits are pinned) before you start. The run writes one section at a time through the normal pipeline, opens each chapter itself, and marks the book ended after the final one."}
+              : "This is the high-level plan for every chapter to the last. To change it, edit the outline above (your edits are pinned). Each chapter is broken into sections only when the run reaches it; the run opens each chapter itself and marks the book ended after the final one."}
           </div>
         </>
       ) : (

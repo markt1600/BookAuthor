@@ -98,7 +98,10 @@ function reply(kind, system, user) {
       const m = user.match(/The chapter now being written is chapter (\d+)/);
       const cur = m ? Number(m[1]) : 1;
       const cap = system.match(/ends the book at chapter (\d+)/);
-      const lastNum = cap ? Number(cap[1]) : cur + 2;
+      // A first answer that stops after the current chapter — what a weak model
+      // does — so the run proves the planner asks again and gets the whole plan.
+      const retried = /Your previous answer planned only/.test(user);
+      const lastNum = cap ? Number(cap[1]) : retried ? cur + 2 : cur;
       const chapters = [];
       for (let k = cur; k <= lastNum; k++) {
         chapters.push({

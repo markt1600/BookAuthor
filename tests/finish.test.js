@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 const {
   OUTLINE_MAX,
   ENDGAME_MAX,
+  ENDGAME_MIN,
   sanitizeOutline,
   authorOutline,
   mergeOutline,
@@ -78,7 +79,8 @@ test("sections left in a chapter follow what is already written", () => {
 test("the chapter count to aim for comes from the target length, or is left to the story", () => {
   assert.equal(suggestedChaptersLeft({ targetWords: 0, totalWords: 20000 }), 0);
   assert.equal(suggestedChaptersLeft({ targetWords: 60000, totalWords: 30000, avgChapterWords: 3000 }), 10);
-  assert.equal(suggestedChaptersLeft({ targetWords: 60000, totalWords: 61000, avgChapterWords: 3000 }), 1);
+  assert.equal(suggestedChaptersLeft({ targetWords: 60000, totalWords: 61000, avgChapterWords: 3000 }), ENDGAME_MIN, "past the target: still a real run-in");
+  assert.equal(suggestedChaptersLeft({ targetWords: 60000, totalWords: 30000, avgChapterWords: 30000, sectionWords: 500 }), 8, "one long unbroken chapter does not shrink the plan");
   assert.equal(suggestedChaptersLeft({ targetWords: 400000, totalWords: 0, avgChapterWords: 2000 }), ENDGAME_MAX);
 });
 
