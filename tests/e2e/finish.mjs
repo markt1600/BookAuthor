@@ -71,6 +71,8 @@ ok(r.data.book.outline.toEnd === true && r.data.book.outline.chapters.find((e) =
 let steps = 0;
 let ended = false;
 let firstEvents = null;
+let steeredEvent = null;
+let plainEvent = null;
 while (!ended && steps < 60) {
   r = await stream(`/api/books/${id}/finish/step`, steps === 1 ? { steer: "Have the keeper lie about the boat." } : {});
   const err = r.events.find((e) => e.t === "error");
@@ -79,6 +81,9 @@ while (!ended && steps < 60) {
     break;
   }
   if (!firstEvents) firstEvents = r.events;
+  const rep = r.events.find((e) => e.t === "report");
+  if (steps === 1) steeredEvent = rep;
+  if (steps === 0) plainEvent = rep;
   steps++;
   const done = r.events.find((e) => e.t === "done");
   ended = Boolean(done && done.book && done.book.ended);
@@ -128,6 +133,15 @@ ok(
   "a live note reaches the planner and writer of the next section only, alongside its direction"
 );
 ok(!b.turns.some((t) => (t.prompt || "").includes("LIVE NOTE")), "the stored direction is not replaced by the live note");
+const reports = of("report");
+const steeredReport = reports.filter((p) => p.user.includes("The author's live suggestion for this section"));
+ok(
+  reports.length === steps && steeredReport.length === 1 && steeredReport[0].system.includes("TAKEN UP, PARTLY, SET UP FOR LATER, or NOT ADDRESSED") && reports.every((p) => p.user.includes("The editor's criticism before this section") && p.user.includes("THE SECTION:")),
+  "every section of the run is reported on, against the criticism that stood before it; the live note only where one was sent"
+);
+ok(steeredEvent && steeredEvent.sectionReport && steeredEvent.sectionReport.suggestion.startsWith("TAKEN UP") && steeredEvent.sectionReport.steer === "Have the keeper lie about the boat." && steeredEvent.sectionReport.plot && steeredEvent.sectionReport.criticism, "the report on a steered section says how the note was handled, how the plot moved and what criticism it answered");
+ok(plainEvent && plainEvent.sectionReport && plainEvent.sectionReport.suggestion === "" && plainEvent.sectionReport.turnId, "an unsteered section's report has no suggestion line");
+ok(b.sectionReport && b.sectionReport.turnId === b.turns[b.turns.length - 1].id, "the last report is stored on the book for the last section");
 const cpRules = cps[0];
 ok(cpRules && cpRules.system.includes("Bias every direction toward action"), "chapter breakdowns are biased toward action");
 ok(cpRules && cpRules.system.includes("Go through the open logic gaps and planted setups one by one"), "the chapter breakdown assigns open gaps and setups to sections");

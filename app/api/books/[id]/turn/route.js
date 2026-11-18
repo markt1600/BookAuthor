@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, isUsersMove, publicBook, normalizeChapters, sectionCount } from "@/lib/book";
 import { continueStory, guideStory, planSection } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, notesEvent, plannerLens, lensForSection } from "@/lib/generate";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, notesEvent, plannerLens, lensForSection, reportOnSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 import { liveSteerNote } from "@/lib/storyplan";
 
@@ -183,6 +183,17 @@ export async function POST(request, { params }) {
       const latest = carryNotes((await getBook(id)) || book, book);
       await saveBook(latest);
       send(notesEvent(latest));
+
+      // In an autopilot batch, close with a short account of what the section
+      // did (the author's live note, the plot, the criticism).
+      if (guideMode && (body.report === true || liveSteerNote(body.steer))) {
+        const turn = book.turns.find((t) => t.id === addedTurnIds[addedTurnIds.length - 1]);
+        await reportOnSection(book, priorAnalysis, { turn, steer: body.steer });
+        const after = (await getBook(id)) || latest;
+        after.sectionReport = book.sectionReport;
+        await saveBook(after);
+        send({ t: "report", sectionReport: after.sectionReport });
+      }
     } finally {
       await releaseLock(id, lock);
     }

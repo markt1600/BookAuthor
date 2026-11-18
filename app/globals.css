@@ -1242,6 +1242,11 @@ body {
 .live-steer-state { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
 .live-steer-state span { display: block; font-family: var(--data); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.65; margin-bottom: 2px; }
 .live-steer-state[data-kind="using"] { opacity: 0.75; }
+.section-report { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+.section-report .cold-read { display: block; margin: 0; }
+.section-report .cold-read dt { display: block; margin: 8px 0 2px; }
+.section-report .cold-read dd { display: block; margin: 0; font-size: 13px; line-height: 1.5; }
+.live-steer-k .plan-tag { margin-left: 8px; }
 .live-steer-actions { display: flex; gap: 8px; margin-top: 8px; }
 
 /* prominent share block, now at the top of the notes */

@@ -993,6 +993,8 @@ export default function BookStudio() {
                   : prev
               );
               setNotesRefreshing(false);
+            } else if (ev.t === "report") {
+              setBook((prev) => (prev ? { ...prev, sectionReport: ev.sectionReport || null } : prev));
             }
           }
         }
@@ -1079,7 +1081,7 @@ export default function BookStudio() {
     const wasNewChapter = newChapter;
     if (wasNewChapter) setNewChapter(false);
     const sendSection = (text, chapter, steer) =>
-      consumeStream(`/api/books/${id}/turn`, { text, newChapter: chapter, ...(steer ? { steer } : {}) }, {
+      consumeStream(`/api/books/${id}/turn`, { text, newChapter: chapter, ...(steer ? { steer } : {}), ...(total > 1 ? { report: true } : {}) }, {
         onDone: (b) => {
           // The book already includes the new chapter (added server-side), so a
           // single update paginates once and the jump lands on the right page.
@@ -2727,6 +2729,49 @@ export default function BookStudio() {
               </div>
             </div>
           )}
+
+          {(() => {
+            const rep = book.sectionReport;
+            const lastTurn = book.turns[book.turns.length - 1];
+            if (!rep || !lastTurn || rep.turnId !== lastTurn.id) return null;
+            const from = rep.scoreFrom;
+            const to = rep.scoreTo;
+            return (
+              <div className="live-steer section-report">
+                <div className="live-steer-k">
+                  The last section — what it did
+                  {Number.isFinite(from) && Number.isFinite(to) && (
+                    <span className="plan-tag" title="The editor's score before and after this section">
+                      {from} → {to}
+                    </span>
+                  )}
+                </div>
+                <dl className="cold-read">
+                  {rep.steer && (
+                    <>
+                      <dt>Your suggestion</dt>
+                      <dd>
+                        <em>“{rep.steer}”</em>
+                        {rep.suggestion ? ` — ${rep.suggestion}` : " — no report on how it was handled."}
+                      </dd>
+                    </>
+                  )}
+                  {rep.plot && (
+                    <>
+                      <dt>Plot</dt>
+                      <dd>{rep.plot}</dd>
+                    </>
+                  )}
+                  {rep.criticism && (
+                    <>
+                      <dt>What’s holding it back</dt>
+                      <dd>{rep.criticism}</dd>
+                    </>
+                  )}
+                </dl>
+              </div>
+            );
+          })()}
 
           <div className="share-top">
             <div className="share-label">Your private link — return any time</div>

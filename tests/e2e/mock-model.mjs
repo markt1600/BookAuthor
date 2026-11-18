@@ -22,6 +22,7 @@ const kinds = [
   ["endgame", /drawing up the ENDGAME OUTLINE/],
   ["chapterplan", /Break ONE chapter of that outline/],
   ["brief", /writing the one-page brief/],
+  ["report", /reporting on ONE section of a novel/],
 ];
 
 let n = 0;
@@ -120,6 +121,12 @@ function reply(kind, system, user) {
       const num = Number((user.match(/THE CHAPTER TO BREAK DOWN — chapter (\d+)/) || [])[1] || 0);
       return JSON.stringify({ sections: Array.from({ length: want }, (_, i) => `Ch ${num} step ${i + 1}: Mara presses the keeper and something gives.`) });
     }
+    case "report":
+      return JSON.stringify({
+        ...(/live suggestion for this section/.test(user) ? { suggestion: "TAKEN UP — the keeper tells Mara the boat is not due for a week." } : { suggestion: "should be dropped" }),
+        plot: "Mara now knows the keeper read the letter.",
+        criticism: "It gives the keeper a want of his own: he hides the letter.",
+      });
     case "brief":
       return JSON.stringify({
         premise: "Mara, sent to close a lighthouse, finds a letter that proves its keeper is hiding a deserter.",

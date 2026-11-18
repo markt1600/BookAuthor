@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook, acquireLock, releaseLock } from "@/lib/store";
 import { publicBook } from "@/lib/book";
 import { afterFinishSection, canFinish, FinishError, writeFinishSection } from "@/lib/finish";
-import { carryNotes, ndjsonResponse, notesEvent } from "@/lib/generate";
+import { carryNotes, ndjsonResponse, notesEvent, reportOnSection } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +65,14 @@ export async function POST(request, { params }) {
       if (latest.finish) latest.finish = book.finish; // unless the plan was dropped meanwhile
       await saveBook(latest);
       send(notesEvent(latest));
+
+      // Last, a short account of what the section did (the author's live note,
+      // the plot, the criticism) — after the notes, so the score is the new one.
+      await reportOnSection(book, priorAnalysis, { turn: result.section, steer });
+      const after = (await getBook(id)) || latest;
+      after.sectionReport = book.sectionReport;
+      await saveBook(after);
+      send({ t: "report", sectionReport: after.sectionReport });
     } finally {
       await releaseLock(id, lock);
     }

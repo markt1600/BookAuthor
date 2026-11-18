@@ -23,6 +23,7 @@ const {
   openSetupLines,
   criticismLines,
   liveSteerNote,
+  cleanSectionReport,
   STEER_MAX,
   renumberOutline,
   moveOutlineEntry,
@@ -226,6 +227,17 @@ test("a live note from the author rides on the direction as a strong suggestion,
   assert.ok(note.includes('"Have the keeper lie about the boat."'));
   assert.ok(note.includes("strong suggestion") && note.includes("It does NOT replace the direction above") && note.includes("you are still the author"));
   assert.ok(liveSteerNote("x".repeat(5000)).length < STEER_MAX + 900);
+});
+
+test("a section report keeps its three short lines, and the suggestion line only when a note was sent", () => {
+  assert.equal(cleanSectionReport(null), null);
+  assert.equal(cleanSectionReport({ plot: "  ", criticism: "" }), null);
+  const plain = cleanSectionReport({ suggestion: "TAKEN UP — x", plot: " Mara\nknows. ", criticism: "none answered" });
+  assert.deepEqual(plain, { steer: "", suggestion: "", plot: "Mara knows.", criticism: "none answered" });
+  const steered = cleanSectionReport({ suggestion: "TAKEN UP — he lies.", plot: "p".repeat(900) }, { steer: " lie about the boat " });
+  assert.equal(steered.steer, "lie about the boat");
+  assert.equal(steered.suggestion, "TAKEN UP — he lies.");
+  assert.equal(steered.plot.length, 360);
 });
 
 test("chapter markers in a full text being edited are found with their offsets and numbers", async () => {
