@@ -125,6 +125,11 @@ ok(
   "the plan to the end is drawn to answer the editor's criticism"
 );
 ok(cp2 && cp2.user.includes("The editor's criticism — what is holding the book back") && cp2.system.includes("Go through the editor's criticism"), "each chapter breakdown assigns the criticism to sections");
+ok(
+  plans.every((p) => p.user.includes("WHAT KIND OF BOOK THIS IS") && p.user.includes("Genre, as the editor reads the pages: Literary mystery") && p.user.includes("The style the author chose:") && p.system.includes("Every chapter you plan must be unmistakably a chapter of that kind of book")),
+  "the plan to the end is drawn for the kind of book this is"
+);
+ok(cp2 && cp2.user.includes("Genre, as the editor reads the pages: Literary mystery") && cp2.system.includes("at least one direction stages, in full, one of the set pieces"), "each chapter breakdown is told the kind of book and must stage one of its set pieces");
 ok(second && second.user.includes("ACTION FIRST"), "autopilot sections are told to favour action over inner monologue");
 const steered = of("writer").filter((p) => p.user.includes("A LIVE NOTE FROM THE AUTHOR"));
 const steeredPlan = of("planner").filter((p) => p.user.includes("A LIVE NOTE FROM THE AUTHOR"));

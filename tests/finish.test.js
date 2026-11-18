@@ -249,3 +249,29 @@ test("chapter markers in a full text being edited are found with their offsets a
   assert.deepEqual(chapterMarkers("## Chapter: One\n\nText.").map((m) => m.num), [1], "a marker at the very top is chapter 1");
   assert.deepEqual(chapterMarkers("No chapters here."), []);
 });
+
+test("the planners are told what kind of book this is", async () => {
+  const { storyKindBlock, storyKindRule, isEroticaKind } = await import("../lib/storyplan.js");
+  assert.equal(storyKindBlock({}), "");
+  const spy = storyKindBlock({ genre: "Spy thriller", style: "Terse and declarative.", audience: "Audience: adults.", scenes: ["Dead drop", "Interrogation"] });
+  assert.match(spy, /^WHAT KIND OF BOOK THIS IS/);
+  assert.match(spy, /Genre, as the editor reads the pages: Spy thriller/);
+  assert.match(spy, /The style the author chose: Terse and declarative\./);
+  assert.match(spy, /come for: Dead drop; Interrogation\./);
+  assert.doesNotMatch(spy, /erotica/);
+
+  // The book's own setting counts even when the genre label says otherwise.
+  assert.equal(isEroticaKind({ genre: "Literary drama", erotica: true }), true);
+  assert.equal(isEroticaKind({ genre: "Erotic romance" }), true);
+  assert.equal(isEroticaKind({ genre: "Spy thriller" }), false);
+  assert.match(storyKindBlock({ genre: "Literary drama", erotica: true }), /set this book up as adult erotica/);
+
+  const outline = storyKindRule({ unit: "chapter", genre: "Spy thriller" });
+  assert.match(outline, /Every chapter you plan must be unmistakably a chapter of that kind of book/);
+  assert.match(outline, /tradecraft/);
+  assert.doesNotMatch(outline, /This book is adult erotica/);
+  const chapter = storyKindRule({ unit: "section", genre: "Erotica" });
+  assert.match(chapter, /at least one direction stages/);
+  assert.match(chapter, /At least one direction in this chapter IS an erotic, intimate encounter/);
+  assert.match(storyKindRule({ unit: "chapter", erotica: true }), /EVERY chapter includes at least one erotic, intimate encounter/);
+});
