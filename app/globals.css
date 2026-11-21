@@ -1981,6 +1981,8 @@ body {
 /* "Revise toward 90" CTA + streaming modal */
 .revise-cta { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--desk-line); }
 .revise-btn { width: 100%; }
+.revise-size { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12.5px; }
+.revise-size select { padding: 3px 6px; }
 .revise-hint { margin-top: 8px; font-size: 11.5px; line-height: 1.5; opacity: 0.62; }
 
 .revise-scrim {

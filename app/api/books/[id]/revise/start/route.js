@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
-import { newBook, fullManuscript, fullTextWithChapters, reviseParts, countWords, chapterDigest, manuscriptText, chapterSpans, closedChapterNotes } from "@/lib/book";
+import { newBook, fullManuscript, fullTextWithChapters, reviseSectionParts, clampReviseSections, countWords, chapterDigest, manuscriptText, chapterSpans, closedChapterNotes } from "@/lib/book";
 import { revisionPlan, summarizeChapter } from "@/lib/claude";
 import { plannerLens } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
-import { providerErrorMessage, REVISE_PART_WORDS, REVISE_PLAN_WORDS } from "@/lib/providers";
+import { providerErrorMessage, revisePartCap, REVISE_PLAN_WORDS } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -22,6 +22,14 @@ export async function POST(request, { params }) {
   }
   if (!src.turns || !src.turns.length) {
     return NextResponse.json({ error: "There's nothing to revise yet." }, { status: 400 });
+  }
+
+  // How many sections to rewrite at a time (the author's choice; default 3).
+  let perPart;
+  try {
+    perPart = clampReviseSections((await request.json()).sections);
+  } catch {
+    perPart = clampReviseSections();
   }
 
   const words = countWords(fullManuscript(src));
@@ -62,7 +70,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  const chunks = reviseParts(src, REVISE_PART_WORDS).map((text) => ({ text }));
+  const chunks = reviseSectionParts(src, perPart, revisePartCap()).map((text) => ({ text }));
 
   // A brief outline of every chapter of the original, so each part can be
   // rewritten knowing what comes before and after it. Chapters already

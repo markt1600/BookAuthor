@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { countWords, isUsersMove, totalWords, fullTextWithChapters, chapterMarkers, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE } from "@/lib/book";
+import { countWords, isUsersMove, totalWords, fullTextWithChapters, chapterMarkers, segmentQuotes, LARGE_PAGE_SCALE, STYLE_PROFILE, REVISE_SECTIONS_DEFAULT, REVISE_SECTIONS_MAX, clampReviseSections } from "@/lib/book";
 import { lintProse, splitSuggestionBlob } from "@/lib/craft";
 import { REVIEW_CARD } from "@/lib/maturity";
 import SettingsDrawer from "@/components/SettingsDrawer";
@@ -207,6 +207,14 @@ export default function BookStudio() {
   const [revising, setRevising] = useState(false); // fork-and-revise in progress
   const [reviseText, setReviseText] = useState(""); // live rewritten manuscript
   const [reviseErr, setReviseErr] = useState("");
+  // How many sections the revision rewrites at a time (remembered on this device).
+  const [reviseSections, setReviseSections] = useState(REVISE_SECTIONS_DEFAULT);
+  useEffect(() => {
+    try {
+      const v = Number(window.localStorage.getItem("loom:reviseSections"));
+      if (v >= 0) setReviseSections(clampReviseSections(v));
+    } catch {}
+  }, []);
   const reviseRunRef = useRef(null); // { forkId, total, done } of a revision in flight or stopped part-way
   const [reviseResume, setReviseResume] = useState(null); // { done, total } when one can be resumed
   const [reviseProgress, setReviseProgress] = useState(null); // {done,total} across chunks
@@ -1512,7 +1520,11 @@ export default function BookStudio() {
       // already rewritten are saved on the fork, so nothing is done twice.
       let run = reviseRunRef.current;
       if (!run) {
-        const startRes = await fetch(`/api/books/${id}/revise/start`, { method: "POST" });
+        const startRes = await fetch(`/api/books/${id}/revise/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sections: reviseSections }),
+        });
         const startData = await startRes.json().catch(() => ({}));
         if (!startRes.ok || !startData.forkId) {
           setReviseErr(startData.error || "Couldn't start the revision. Try again.");
@@ -1558,7 +1570,7 @@ export default function BookStudio() {
       if (reviseRunRef.current) setReviseResume({ done: reviseRunRef.current.done, total: reviseRunRef.current.total });
       setRevising(false);
     }
-  }, [id, revising]);
+  }, [id, revising, reviseSections]);
 
   // Load a suggested next-segment direction into the composer and go there.
   const useSuggestion = (text) => {
@@ -2935,9 +2947,35 @@ export default function BookStudio() {
                       ? `↻ Resume the revision — part ${reviseResume.done + 1} of ${reviseResume.total}`
                       : "↑ Revise toward 90 — fork a stronger draft"}
                 </button>
+                {!reviseResume && (
+                  <label className="revise-size">
+                    Rewrite
+                    <select
+                      value={reviseSections}
+                      disabled={revising}
+                      onChange={(e) => {
+                        const v = clampReviseSections(e.target.value);
+                        setReviseSections(v);
+                        try {
+                          window.localStorage.setItem("loom:reviseSections", String(v));
+                        } catch {}
+                      }}
+                      aria-label="Sections rewritten at a time"
+                    >
+                      <option value={0}>as many as fit</option>
+                      {Array.from({ length: REVISE_SECTIONS_MAX }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                    {reviseSections === 0 ? "sections (up to ~5,000 words) at a time" : reviseSections === 1 ? "section at a time" : "sections at a time"}
+                  </label>
+                )}
                 <div className="revise-hint">
                   Creates a new book: the AI rewrites this one to address the critique above, then re-scores it
-                  honestly. Your original is kept untouched.
+                  honestly. Your original is kept untouched. Fewer sections at a time is slower but easier on a
+                  local model; each pass is told what comes before and after it.
                 </div>
                 {reviseErr && <div className="pw-err">{reviseErr}</div>}
               </div>

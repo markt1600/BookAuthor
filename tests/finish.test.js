@@ -348,3 +348,39 @@ test("each revision part knows the chapters around it", async () => {
   assert.equal(splitPart(w(900, "x")), null); // one paragraph: nothing to cut at
   assert.equal(splitPart("a\n\nb"), null); // already short
 });
+
+test("revision parts are sized from the model's output ceiling", async () => {
+  const { partWordsFor, REVISE_PART_MAX } = await import("../lib/providers.js");
+  assert.equal(partWordsFor(4096), 2200);
+  assert.equal(partWordsFor(8192), 4500);
+  assert.equal(partWordsFor(32768), REVISE_PART_MAX);
+  assert.equal(partWordsFor(512), 500);
+  assert.equal(partWordsFor(undefined), 0);
+});
+
+test("the revision can be cut by sections", async () => {
+  const { reviseSectionParts, clampReviseSections, REVISE_SECTIONS_DEFAULT } = await import("../lib/book.js");
+  assert.equal(REVISE_SECTIONS_DEFAULT, 0); // as many whole sections as fit
+  assert.equal(clampReviseSections(undefined), 0);
+  assert.equal(clampReviseSections(0), 0);
+  assert.equal(clampReviseSections(99), 12);
+  assert.equal(clampReviseSections("5"), 5);
+  const turns = Array.from({ length: 7 }, (_, i) => ({ text: `Section ${i + 1} text.` }));
+  const book = { turns, chapters: [{ startTurn: 0, title: "" }, { startTurn: 4, title: "Two" }] };
+  const parts = reviseSectionParts(book, 3, 5000);
+  assert.equal(parts.length, 3);
+  assert.equal(parts[0], "Section 1 text.\n\nSection 2 text.\n\nSection 3 text.");
+  assert.equal(parts[1], "Section 4 text.\n\n## Chapter: Two\n\nSection 5 text.\n\nSection 6 text.");
+  assert.equal(parts[2], "Section 7 text.");
+  assert.equal(reviseSectionParts(book, 1, 5000).length, 7);
+  // A group too long for one answer is cut further at paragraph breaks.
+  const w = (n, tag) => Array.from({ length: n }, (_, i) => `${tag}${i}`).join(" ");
+  const big = { turns: [{ text: [w(300, "a"), w(300, "b")].join("\n\n") }, { text: w(300, "c") }], chapters: [] };
+  assert.equal(reviseSectionParts(big, 3, 400).length, 3);
+  // The default packs whole sections up to the word limit.
+  const many = { turns: Array.from({ length: 10 }, (_, i) => ({ text: w(800, `s${i}_`), words: 800 })), chapters: [] };
+  const fit = reviseSectionParts(many, 0, 5000);
+  assert.equal(fit.length, 2); // 6 sections (4,800 words) + 4
+  assert.equal(fit[0].split("\n\n").length, 6);
+  assert.equal(reviseSectionParts(big, 0, 400).length, 3); // a section over the limit is still cut
+});

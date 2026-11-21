@@ -177,7 +177,7 @@ r = await j("POST", `/api/books/${p2.data.id}/finish`, { action: "plan" });
 ok(r.status === 400 && /guide mode/.test(r.data.error), "participate-mode books are told the run is for directed books");
 
 // ---- revising a finished book toward a stronger draft ----
-r = await j("POST", `/api/books/${id}/revise/start`);
+r = await j("POST", `/api/books/${id}/revise/start`, { sections: 4 });
 ok(r.status === 200 && r.data.forkId && r.data.total > 1, "a revision of the finished book starts, cut into several parts");
 const fork = r.data.forkId;
 const parts0 = r.data.total;
