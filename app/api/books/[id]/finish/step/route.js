@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook, acquireLock, releaseLock } from "@/lib/store";
 import { publicBook } from "@/lib/book";
 import { afterFinishSection, canFinish, FinishError, writeFinishSection } from "@/lib/finish";
-import { carryNotes, ndjsonResponse, notesEvent, reportOnSection } from "@/lib/generate";
+import { carryNotes, carryRevision, ndjsonResponse, notesEvent, reportOnSection, retryAfterDrop } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -58,17 +58,28 @@ export async function POST(request, { params }) {
       send({ t: "generated" });
       send({ t: "done", book: publicBook(book), addedTurnIds: [result.section.id] });
 
+      const before = structuredClone(book);
       await afterFinishSection(book, priorAnalysis, result);
+      // A section that cost the book more than a few points is rewritten once
+      // against the criticism; the better-scoring attempt is kept.
+      const retry = await retryAfterDrop(book, before, priorAnalysis, {
+        turnId: result.section.id,
+        send,
+        followUp: (trial) => afterFinishSection(trial, priorAnalysis, result),
+      });
       // Re-read so a concurrent edit isn't clobbered, then merge in the notes,
       // the redrawn outline and the next chapter's breakdown.
       const latest = carryNotes((await getBook(id)) || book, book);
       if (latest.finish) latest.finish = book.finish; // unless the plan was dropped meanwhile
+      const revised = Boolean(retry && retry.kept === "revised" && carryRevision(latest, book, result.section.id));
       await saveBook(latest);
+      if (retry) send({ t: "retry", stage: "done", ...retry, ...(revised ? { book: publicBook(latest) } : {}) });
       send(notesEvent(latest));
 
       // Last, a short account of what the section did (the author's live note,
       // the plot, the criticism) — after the notes, so the score is the new one.
-      await reportOnSection(book, priorAnalysis, { turn: result.section, steer });
+      const turn = book.turns.find((t) => t.id === result.section.id) || result.section;
+      await reportOnSection(book, priorAnalysis, { turn, steer, retry });
       const after = (await getBook(id)) || latest;
       after.sectionReport = book.sectionReport;
       await saveBook(after);

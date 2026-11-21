@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
 import {
   mergeFullText,
-  fullManuscript,
+  manuscriptText,
   chunkSourceText,
   sectionCount,
   reviewLean,
@@ -10,6 +10,8 @@ import {
 import { reviseChunk, analyzeStory } from "@/lib/claude";
 import { ndjsonResponse, revisionChunkLens, rubricFor } from "@/lib/generate";
 import { briefBlock } from "@/lib/storyplan";
+import { REVISE_TAIL_WORDS } from "@/lib/providers";
+import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -31,10 +33,14 @@ export async function POST(request, { params }) {
   }
   const src = await getBook(fork.revisionOf);
   if (!src) return NextResponse.json({ error: "The original book is gone." }, { status: 404 });
+  if (!bookUnlocked(request, src)) {
+    return NextResponse.json({ error: "This book is locked." }, { status: 401 });
+  }
 
   const idx = fork.revisionDone;
   const chunk = fork.revisionChunks[idx];
-  const chunkText = chunkSourceText(src, chunk.start, chunk.end);
+  // Parts are stored as text; a revision started before that stored turn ranges.
+  const chunkText = typeof chunk.text === "string" ? chunk.text : chunkSourceText(src, chunk.start, chunk.end);
   const isFirst = idx === 0;
   const isLast = idx === fork.revisionTotal - 1;
 
@@ -53,7 +59,7 @@ export async function POST(request, { params }) {
       plan: fork.revisionPlan,
       synopsis: fork.revisionSynopsis,
       score: fork.revisionScore,
-      priorTail: lastWords(fork.revisionText, 800),
+      priorTail: lastWords(fork.revisionText, REVISE_TAIL_WORDS),
       chunkText,
       isFirst,
       isLast,
@@ -81,7 +87,7 @@ export async function POST(request, { params }) {
       try {
         const analysis = await analyzeStory({
           title: done.title,
-          fullText: fullManuscript(done),
+          fullText: manuscriptText(done),
           prior: null,
           guide: done.mode === "guide",
           arc: done.arc,

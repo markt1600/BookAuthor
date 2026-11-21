@@ -197,6 +197,7 @@ export default function BookStudio() {
   const autoStopRef = useRef(false); // set to finish the current section and stop
   const [streamText, setStreamText] = useState(""); // live prose as it's written
   const [streamPhase, setStreamPhase] = useState("idle"); // 'idle' | 'writing' | 'finalizing'
+  const [retryNote, setRetryNote] = useState(""); // a score-drop rewrite in progress
   const [notesRefreshing, setNotesRefreshing] = useState(false); // notes re-reading after a section lands
   const [historyOpen, setHistoryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -206,6 +207,8 @@ export default function BookStudio() {
   const [revising, setRevising] = useState(false); // fork-and-revise in progress
   const [reviseText, setReviseText] = useState(""); // live rewritten manuscript
   const [reviseErr, setReviseErr] = useState("");
+  const reviseRunRef = useRef(null); // { forkId, total, done } of a revision in flight or stopped part-way
+  const [reviseResume, setReviseResume] = useState(null); // { done, total } when one can be resumed
   const [reviseProgress, setReviseProgress] = useState(null); // {done,total} across chunks
   const [reviseSource, setReviseSource] = useState(""); // original prose of the current chunk (for diff)
   const [reviseDiff, setReviseDiff] = useState(true); // show changes (diff) vs clean view
@@ -993,6 +996,16 @@ export default function BookStudio() {
                   : prev
               );
               setNotesRefreshing(false);
+            } else if (ev.t === "retry") {
+              // The section cost the book points: it is being rewritten once
+              // against the criticism, and the better-scoring attempt is kept.
+              if (ev.stage === "start") {
+                setRetryNote(`The score fell from ${ev.scoreFrom} to ${ev.scoreTo} — rewriting the section against the criticism…`);
+                setNotesRefreshing(true);
+              } else {
+                setRetryNote("");
+                if (ev.book) setBook((prev) => (prev ? { ...prev, turns: ev.book.turns } : prev));
+              }
             } else if (ev.t === "report") {
               setBook((prev) => (prev ? { ...prev, sectionReport: ev.sectionReport || null } : prev));
             }
@@ -1438,6 +1451,11 @@ export default function BookStudio() {
 
     const streamStep = async (forkId) => {
       const res = await fetch(`/api/books/${forkId}/revise/step`, { method: "POST" });
+      // Already complete (a resumed run whose last part had landed): plain JSON.
+      if (res.ok && (res.headers.get("content-type") || "").includes("application/json")) {
+        const j = await res.json().catch(() => ({}));
+        return { ok: true, complete: !!j.complete };
+      }
       if (!res.ok || !res.body) {
         let msg = "The revision step failed. Try again.";
         try {
@@ -1452,6 +1470,7 @@ export default function BookStudio() {
       let buf = "";
       let acc = "";
       let complete = false;
+      let finished = false;
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { value, done } = await reader.read();
@@ -1479,37 +1498,54 @@ export default function BookStudio() {
             return { ok: false };
           } else if (ev.t === "done") {
             complete = !!ev.complete;
+            finished = true;
           }
         }
+      }
+      // A stream that ends without its closing event was cut off mid-part.
+      if (!finished) {
+        setReviseErr("The connection dropped during the revision. Press the button again to pick up where it stopped.");
+        return { ok: false };
       }
       return { ok: true, complete };
     };
 
     try {
-      const startRes = await fetch(`/api/books/${id}/revise/start`, { method: "POST" });
-      const startData = await startRes.json().catch(() => ({}));
-      if (!startRes.ok || !startData.forkId) {
-        setReviseErr(startData.error || "Couldn't start the revision. Try again.");
-        setRevising(false);
-        return;
-      }
-      const forkId = startData.forkId;
-      const total = startData.total || 1;
-      for (let i = 0; i < total; i++) {
-        setReviseProgress({ done: i, total });
-        setReviseText("");
-        setReviseSource("");
-        setReviseDiffSnap("");
-        const r = await streamStep(forkId);
-        if (!r.ok) {
+      // A run that failed part-way is picked up where it stopped: the parts
+      // already rewritten are saved on the fork, so nothing is done twice.
+      let run = reviseRunRef.current;
+      if (!run) {
+        const startRes = await fetch(`/api/books/${id}/revise/start`, { method: "POST" });
+        const startData = await startRes.json().catch(() => ({}));
+        if (!startRes.ok || !startData.forkId) {
+          setReviseErr(startData.error || "Couldn't start the revision. Try again.");
           setRevising(false);
           return;
         }
+        run = { forkId: startData.forkId, total: startData.total || 1, done: 0 };
+        reviseRunRef.current = run;
+      }
+      setReviseResume(null);
+      for (let i = run.done; i < run.total; i++) {
+        setReviseProgress({ done: i, total: run.total });
+        setReviseText("");
+        setReviseSource("");
+        setReviseDiffSnap("");
+        const r = await streamStep(run.forkId);
+        if (!r.ok) {
+          setReviseResume({ done: run.done, total: run.total });
+          setRevising(false);
+          return;
+        }
+        run.done = i + 1;
         if (r.complete) break;
       }
+      const forkId = run.forkId;
+      reviseRunRef.current = null;
       window.location.assign(`/book/${forkId}`); // open the finished revision
     } catch {
-      setReviseErr("Network error during the revision. Try again.");
+      setReviseErr("Network error during the revision. Press the button again to pick up where it stopped.");
+      if (reviseRunRef.current) setReviseResume({ done: reviseRunRef.current.done, total: reviseRunRef.current.total });
       setRevising(false);
     }
   }, [id, revising]);
@@ -2730,6 +2766,13 @@ export default function BookStudio() {
             </div>
           )}
 
+          {retryNote && (
+            <div className="live-steer section-report" role="status">
+              <div className="live-steer-k">Second attempt</div>
+              <div className="live-steer-state">{retryNote}</div>
+            </div>
+          )}
+
           {(() => {
             const rep = book.sectionReport;
             const lastTurn = book.turns[book.turns.length - 1];
@@ -2747,6 +2790,20 @@ export default function BookStudio() {
                   )}
                 </div>
                 <dl className="cold-read">
+                  {rep.retry && (
+                    <>
+                      <dt>Second attempt</dt>
+                      <dd>
+                        The first version took the score down to {rep.retry.first}, so the section was rewritten against the
+                        criticism.{" "}
+                        {rep.retry.kept === "revised"
+                          ? `The rewrite scored ${rep.retry.second} and was kept.`
+                          : Number.isFinite(rep.retry.second)
+                            ? `The rewrite scored ${rep.retry.second}, lower still, so the first version was kept.`
+                            : "The rewrite could not be scored, so the first version was kept."}
+                      </dd>
+                    </>
+                  )}
                   {rep.steer && (
                     <>
                       <dt>Your suggestion</dt>
@@ -2862,7 +2919,11 @@ export default function BookStudio() {
             {ended && (
               <div className="revise-cta">
                 <button className="btn btn-primary revise-btn" onClick={reviseBook} disabled={revising}>
-                  {revising ? "Revising…" : "↑ Revise toward 90 — fork a stronger draft"}
+                  {revising
+                    ? "Revising…"
+                    : reviseResume
+                      ? `↻ Resume the revision — part ${reviseResume.done + 1} of ${reviseResume.total}`
+                      : "↑ Revise toward 90 — fork a stronger draft"}
                 </button>
                 <div className="revise-hint">
                   Creates a new book: the AI rewrites this one to address the critique above, then re-scores it

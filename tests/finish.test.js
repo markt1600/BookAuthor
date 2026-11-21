@@ -283,3 +283,44 @@ test("the pairing rule rides on every audience instruction", async () => {
     assert.ok(maturityText(g).endsWith(PAIRING_RULE));
   }
 });
+
+test("a section that costs the book points gets one weighted rewrite", async () => {
+  const { SCORE_DROP, scoreFell, keepRevision, dropRevisionNote } = await import("../lib/storyplan.js");
+  assert.equal(SCORE_DROP, 5);
+  assert.equal(scoreFell(71, 66), false); // exactly 5 is not "more than 5"
+  assert.equal(scoreFell(71, 65), true);
+  assert.equal(scoreFell(71, 80), false);
+  assert.equal(scoreFell(null, 60), false);
+  // The revision is kept on a tie or better, against the FIRST attempt.
+  assert.equal(keepRevision(62, 62), true);
+  assert.equal(keepRevision(62, 64), true);
+  assert.equal(keepRevision(62, 61), false);
+  assert.equal(keepRevision(62, null), false);
+  const note = dropRevisionNote({ direction: "She confronts him.", critique: "No visible want.\nStakes abstract.", scoreFrom: 71, scoreTo: 62 });
+  assert.match(note, /scored the book 71 before this section and 62 after/);
+  assert.match(note, /"She confronts him\."/);
+  assert.match(note, /criticism comes FIRST/);
+  assert.match(note, /1\. No visible want\.\n2\. Stakes abstract\./);
+});
+
+test("the whole-book revision is cut into parts a model can hold", async () => {
+  const { reviseParts, countWords } = await import("../lib/book.js");
+  const para = (n, tag) => Array.from({ length: n }, (_, i) => `${tag}${i}`).join(" ");
+  // One very long section (as an earlier revision leaves) plus a second chapter.
+  const book = {
+    turns: [
+      { text: [para(400, "a"), para(400, "b"), para(400, "c")].join("\n\n") },
+      { text: para(300, "d") },
+      { text: para(100, "e") },
+    ],
+    chapters: [{ startTurn: 0, title: "" }, { startTurn: 1, title: "Two" }],
+  };
+  const parts = reviseParts(book, 900);
+  assert.ok(parts.length >= 2);
+  for (const p of parts) assert.ok(countWords(p.replace(/^##.*$/gm, "")) <= 900);
+  // Nothing is lost or reordered; the chapter marker travels with the text.
+  assert.equal(parts.join("\n\n"), [book.turns[0].text, "## Chapter: Two", book.turns[1].text, book.turns[2].text].join("\n\n"));
+  // A part that is already reasonably full ends at a chapter marker.
+  assert.ok(reviseParts(book, 1300)[1].startsWith("## Chapter: Two"));
+  assert.deepEqual(reviseParts({ turns: [{ text: "Short." }], chapters: [] }, 900), ["Short."]);
+});

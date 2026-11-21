@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
-import { newBook, fullManuscript, fullTextWithChapters, reviseChunks, countWords } from "@/lib/book";
+import { newBook, fullManuscript, fullTextWithChapters, reviseParts, countWords, chapterDigest, manuscriptText } from "@/lib/book";
 import { revisionPlan } from "@/lib/claude";
 import { plannerLens } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
-import { providerErrorMessage } from "@/lib/providers";
+import { providerErrorMessage, REVISE_PART_WORDS, REVISE_PLAN_WORDS } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 // A whole-book revision is rewritten in chunks; cap the total so the operation
 // stays bounded in time and cost.
@@ -35,11 +35,23 @@ export async function POST(request, { params }) {
   }
 
   const a = src.analysis || {};
+  // The planner reads the whole book when it fits the model; a longer book is
+  // read as its chapter-by-chapter digest plus the opening and the latest prose.
+  const digest = chapterDigest(src);
+  const planText =
+    words <= REVISE_PLAN_WORDS
+      ? fullTextWithChapters(src)
+      : [
+          digest ? `[The book is too long to show whole. Chapter by chapter:]\n${digest}` : "",
+          `[Its opening and its latest pages:]\n${manuscriptText(src, Math.min(REVISE_PLAN_WORDS, 12000))}`,
+        ]
+          .filter(Boolean)
+          .join("\n\n");
   let plan = "";
   try {
     plan = await revisionPlan({
       title: src.title,
-      fullText: fullTextWithChapters(src),
+      fullText: planText,
       critique: a.critique,
       quality: a.quality,
       score: a.qualityScore,
@@ -50,7 +62,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  const chunks = reviseChunks(src, 3500);
+  const chunks = reviseParts(src, REVISE_PART_WORDS).map((text) => ({ text }));
   const fork = newBook({
     title: `${src.title} — Revision`,
     author: src.author,

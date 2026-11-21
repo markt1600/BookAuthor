@@ -176,5 +176,51 @@ const p2 = await j("POST", "/api/books", { title: "Co-written", author: "Mark", 
 r = await j("POST", `/api/books/${p2.data.id}/finish`, { action: "plan" });
 ok(r.status === 400 && /guide mode/.test(r.data.error), "participate-mode books are told the run is for directed books");
 
+// ---- revising a finished book toward a stronger draft ----
+r = await j("POST", `/api/books/${id}/revise/start`);
+ok(r.status === 200 && r.data.forkId && r.data.total >= 1, "a revision of the finished book starts and reports its parts");
+const fork = r.data.forkId;
+let revised = false;
+for (let i = 0; i < r.data.total && !revised; i++) {
+  const st = await stream(`/api/books/${fork}/revise/step`);
+  revised = st.events.some((e) => e.t === "done" && e.complete);
+}
+const fb = await book(fork);
+ok(revised && fb.ended && fb.turns.length >= 1 && fb.analysis.qualityScore === 71 && !fb.revisionOf, "the revision is assembled into a new, ended, re-scored book");
+r = await j("POST", `/api/books/${fork}/revise/step`);
+ok(r.status === 400, "a finished revision takes no further step");
+
+// ---- a section that costs the book points is rewritten once ----
+const d = (await j("POST", "/api/books", { title: "Drop", author: "Mark", mode: "guide" })).data.id;
+await stream(`/api/books/${d}/turn`, { text: "An opening." });
+r = await stream(`/api/books/${d}/turn`, { text: "DROPTEST the keeper stalls.", report: true });
+let b3 = await book(d);
+let re = r.events.filter((e) => e.t === "retry");
+ok(
+  re.length === 2 && re[0].stage === "start" && re[0].scoreFrom === 71 && re[0].scoreTo === 62 && re[1].kept === "revised" && re[1].second === 71 && re[1].book,
+  "a section that drops the score by more than 5 is rewritten and re-scored"
+);
+ok(
+  b3.turns[1].text.startsWith("Rewritten. Mara took") && b3.analysis.qualityScore === 71 && b3.sectionReport.retry.kept === "revised" && b3.sectionReport.scoreTo === 71,
+  "the rewrite that scored at least as well is kept, with its notes"
+);
+const rw = prompts().filter((p) => p.kind === "rewrite");
+ok(
+  rw.length === 1 && rw[0].user.includes("criticism comes FIRST") && rw[0].user.includes("scored the book 71 before this section and 62 after") && rw[0].user.includes("[[low]]"),
+  "the rewrite is given the criticism first, the score change and the first attempt"
+);
+r = await stream(`/api/books/${d}/turn`, { text: "DROPTEST MAKEWORSE again.", report: true });
+b3 = await book(d);
+re = r.events.filter((e) => e.t === "retry");
+ok(
+  re.length === 2 && re[1].kept === "original" && re[1].second === 55 && !re[1].book && b3.turns[2].text.includes("[[low]]") && b3.analysis.qualityScore === 62 && b3.sectionReport.retry.kept === "original",
+  "a rewrite that scores lower is dropped and the first attempt stays"
+);
+ok(prompts().filter((p) => p.kind === "rewrite").length === 2, "one rewrite per section — no loop");
+const d2 = (await j("POST", "/api/books", { title: "Drop by hand", author: "Mark", mode: "guide" })).data.id;
+await stream(`/api/books/${d2}/turn`, { text: "An opening." });
+r = await stream(`/api/books/${d2}/turn`, { text: "DROPTEST the keeper stalls." });
+ok(!r.events.some((e) => e.t === "retry") && (await book(d2)).analysis.qualityScore === 62, "a section directed by hand is never rewritten on its own");
+
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
 process.exit(fails ? 1 : 0);

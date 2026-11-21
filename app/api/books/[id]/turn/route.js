@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBook, saveBook, acquireLock, releaseLock } from "@/lib/store";
 import { makeTurn, countWords, isUsersMove, publicBook, normalizeChapters, sectionCount } from "@/lib/book";
 import { continueStory, guideStory, planSection } from "@/lib/claude";
-import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, notesEvent, plannerLens, lensForSection, reportOnSection } from "@/lib/generate";
+import { withContext, refreshAnalysis, ndjsonResponse, authorContext, produceSection, carryNotes, carryRevision, notesEvent, plannerLens, lensForSection, reportOnSection, retryAfterDrop } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 import { liveSteerNote } from "@/lib/storyplan";
 
@@ -179,16 +179,27 @@ export async function POST(request, { params }) {
 
       // Best-effort notes refresh. refreshAnalysis never throws; re-read the latest
       // book first so we don't clobber any concurrent edit, then merge the notes in.
+      // An autopilot batch (the client asks for a report, or sent a live note).
+      const auto = guideMode && (body.report === true || Boolean(liveSteerNote(body.steer)));
+      const lastId = addedTurnIds[addedTurnIds.length - 1];
+      const before = auto ? structuredClone(book) : null;
       await refreshAnalysis(book, priorAnalysis);
+      // In an auto run, a section that cost the book more than a few points is
+      // rewritten once against the criticism; the better-scoring attempt is kept.
+      const retry = auto
+        ? await retryAfterDrop(book, before, priorAnalysis, { turnId: lastId, send, followUp: (trial) => refreshAnalysis(trial, priorAnalysis) })
+        : null;
       const latest = carryNotes((await getBook(id)) || book, book);
+      const revised = Boolean(retry && retry.kept === "revised" && carryRevision(latest, book, lastId));
       await saveBook(latest);
+      if (retry) send({ t: "retry", stage: "done", ...retry, ...(revised ? { book: publicBook(latest) } : {}) });
       send(notesEvent(latest));
 
       // In an autopilot batch, close with a short account of what the section
       // did (the author's live note, the plot, the criticism).
-      if (guideMode && (body.report === true || liveSteerNote(body.steer))) {
-        const turn = book.turns.find((t) => t.id === addedTurnIds[addedTurnIds.length - 1]);
-        await reportOnSection(book, priorAnalysis, { turn, steer: body.steer });
+      if (auto) {
+        const turn = book.turns.find((t) => t.id === lastId);
+        await reportOnSection(book, priorAnalysis, { turn, steer: body.steer, retry });
         const after = (await getBook(id)) || latest;
         after.sectionReport = book.sectionReport;
         await saveBook(after);

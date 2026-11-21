@@ -23,6 +23,7 @@ const kinds = [
   ["chapterplan", /Break ONE chapter of that outline/],
   ["brief", /writing the one-page brief/],
   ["report", /reporting on ONE section of a novel/],
+  ["rewrite", /revising ONE passage inside a novel-in-progress/],
 ];
 
 let n = 0;
@@ -45,6 +46,8 @@ function reply(kind, system, user) {
         "3. KEEP — the storm setup stays open; do not pay it off here.",
       ].join("\n");
     case "writer":
+      // DROPTEST in the direction writes a section the analysis marks down.
+      if (/DROPTEST/.test(user)) return `Section ${n}. [[low]] Mara thought about the letter for a long time and nothing happened.`;
       return `Section ${n}. Mara stood at the door with the letter in her coat. "You read it," she said. The keeper went on trimming the wick. He did not look up. Somewhere below them the tide turned over on the rocks.`;
     case "analysis": {
       const first = !/Prior open logic gaps/.test(user);
@@ -53,7 +56,7 @@ function reply(kind, system, user) {
         genre: "Literary mystery",
         synopsis: "Mara finds a letter in a lighthouse and suspects the keeper.",
         quality: "A steady start with a clear question.",
-        qualityScore: 71,
+        qualityScore: /\[\[lower\]\]/.test(user) ? 55 : /\[\[low\]\]/.test(user) ? 62 : 71,
         critique: "The keeper has no visible want of his own yet.\nThe stakes are still abstract.",
         pacing: "TOO SLOW — lingers on the lamp room and the plot stalls",
         nextDirection: "Mara confronts the keeper about the letter.",
@@ -66,6 +69,11 @@ function reply(kind, system, user) {
         continuity: "Mara — visitor. The keeper — unnamed. The lighthouse on the north rock.",
       });
     }
+    case "rewrite":
+      // The score-drop rewrite: better by default, worse when asked.
+      return /MAKEWORSE/.test(user)
+        ? "Rewritten, worse. [[lower]] Mara thought about it some more."
+        : "Rewritten. Mara took the letter from her coat and put it on the table between them.";
     case "summary":
       return "Mara arrives at the lighthouse, finds a letter under the floorboard, and begins to suspect the keeper read it first. The chapter ends with her hiding the letter in her coat.";
     case "coldread":
