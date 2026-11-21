@@ -130,6 +130,10 @@ ok(
   "the plan to the end is drawn for the kind of book this is"
 );
 ok(cp2 && cp2.user.includes("Genre, as the editor reads the pages: Literary mystery") && cp2.system.includes("at least one direction stages, in full, one of the set pieces"), "each chapter breakdown is told the kind of book and must stage one of its set pieces");
+ok(
+  plans.every((p) => p.system.includes("no romance, attraction, or intimate or sexual scenes between two men")) && cp2.system.includes("between two men") && second.system.includes("between two men") && second.system.includes("KEEP IT MOVING"),
+  "the pairing rule reaches the outline, the chapter breakdown and the writer; the writer is told to keep it moving"
+);
 ok(second && second.user.includes("ACTION FIRST"), "autopilot sections are told to favour action over inner monologue");
 const steered = of("writer").filter((p) => p.user.includes("A LIVE NOTE FROM THE AUTHOR"));
 const steeredPlan = of("planner").filter((p) => p.user.includes("A LIVE NOTE FROM THE AUTHOR"));

@@ -275,3 +275,11 @@ test("the planners are told what kind of book this is", async () => {
   assert.match(chapter, /At least one direction in this chapter IS an erotic, intimate encounter/);
   assert.match(storyKindRule({ unit: "chapter", erotica: true }), /EVERY chapter includes at least one erotic, intimate encounter/);
 });
+
+test("the pairing rule rides on every audience instruction", async () => {
+  const { maturityText, PAIRING_RULE } = await import("../lib/maturity.js");
+  assert.match(PAIRING_RULE, /no romance, attraction, or intimate or sexual scenes between two men/);
+  for (const g of [null, { adult: false }, { adult: true, sexual: 3, erotica: true, violence: 1, language: 1 }]) {
+    assert.ok(maturityText(g).endsWith(PAIRING_RULE));
+  }
+});
