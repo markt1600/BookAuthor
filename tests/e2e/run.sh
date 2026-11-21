@@ -17,7 +17,7 @@ MODEL_PORT="${MODEL_PORT:-18555}"
 APP_PORT="${APP_PORT:-3131}"
 node tests/e2e/mock-model.mjs "$WORK/prompts.jsonl" "$MODEL_PORT" > "$WORK/mock.log" 2>&1 &
 MOCK=$!
-LOOM_OFFLINE=1 LOOM_DATA_DIR="$WORK/data" LOCAL_AI_BASE_URL="http://127.0.0.1:$MODEL_PORT/v1" \
+LOOM_OFFLINE=1 LOOM_REVISE_PART_WORDS=200 LOOM_DATA_DIR="$WORK/data" LOCAL_AI_BASE_URL="http://127.0.0.1:$MODEL_PORT/v1" \
   npx next start -p "$APP_PORT" -H 127.0.0.1 > "$WORK/app.log" 2>&1 &
 APP=$!
 trap 'kill $MOCK $APP 2>/dev/null' EXIT

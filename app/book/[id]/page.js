@@ -1462,8 +1462,7 @@ export default function BookStudio() {
           const j = await res.json();
           if (j && j.error) msg = j.error;
         } catch {}
-        setReviseErr(msg);
-        return { ok: false };
+        return { ok: false, error: msg, fatal: res.status === 400 || res.status === 401 || res.status === 404 };
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -1471,6 +1470,7 @@ export default function BookStudio() {
       let acc = "";
       let complete = false;
       let finished = false;
+      let total;
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { value, done } = await reader.read();
@@ -1494,20 +1494,17 @@ export default function BookStudio() {
             setReviseSource(ev.text || "");
             setReviseDiffSnap("");
           } else if (ev.t === "error") {
-            setReviseErr(ev.error || "The revision failed. Try again.");
-            return { ok: false };
+            return { ok: false, error: ev.error || "The revision failed. Try again.", total: ev.total, split: !!ev.split };
           } else if (ev.t === "done") {
             complete = !!ev.complete;
+            total = ev.total;
             finished = true;
           }
         }
       }
       // A stream that ends without its closing event was cut off mid-part.
-      if (!finished) {
-        setReviseErr("The connection dropped during the revision. Press the button again to pick up where it stopped.");
-        return { ok: false };
-      }
-      return { ok: true, complete };
+      if (!finished) return { ok: false, error: "The connection dropped during the revision. Press the button again to pick up where it stopped." };
+      return { ok: true, complete, total };
     };
 
     try {
@@ -1526,19 +1523,32 @@ export default function BookStudio() {
         reviseRunRef.current = run;
       }
       setReviseResume(null);
-      for (let i = run.done; i < run.total; i++) {
-        setReviseProgress({ done: i, total: run.total });
+      // Each part is tried again on its own when it fails — a part the model
+      // could not finish is cut in two by the server first — so a long book
+      // runs to the end unattended. Only repeated failure of one part stops it.
+      let misses = 0;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        setReviseProgress({ done: run.done, total: run.total });
         setReviseText("");
         setReviseSource("");
         setReviseDiffSnap("");
-        const r = await streamStep(run.forkId);
+        const r = await streamStep(run.forkId).catch(() => ({ ok: false, error: "Network error during the revision. Press the button again to pick up where it stopped." }));
+        if (Number.isFinite(r.total)) run.total = r.total;
         if (!r.ok) {
-          setReviseResume({ done: run.done, total: run.total });
-          setRevising(false);
-          return;
+          misses = r.split ? 0 : misses + 1; // a split part is a new, smaller job
+          if (r.fatal || misses >= 4) {
+            setReviseErr(r.error);
+            setReviseResume({ done: run.done, total: run.total });
+            setRevising(false);
+            return;
+          }
+          await new Promise((res) => setTimeout(res, r.split ? 300 : 2000 * misses));
+          continue;
         }
-        run.done = i + 1;
-        if (r.complete) break;
+        misses = 0;
+        run.done += 1;
+        if (r.complete || run.done >= run.total) break;
       }
       const forkId = run.forkId;
       reviseRunRef.current = null;

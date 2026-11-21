@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBook, saveBook } from "@/lib/store";
-import { newBook, fullManuscript, fullTextWithChapters, reviseParts, countWords, chapterDigest, manuscriptText } from "@/lib/book";
-import { revisionPlan } from "@/lib/claude";
+import { newBook, fullManuscript, fullTextWithChapters, reviseParts, countWords, chapterDigest, manuscriptText, chapterSpans, closedChapterNotes } from "@/lib/book";
+import { revisionPlan, summarizeChapter } from "@/lib/claude";
 import { plannerLens } from "@/lib/generate";
 import { bookUnlocked } from "@/lib/admin";
 import { providerErrorMessage, REVISE_PART_WORDS, REVISE_PLAN_WORDS } from "@/lib/providers";
@@ -63,6 +63,33 @@ export async function POST(request, { params }) {
   }
 
   const chunks = reviseParts(src, REVISE_PART_WORDS).map((text) => ({ text }));
+
+  // A brief outline of every chapter of the original, so each part can be
+  // rewritten knowing what comes before and after it. Chapters already
+  // summarized in the notes are reused; the rest are summarized now (a
+  // revised or imported book has none), falling back to the chapter's opening.
+  const known = Object.fromEntries(closedChapterNotes(src).filter((n) => n.summary).map((n) => [n.num, n.summary]));
+  const outline = [];
+  if (chunks.length > 1) {
+    for (const ch of chapterSpans(src)) {
+      let summary = known[ch.num] || "";
+      if (!summary) {
+        try {
+          summary = await summarizeChapter({
+            title: src.title,
+            num: ch.num,
+            chapterTitle: ch.title,
+            text: ch.text.split(/\s+/).slice(0, 6000).join(" "),
+            prior: outline.length ? outline[outline.length - 1].summary : "",
+          });
+        } catch {
+          summary = "";
+        }
+      }
+      if (!summary) summary = ch.text.split(/\s+/).slice(0, 60).join(" ");
+      outline.push({ num: ch.num, title: ch.title || "", summary: String(summary).slice(0, 1600) });
+    }
+  }
   const fork = newBook({
     title: `${src.title} — Revision`,
     author: src.author,
@@ -76,6 +103,7 @@ export async function POST(request, { params }) {
   fork.revisionSynopsis = a.synopsis || "";
   fork.revisionScore = typeof a.qualityScore === "number" ? a.qualityScore : null;
   fork.revisionChunks = chunks;
+  fork.revisionOutline = outline;
   fork.revisionTotal = chunks.length;
   fork.revisionDone = 0;
   fork.revisionText = "";

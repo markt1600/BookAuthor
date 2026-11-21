@@ -178,15 +178,31 @@ ok(r.status === 400 && /guide mode/.test(r.data.error), "participate-mode books 
 
 // ---- revising a finished book toward a stronger draft ----
 r = await j("POST", `/api/books/${id}/revise/start`);
-ok(r.status === 200 && r.data.forkId && r.data.total >= 1, "a revision of the finished book starts and reports its parts");
+ok(r.status === 200 && r.data.forkId && r.data.total > 1, "a revision of the finished book starts, cut into several parts");
 const fork = r.data.forkId;
+const parts0 = r.data.total;
 let revised = false;
-for (let i = 0; i < r.data.total && !revised; i++) {
+let splits = 0;
+let total = parts0;
+for (let i = 0; i < 60 && !revised; i++) {
   const st = await stream(`/api/books/${fork}/revise/step`);
+  const err = st.events.find((e) => e.t === "error");
+  if (err) {
+    if (err.split) splits++;
+    total = err.total;
+    continue;
+  }
   revised = st.events.some((e) => e.t === "done" && e.complete);
 }
+ok(splits === 1 && total === parts0 + 1, "a part the model could not finish is cut in two and the run goes on");
 const fb = await book(fork);
-ok(revised && fb.ended && fb.turns.length >= 1 && fb.analysis.qualityScore === 71 && !fb.revisionOf, "the revision is assembled into a new, ended, re-scored book");
+ok(revised && fb.ended && fb.turns.length >= 1 && fb.analysis.qualityScore === 71 && !fb.revisionOf && fb.turns.map((t) => t.text).join(" ").includes("Revised part"), "the revision is assembled into a new, ended, re-scored book");
+const rv = prompts().filter((p) => p.kind === "revise");
+ok(
+  rv.length === parts0 + 2 && rv.some((p) => p.user.includes("STILL TO COME after this part, in the original book") && /Chapter \d+/.test(p.user.split("STILL TO COME")[1])) && rv[0].system.includes("leave no plot hole"),
+  "each part is rewritten with a brief outline of the chapters still to come"
+);
+ok(!rv[rv.length - 1].user.includes("STILL TO COME after this part"), "the last part has nothing still to come");
 r = await j("POST", `/api/books/${fork}/revise/step`);
 ok(r.status === 400, "a finished revision takes no further step");
 

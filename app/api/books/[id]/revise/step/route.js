@@ -3,6 +3,9 @@ import { getBook, saveBook } from "@/lib/store";
 import {
   mergeFullText,
   manuscriptText,
+  partChapters,
+  revisionSurround,
+  splitPart,
   chunkSourceText,
   sectionCount,
   reviewLean,
@@ -10,7 +13,7 @@ import {
 import { reviseChunk, analyzeStory } from "@/lib/claude";
 import { ndjsonResponse, revisionChunkLens, rubricFor } from "@/lib/generate";
 import { briefBlock } from "@/lib/storyplan";
-import { REVISE_TAIL_WORDS } from "@/lib/providers";
+import { REVISE_TAIL_WORDS, REVISE_PART_WORDS, providerErrorMessage } from "@/lib/providers";
 import { bookUnlocked } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +46,9 @@ export async function POST(request, { params }) {
   const chunkText = typeof chunk.text === "string" ? chunk.text : chunkSourceText(src, chunk.start, chunk.end);
   const isFirst = idx === 0;
   const isLast = idx === fork.revisionTotal - 1;
+  // What surrounds this part in the original book (see revisionSurround).
+  const spans = partChapters(fork.revisionChunks.map((c, i) => (i === idx ? chunkText : typeof c.text === "string" ? c.text : "")));
+  const surround = revisionSurround(fork.revisionOutline, spans[idx], { maxChars: REVISE_PART_WORDS < 2000 ? 2400 : 6000 });
 
   return ndjsonResponse(async (send) => {
     const onDelta = (d) => send({ t: "delta", d });
@@ -51,7 +57,9 @@ export async function POST(request, { params }) {
     const srcProse = chunkText.replace(/^[ \t]*##[ \t]+chapter\b.*$/gim, "").replace(/\n{3,}/g, "\n\n").trim();
     send({ t: "source", text: srcProse });
 
-    const rewritten = await reviseChunk({
+    let rewritten;
+    try {
+      rewritten = await reviseChunk({
       title: src.title,
       author: src.author,
       guide: src.guide,
@@ -64,8 +72,22 @@ export async function POST(request, { params }) {
       isFirst,
       isLast,
       lens: revisionChunkLens(src, { plan: fork.revisionPlan || "", isFirst, isLast }),
+      surround,
       onDelta,
-    });
+      });
+    } catch (err) {
+      // The part was too much for the model (its answer was cut off, or the
+      // prompt overflowed): cut the part in two and let the client go again.
+      const msg = providerErrorMessage(err, "A part of the revision failed.");
+      const halves = /limit|length|context|too long|token/i.test(String((err && err.message) || msg)) ? splitPart(chunkText) : null;
+      if (halves) {
+        fork.revisionChunks.splice(idx, 1, { text: halves[0] }, { text: halves[1] });
+        fork.revisionTotal = fork.revisionChunks.length;
+        await saveBook(fork);
+      }
+      send({ t: "error", error: msg, retry: true, split: Boolean(halves), done: fork.revisionDone, total: fork.revisionTotal });
+      return;
+    }
     send({ t: "generated" });
 
     fork.revisionText = (fork.revisionText ? fork.revisionText + "\n\n" : "") + rewritten.trim();
@@ -81,6 +103,7 @@ export async function POST(request, { params }) {
       delete done.revisionSynopsis;
       delete done.revisionScore;
       delete done.revisionChunks;
+      delete done.revisionOutline;
       delete done.revisionTotal;
       delete done.revisionDone;
       delete done.revisionText;

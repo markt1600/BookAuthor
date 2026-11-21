@@ -24,6 +24,7 @@ const kinds = [
   ["brief", /writing the one-page brief/],
   ["report", /reporting on ONE section of a novel/],
   ["rewrite", /revising ONE passage inside a novel-in-progress/],
+  ["revise", /rewriting a COMPLETED manuscript in consecutive passes/],
 ];
 
 let n = 0;
@@ -69,6 +70,8 @@ function reply(kind, system, user) {
         continuity: "Mara — visitor. The keeper — unnamed. The lighthouse on the north rock.",
       });
     }
+    case "revise":
+      return `Revised part ${n}. Mara put the letter on the table.`;
     case "rewrite":
       // The score-drop rewrite: better by default, worse when asked.
       return /MAKEWORSE/.test(user)
@@ -162,11 +165,14 @@ createServer((req, res) => {
     const user = p.messages.filter((m) => m.role === "user").map((m) => m.content).join("\n");
     const kind = (kinds.find(([, re]) => re.test(system)) || ["other"])[0];
     const text = reply(kind, system, user);
+    // The first whole-book revision part is "too long" for the model once, so
+    // the run proves a cut-off part is split and tried again.
+    const cutOff = kind === "revise" && !globalThis.__cut && (globalThis.__cut = true);
     appendFileSync(LOG, JSON.stringify({ kind, system, user, reply: text }) + "\n");
     setTimeout(() => {
       res.writeHead(200, { "Content-Type": "text/event-stream" });
       res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-      res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\n`);
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: cutOff ? "length" : "stop" }] })}\n\n`);
       res.end("data: [DONE]\n\n");
     }, DELAY);
   });

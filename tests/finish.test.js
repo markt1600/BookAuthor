@@ -324,3 +324,27 @@ test("the whole-book revision is cut into parts a model can hold", async () => {
   assert.ok(reviseParts(book, 1300)[1].startsWith("## Chapter: Two"));
   assert.deepEqual(reviseParts({ turns: [{ text: "Short." }], chapters: [] }, 900), ["Short."]);
 });
+
+test("each revision part knows the chapters around it", async () => {
+  const { partChapters, revisionSurround, splitPart } = await import("../lib/book.js");
+  const spans = partChapters(["one a", "one b\n\n## Chapter: Two\n\ntwo a", "two b", "## Chapter\n\nthree"]);
+  assert.deepEqual(spans, [{ from: 1, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 2 }, { from: 3, to: 3 }]);
+  const digest = [1, 2, 3, 4].map((num) => ({ num, title: `T${num}`, summary: `What happens in chapter ${num}.` }));
+  const s = revisionSurround(digest, { from: 2, to: 2 });
+  assert.equal(s.behind, "Chapter 1 — T1: What happens in chapter 1.");
+  assert.equal(s.here, "Chapter 2 — T2: What happens in chapter 2.");
+  assert.equal(s.ahead, "Chapter 3 — T3: What happens in chapter 3.\nChapter 4 — T4: What happens in chapter 4.");
+  assert.equal(revisionSurround(digest, { from: 4, to: 4 }).ahead, "");
+  assert.deepEqual(revisionSurround(null, { from: 1, to: 1 }), { behind: "", here: "", ahead: "" });
+  // Long summaries are clipped to keep the outline brief.
+  const long = revisionSurround([{ num: 2, title: "", summary: "word ".repeat(2000) }], { from: 1, to: 1 }, { maxChars: 600 });
+  assert.ok(long.ahead.length < 700 && long.ahead.endsWith("…"));
+
+  const w = (n, tag) => Array.from({ length: n }, (_, i) => `${tag}${i}`).join(" ");
+  const halves = splitPart([w(200, "a"), w(200, "b"), "## Chapter: Two", w(200, "c")].join("\n\n"));
+  assert.equal(halves.length, 2);
+  assert.ok(halves[1].startsWith("## Chapter: Two") || halves[0].endsWith(w(200, "b")));
+  assert.ok(!/## Chapter: Two$/.test(halves[0]));
+  assert.equal(splitPart(w(900, "x")), null); // one paragraph: nothing to cut at
+  assert.equal(splitPart("a\n\nb"), null); // already short
+});
